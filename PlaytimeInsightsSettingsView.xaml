@@ -1,0 +1,76 @@
+<UserControl x:Class="PlaytimeInsights.PlaytimeInsightsSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="400"
+             d:DesignWidth="600"
+             KeyboardNavigation.TabNavigation="Continue">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="16">
+        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsName}"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,16" />
+
+        <CheckBox Content="{DynamicResource LOCPlaytimeInsightsSettingsTrack}"
+                  IsChecked="{Binding Settings.EnableSessionTracking}"
+                  AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsSettingsTrack}"
+                  TabIndex="0"
+                  Margin="0,0,0,10" />
+
+        <CheckBox Content="{DynamicResource LOCPlaytimeInsightsSettingsRecover}"
+                  IsChecked="{Binding Settings.RecoverInterruptedSessions}"
+                  AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsSettingsRecover}"
+                  TabIndex="1"
+                  Margin="0,0,0,10" />
+
+        <CheckBox Content="{DynamicResource LOCPlaytimeInsightsSettingsIsoWeek}"
+                  IsChecked="{Binding Settings.UseIsoWeekStart}"
+                  AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsSettingsIsoWeek}"
+                  TabIndex="2"
+                  Margin="0,0,0,16" />
+
+        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsSettingsRecentDays}"
+                   Margin="0,0,0,6" />
+        <TextBox Text="{Binding Settings.RecentDays, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsSettingsRecentDays}"
+                 TabIndex="3"
+                 Width="120"
+                 HorizontalAlignment="Left"
+                 Margin="0,0,0,16" />
+
+        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsSettingsTopGames}"
+                   Margin="0,0,0,6" />
+        <TextBox Text="{Binding Settings.TopGames, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsSettingsTopGames}"
+                 TabIndex="4"
+                 Width="120"
+                 HorizontalAlignment="Left"
+                 Margin="0,0,0,16" />
+
+        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsSettingsBasis}"
+                   Opacity="0.7"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,18" />
+
+        <Separator Margin="0,0,0,16" />
+
+        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsPrivacyTitle}"
+                   FontSize="16"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,8" />
+        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsPrivacyLocal}"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,6" />
+        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsPrivacyFiles}"
+                   TextWrapping="Wrap"
+                   Opacity="0.75"
+                   Margin="0,0,0,6" />
+        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsPrivacyReport}"
+                   TextWrapping="Wrap"
+                   Opacity="0.75" />
+    </StackPanel>
+    </ScrollViewer>
+</UserControl>

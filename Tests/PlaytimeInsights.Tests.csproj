@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>PlaytimeInsightsRegression</AssemblyName>
+    <LangVersion>7.3</LangVersion>
+    <PlayniteInstallDir Condition="'$(PlayniteInstallDir)' == ''">D:\software\Playnite</PlayniteInstallDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PlaytimeInsights.csproj" />
+    <Reference Include="Playnite.SDK">
+      <HintPath>$(PlayniteInstallDir)\Playnite.SDK.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(PlayniteInstallDir)\Newtonsoft.Json.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net462"
+                      Version="1.0.3"
+                      PrivateAssets="All" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,103 @@
+<Window x:Class="PlaytimeInsights.Views.SessionEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding TitleText}"
+        Width="480"
+        Height="390"
+        MinWidth="360"
+        MinHeight="320"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False"
+        FocusManager.FocusedElement="{Binding ElementName=GameSelector}"
+        KeyboardNavigation.TabNavigation="Cycle"
+        Foreground="{DynamicResource TextBrush}"
+        Background="{DynamicResource PopupBackgroundBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+    <Grid Margin="22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="{Binding TitleText}"
+                   FontSize="24"
+                   FontWeight="SemiBold"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,18" />
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,14">
+            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsGameLabel}" Opacity="0.7" Margin="0,0,0,5" />
+            <ComboBox x:Name="GameSelector"
+                      ItemsSource="{Binding GameOptions}"
+                      SelectedItem="{Binding SelectedGame, Mode=TwoWay}"
+                      DisplayMemberPath="Name"
+                      AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsGameLabel}"
+                      TabIndex="0" />
+        </StackPanel>
+
+        <Grid Grid.Row="2" Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="{DynamicResource LOCPlaytimeInsightsStartDate}" Opacity="0.7" Margin="0,0,0,5" />
+                <DatePicker SelectedDate="{Binding StartDate, Mode=TwoWay}"
+                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsStartDate}"
+                            TabIndex="1" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="{DynamicResource LOCPlaytimeInsightsStartTime}" Opacity="0.7" Margin="0,0,0,5" />
+                <TextBox Text="{Binding StartTimeText, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsStartTime}"
+                         TabIndex="2"
+                         Padding="6,4" />
+            </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="3" Margin="0,0,0,10">
+            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsElapsedSeconds}" Opacity="0.7" Margin="0,0,0,5" />
+            <TextBox Text="{Binding ElapsedSecondsText, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsElapsedSeconds}"
+                     TabIndex="3"
+                     Padding="6,4" />
+            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsElapsedSecondsHint}"
+                       FontSize="10"
+                       Opacity="0.5"
+                       TextWrapping="Wrap"
+                       Margin="0,4,0,0" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="4"
+                   Text="{Binding ValidationMessage}"
+                   AutomationProperties.Name="{Binding ValidationMessage}"
+                   Foreground="IndianRed"
+                   TextWrapping="Wrap"
+                   Margin="0,4,0,0" />
+
+        <StackPanel Grid.Row="5"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button Content="{DynamicResource LOCPlaytimeInsightsCancelButton}"
+                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsCancelButton}"
+                    TabIndex="4"
+                    Width="90"
+                    Margin="0,0,8,0"
+                    IsCancel="True" />
+            <Button Content="{DynamicResource LOCPlaytimeInsightsSaveButton}"
+                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsSaveButton}"
+                    TabIndex="5"
+                    Width="90"
+                    IsDefault="True"
+                    Click="SaveButton_Click" />
+        </StackPanel>
+    </Grid>
+    </ScrollViewer>
+</Window>

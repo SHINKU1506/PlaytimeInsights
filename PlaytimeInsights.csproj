@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <TargetFramework>net462</TargetFramework>
+    <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>PlaytimeInsights</RootNamespace>
+    <AssemblyName>PlaytimeInsights</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Deterministic>true</Deterministic>
+    <LangVersion>7.3</LangVersion>
+    <PlayniteInstallDir Condition="'$(PlayniteInstallDir)' == ''">D:\software\Playnite</PlayniteInstallDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+    <Compile Remove="Tests\**\*.cs" />
+    <None Remove="Tests\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Playnite.SDK">
+      <HintPath>$(PlayniteInstallDir)\Playnite.SDK.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net462"
+                      Version="1.0.3"
+                      PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="extension.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="icon.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="icon-dashboard.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="icon-sessions.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="PRIVACY.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="CopyLooseLocalizationResources" AfterTargets="Build">
+    <MakeDir Directories="$(OutDir)Localization" />
+    <Copy SourceFiles="Localization\en_US.xaml;Localization\zh_CN.xaml"
+          DestinationFolder="$(OutDir)Localization"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>
