@@ -75,6 +75,9 @@ namespace PlaytimeInsights.Tests
             Run("Weekday labels follow plugin resources instead of Windows culture", TestLocalizedWeekdayLabels);
             Run("Dialog sizing stays inside high-DPI work areas", TestResponsiveWindowSizing);
             Run("Native views use portable theme brushes and responsive overflow", TestThemeAndResponsiveLayout);
+            Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
+            Run("Nested dashboard scrollers hand wheel input to page boundaries", TestDashboardMouseWheelRouting);
+            Run("Release metadata and public README stay current", TestReleaseMetadataAndReadme);
             Run("Localization keys and format placeholders stay source-complete", TestLocalizationSourceCoverage);
             Run("Release 0.1 through 0.9 settings keep compatible defaults", TestLegacySettingsMatrix);
             Run("Sidebar entries publish distinct transparent icons", TestSidebarIconPublishing);
@@ -1903,13 +1906,14 @@ namespace PlaytimeInsights.Tests
                 "AdaptiveTrendChart.cs"));
             Equal(true, Regex.IsMatch(
                 dashboard,
-                @"<ScrollViewer\s+VerticalScrollBarVisibility=""Auto""\s+" +
+                @"<ScrollViewer\s+x:Name=""DashboardScrollViewer""\s+" +
+                @"VerticalScrollBarVisibility=""Auto""\s+" +
                 @"HorizontalScrollBarVisibility=""Disabled""",
                 RegexOptions.CultureInvariant));
             Equal(true, Regex.Matches(
                 dashboard,
                 "HorizontalScrollBarVisibility=\"Auto\"").Count >= 5);
-            Equal(true, management.Contains("MinWidth=\"860\""));
+            Equal(true, management.Contains("MinWidth=\"960\""));
             Equal(true, management.Contains("ScrollViewer.HorizontalScrollBarVisibility=\"Auto\""));
             Equal(true, editor.Contains("ResizeMode=\"CanResizeWithGrip\""));
             Equal(true, editor.Contains("<ScrollViewer"));
@@ -2055,6 +2059,170 @@ namespace PlaytimeInsights.Tests
             Equal(true, coverConverter.Contains(
                 "CacheOption = BitmapCacheOption.OnLoad"));
             Equal(true, coverConverter.Contains("DecodePixelWidth = 96"));
+        }
+
+        private static void TestSessionManagementVisualHierarchy()
+        {
+            var sourceRoot = FindSourceRoot();
+            var management = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml"));
+            var managementCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml.cs"));
+            var managementViewModel = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "SessionManagementViewModel.cs"));
+            var queryService = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Services",
+                "SessionQueryService.cs"));
+
+            var importIndex = management.IndexOf(
+                "LOCPlaytimeInsightsImportButton",
+                StringComparison.Ordinal);
+            var advancedIndex = management.IndexOf(
+                "x:Name=\"AdvancedOptionsButton\"",
+                StringComparison.Ordinal);
+            Equal(true, importIndex >= 0);
+            Equal(true, advancedIndex > importIndex);
+            Equal(true, management.Contains(
+                "Content=\"{DynamicResource LOCPlaytimeInsightsAdvancedOptions}\""));
+            Equal(true, management.Contains("<Button.ContextMenu>"));
+            Equal(true, management.Contains(
+                "Header=\"{DynamicResource LOCPlaytimeInsightsRestoreBackupButton}\""));
+            Equal(false, management.Contains(
+                "<Button Content=\"{DynamicResource LOCPlaytimeInsightsRestoreBackupButton}\""));
+            Equal(true, managementCode.Contains(
+                "AdvancedOptionsButton_Click"));
+
+            Equal(true, management.Contains("AlternationCount=\"2\""));
+            Equal(true, management.Contains(
+                "Property=\"ItemsControl.AlternationIndex\""));
+            Equal(true, management.Contains("Value=\"#202A2A2E\""));
+            Equal(true, management.Contains("Value=\"#384A90E2\""));
+            Equal(true, management.Contains(
+                "<Grid Height=\"44\" MinWidth=\"960\""));
+            Equal(true, management.Contains(
+                "Source=\"{Binding CoverImagePath,"));
+            Equal(true, management.Contains("Width=\"24\""));
+            Equal(true, management.Contains("Height=\"34\""));
+            Equal(true, management.Contains("SourceTagStyle"));
+            Equal(true, management.Contains("StateTagStyle"));
+            Equal(true, Regex.Matches(
+                management,
+                "HorizontalAlignment=\"Right\"").Count >= 4);
+
+            Equal(true, managementViewModel.Contains(
+                "GetFullFilePath(game.CoverImage)"));
+            Equal(true, managementViewModel.Contains(
+                "public string CoverImagePath"));
+            Equal(true, queryService.Contains("GameId = session.GameId"));
+            Equal(true, queryService.Contains("Source = session.Source"));
+        }
+
+        private static void TestDashboardMouseWheelRouting()
+        {
+            var sourceRoot = FindSourceRoot();
+            var dashboard = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var dashboardCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+
+            Equal(true, dashboard.Contains(
+                "x:Name=\"DashboardScrollViewer\""));
+            Equal(
+                5,
+                Regex.Matches(
+                    dashboard,
+                    "PreviewMouseWheel=\"NestedScrollViewer_PreviewMouseWheel\"")
+                    .Count);
+            Equal(true, dashboardCode.Contains(
+                "CanContinueVerticalScroll(nestedScrollViewer, e.Delta)"));
+            Equal(true, dashboardCode.Contains(
+                "scrollViewer.VerticalOffset > 0"));
+            Equal(true, dashboardCode.Contains(
+                "scrollViewer.VerticalOffset < scrollViewer.ScrollableHeight"));
+            Equal(true, dashboardCode.Contains(
+                "RoutedEvent = Mouse.MouseWheelEvent"));
+            Equal(true, dashboardCode.Contains(
+                "DashboardScrollViewer.RaiseEvent(forwardedEvent)"));
+            Equal(true, dashboardCode.Contains(
+                "FindVisualChild<ScrollViewer>"));
+        }
+
+        private static void TestReleaseMetadataAndReadme()
+        {
+            var sourceRoot = FindSourceRoot();
+            var manifest = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "extension.yaml"));
+            var assemblyInfo = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Properties",
+                "AssemblyInfo.cs"));
+            var dashboard = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var sessions = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml"));
+            var english = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Localization",
+                "en_US.xaml"));
+            var chinese = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Localization",
+                "zh_CN.xaml"));
+            var readme = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "README.md"));
+
+            Equal(true, manifest.Contains("Version: 0.9.4"));
+            Equal(true, manifest.Contains(
+                "https://github.com/SHINKU1506/PlaytimeInsights"));
+            Equal(true, manifest.Contains(
+                "https://github.com/SHINKU1506/PlaytimeInsights/issues"));
+            Equal(true, manifest.Contains(
+                "https://github.com/SHINKU1506/PlaytimeInsights/blob/main/CHANGELOG.md"));
+            Equal(true, assemblyInfo.Contains(
+                "AssemblyVersion(\"0.9.4.0\")"));
+            Equal(true, assemblyInfo.Contains(
+                "AssemblyFileVersion(\"0.9.4.0\")"));
+
+            Equal(false, dashboard.Contains(
+                "LOCPlaytimeInsightsDashboardSubtitle"));
+            Equal(false, sessions.Contains(
+                "LOCPlaytimeInsightsSessionsSubtitle"));
+            Equal(false, english.Contains(
+                "LOCPlaytimeInsightsDashboardSubtitle"));
+            Equal(false, english.Contains(
+                "LOCPlaytimeInsightsSessionsSubtitle"));
+            Equal(false, chinese.Contains(
+                "LOCPlaytimeInsightsDashboardSubtitle"));
+            Equal(false, chinese.Contains(
+                "LOCPlaytimeInsightsSessionsSubtitle"));
+
+            Equal(true, readme.Contains("当前版本：`0.9.4`"));
+            Equal(true, readme.Contains("## 安装与升级"));
+            Equal(true, readme.Contains("## 数据、隐私与诊断"));
+            Equal(true, readme.Contains("## 已知限制"));
+            Equal(true, readme.Contains("## 从源码构建"));
+            Equal(true, readme.Contains("## 问题反馈"));
+            Equal(true, readme.Contains("## License"));
+            Equal(false, readme.Contains("当前开发版本：`0.9.2`"));
+            Equal(false, readme.Contains("原生柱形图与折线趋势"));
+            Equal(false, readme.Contains("按日聚合柱形"));
         }
 
         private static void TestLocalizationSourceCoverage()

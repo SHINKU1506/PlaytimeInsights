@@ -26,6 +26,18 @@ namespace PlaytimeInsights.Views
             ViewModel?.Refresh();
         }
 
+        private void AdvancedOptionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            if (button?.ContextMenu == null)
+            {
+                return;
+            }
+
+            button.ContextMenu.PlacementTarget = button;
+            button.ContextMenu.IsOpen = true;
+        }
+
         private void LoadMoreButton_Click(object sender, RoutedEventArgs e)
         {
             ViewModel?.LoadMore();

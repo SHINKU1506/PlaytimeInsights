@@ -2,9 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <sys:String x:Key="LOCPlaytimeInsightsName">Playtime Insights</sys:String>
-    <sys:String x:Key="LOCPlaytimeInsightsDashboardSubtitle">0.9.3 发布候选 · 自适应趋势交互</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSessionsTitle">会话管理</sys:String>
-    <sys:String x:Key="LOCPlaytimeInsightsSessionsSubtitle">0.9.3 发布候选 · 自适应趋势交互</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRefreshButton">刷新(_R)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCancelButton">取消(_C)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSaveButton">保存(_S)</sys:String>
@@ -54,6 +52,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsDeleteButton">软删除(_D)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRestoreButton">恢复(_O)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsDataTools">数据工具</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAdvancedOptions">⚙ 高级选项(_V)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsImportButton">导入 JSON / CSV(_I)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsFullBackupButton">完整备份(_B)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRestoreBackupButton">从备份恢复(_K)</sys:String>

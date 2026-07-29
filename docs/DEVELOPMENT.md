@@ -76,19 +76,19 @@ D:\software\Playnite\Toolbox.exe pack `
   .\dist
 ```
 
-当前 0.9.3 包名：
+当前 0.9.4 包名：
 
 ```text
-PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_3.pext
+PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_4.pext
 ```
 
-最终 0.9.3 发布校验：
+当前 0.9.4 发布校验：
 
-- 程序集：`PlaytimeInsights, Version=0.9.3.0`；
-- 清单：`Version: 0.9.3`；
-- DLL SHA-256：`FE0CF4CB4841B0DB9299E9BB73197CB66E560C06E0B38AA2D6F15D1A5EF9F9B7`；
-- PEXT SHA-256：`5E211CB4BB93C33A62EFF0AC1B7E7C65E8472B67F24FBCEE0B86A4BEEE487224`；
-- PEXT 大小：189,043 字节；
+- 程序集：`PlaytimeInsights, Version=0.9.4.0`；
+- 清单：`Version: 0.9.4`；
+- DLL SHA-256：`4BF5CE09C4A89B904FE67E0FF41F9A5822899F4D7863DCE68BC3D0355FC0E904`；
+- PEXT SHA-256：`15BAFE3225882D430129722EC2B9B54210F317591D0A9AFB9CFF1F99247C384D`；
+- PEXT 大小：191,488 字节；
 - 暂存目录与安装目录的 9 个发布文件逐项 SHA-256 一致；
 - PEXT 内容包含 `Localization/en_US.xaml` 与 `Localization/zh_CN.xaml`；
 - 发布过程不写入 `ExtensionsData`；部署后全部 7 个数据/备份文件的时间戳仍停留在
@@ -717,6 +717,48 @@ Playnite Game.CoverImage
 - 状态、错误、范围摘要、实际筛选数量和已有会话分页数量不属于帮助文本，继续常驻；
 - `SessionDetailVisibility` 初始及刷新后为 Collapsed，点击趋势或热力格执行
   `LoadSessionDetails` 后切为 Visible；因此空白状态不再显示“未显示会话”面板。
+
+会话管理操作层级与紧凑表格：
+
+- 数据工具面板使用两列 Grid：左侧 WrapPanel 固定放置导入、CSV 导出和 JSON 导出，右侧按钮
+  通过原生 `ContextMenu` 打开“高级选项”；
+- 高级菜单包含所选会话的软删除/恢复，以及完整备份、备份恢复、重建索引和诊断报告；
+  `ContextMenu.DataContext` 显式绑定回 `PlacementTarget.DataContext`，删除与恢复菜单项继续响应
+  `CanDelete` / `CanRestore`；
+- 原顶部区保留补录、编辑和刷新，避免高危操作与高频编辑并列；
+- `ListBox.AlternationCount=2` 配合容器 `AlternationIndex` 生成斑马纹；偶数视觉行使用
+  `#202A2A2E` 半透明中性叠色，Hover 使用 `#384A90E2`，选中使用更强的 `#484A90E2`
+  并保留左侧主题色边线；
+- 行高由 48 降至 44；游戏列使用 24 × 34 封面和固定占位，转换器继续以 OnLoad 方式解码，
+  不锁定 Playnite 媒体文件；
+- `SessionManagementViewModel.ApplyCoverImages` 根据 `GameId` 调用
+  `playniteApi.Database.GetFullFilePath`，缺失游戏、缺失封面和路径异常均回退为空；
+- 开始时间与时长的列头/数据均右对齐；来源与状态居中显示为圆角 Tag；
+- 来源默认追踪为蓝色、异常恢复为橙色、导入为紫色、手动为中性色；有效状态为绿色，
+  已删除状态为红色；
+- 200 条分页、Recycling 虚拟化、横向溢出和键盘选择行为保持不变。
+
+主看板嵌套滚轮接力：
+
+- 外层纵向滚动器命名为 `DashboardScrollViewer`；
+- 24 小时分布、星期 × 小时热力图、日历热力图的横向 `ScrollViewer`，以及异常 `ListBox`、
+  会话钻取 `ListView`，统一绑定 `NestedScrollViewer_PreviewMouseWheel`；
+- 横向图表没有可用纵向范围，因此滚轮事件直接重新路由到外层 `Mouse.MouseWheelEvent`；
+- 对内部列表通过其模板中的 `ScrollViewer.VerticalOffset` 与 `ScrollableHeight` 判断当前方向：
+  向上且偏移大于零、或向下且未到底时保留列表滚动，否则交给整页；
+- 内层 `ScrollViewer` 通过视觉树按需查找，不依赖 Playnite 主题的具体列表模板层级；
+- 转发只发生在子控件无法继续滚动时，横向滚动条、Recycling 虚拟化和列表内部滚动均保持不变。
+
+0.9.4 公开界面与元数据清理：
+
+- 分析页和会话页删除阶段性副标题 TextBlock，只保留稳定页面标题；
+- 中英资源同步移除 `LOCPlaytimeInsightsDashboardSubtitle` 与
+  `LOCPlaytimeInsightsSessionsSubtitle`，没有保留未使用版本字符串；
+- `extension.yaml` 和程序集统一为 0.9.4 / 0.9.4.0；
+- 清单新增 Source code、Issue tracker 和 Changelog 三个 HTTPS 链接，Toolbox 打包后内容保持；
+- README 按用户文档重写，覆盖真实功能、数据口径、兼容性、安装升级、使用、隐私、限制、
+  构建测试、反馈和 MIT License，不再描述已删除的聚合柱形图；
+- 第 61 项回归锁定版本、链接、副标题清理和 README 必备章节。
 
 ## Git 与发布源码边界
 

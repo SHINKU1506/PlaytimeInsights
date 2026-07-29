@@ -238,12 +238,14 @@ namespace PlaytimeInsights.Services
                     return new SessionManagementItemViewModel
                     {
                         SessionId = session.Id,
+                        GameId = session.GameId,
                         GameName = string.IsNullOrWhiteSpace(game?.Name)
                             ? session.GameName
                             : game.Name,
                         StartedText = localStarted.ToString("yyyy/M/d HH:mm"),
                         DurationText = AnalyticsService.FormatDurationPrecise(session.ElapsedSeconds),
                         SourceText = GetSourceLabel(session.Source),
+                        Source = session.Source,
                         StateText = session.IsDeleted
                             ? LocalizationService.Get(
                                 "LOCPlaytimeInsightsDeleted",

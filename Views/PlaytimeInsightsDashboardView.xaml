@@ -323,7 +323,8 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto"
+    <ScrollViewer x:Name="DashboardScrollViewer"
+                  VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="24,22,24,24">
             <Grid Margin="0,0,0,18">
@@ -343,10 +344,6 @@
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsName}"
                                    FontSize="28"
                                    FontWeight="SemiBold" />
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsDashboardSubtitle}"
-                                   Opacity="0.65"
-                                   TextWrapping="Wrap"
-                                   Margin="0,4,0,0" />
                     </StackPanel>
                 </Grid>
                 <Button Grid.Column="1"
@@ -579,6 +576,7 @@
                     <ListBox ItemsSource="{Binding Anomalies}"
                              MaxHeight="300"
                              HorizontalContentAlignment="Stretch"
+                             PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
                              VirtualizingPanel.IsVirtualizing="True"
@@ -676,7 +674,8 @@
 
                     <TextBlock Text="{Binding HourDistributionTitle}" FontWeight="SemiBold" Margin="0,20,0,8" />
                     <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                  VerticalScrollBarVisibility="Disabled">
+                                  VerticalScrollBarVisibility="Disabled"
+                                  PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel">
                         <ItemsControl ItemsSource="{Binding HourDistribution}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -711,6 +710,7 @@
                     <TextBlock Text="{DynamicResource LOCPlaytimeInsightsWeekHourHeatmap}" FontWeight="SemiBold" Margin="0,20,0,8" />
                     <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Disabled"
+                                  PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
                                   HorizontalContentAlignment="Center">
                         <Grid HorizontalAlignment="Center">
                             <Grid.RowDefinitions>
@@ -798,6 +798,7 @@
                     </StackPanel>
                     <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Disabled"
+                                  PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
                                   HorizontalContentAlignment="Center">
                         <Grid HorizontalAlignment="Center">
                             <Grid.ColumnDefinitions>
@@ -890,6 +891,7 @@
                                Margin="0,0,0,8" />
                     <ListView ItemsSource="{Binding SessionDetails}"
                               MaxHeight="380"
+                              PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
                               ScrollViewer.VerticalScrollBarVisibility="Auto"
                               ScrollViewer.HorizontalScrollBarVisibility="Auto"
                               ScrollViewer.CanContentScroll="True"

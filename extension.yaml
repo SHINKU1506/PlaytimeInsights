@@ -1,7 +1,14 @@
 Id: PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd
 Name: Playtime Insights
 Author: chan
-Version: 0.9.3
+Version: 0.9.4
 Module: PlaytimeInsights.dll
 Type: GenericPlugin
 Icon: icon.png
+Links:
+  - Name: Source code
+    Url: https://github.com/SHINKU1506/PlaytimeInsights
+  - Name: Issue tracker
+    Url: https://github.com/SHINKU1506/PlaytimeInsights/issues
+  - Name: Changelog
+    Url: https://github.com/SHINKU1506/PlaytimeInsights/blob/main/CHANGELOG.md

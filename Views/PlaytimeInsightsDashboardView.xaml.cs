@@ -3,6 +3,7 @@ using PlaytimeInsights.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace PlaytimeInsights.Views
 {
@@ -48,6 +49,81 @@ namespace PlaytimeInsights.Views
         private void LoadMoreSessionDetails_Click(object sender, RoutedEventArgs e)
         {
             (DataContext as DashboardViewModel)?.LoadMoreSessionDetails();
+        }
+
+        private void NestedScrollViewer_PreviewMouseWheel(
+            object sender,
+            MouseWheelEventArgs e)
+        {
+            if (e.Handled || DashboardScrollViewer == null)
+            {
+                return;
+            }
+
+            var nestedScrollViewer = sender as ScrollViewer ??
+                FindVisualChild<ScrollViewer>(sender as DependencyObject);
+            if (CanContinueVerticalScroll(nestedScrollViewer, e.Delta))
+            {
+                return;
+            }
+
+            e.Handled = true;
+            var forwardedEvent = new MouseWheelEventArgs(
+                e.MouseDevice,
+                e.Timestamp,
+                e.Delta)
+            {
+                RoutedEvent = Mouse.MouseWheelEvent,
+                Source = DashboardScrollViewer
+            };
+            DashboardScrollViewer.RaiseEvent(forwardedEvent);
+        }
+
+        private static bool CanContinueVerticalScroll(
+            ScrollViewer scrollViewer,
+            int wheelDelta)
+        {
+            if (scrollViewer == null || scrollViewer.ScrollableHeight <= 0)
+            {
+                return false;
+            }
+
+            if (wheelDelta > 0)
+            {
+                return scrollViewer.VerticalOffset > 0;
+            }
+
+            return wheelDelta < 0 &&
+                scrollViewer.VerticalOffset < scrollViewer.ScrollableHeight;
+        }
+
+        private static T FindVisualChild<T>(DependencyObject parent)
+            where T : DependencyObject
+        {
+            if (parent == null)
+            {
+                return null;
+            }
+
+            for (var index = 0;
+                index < VisualTreeHelper.GetChildrenCount(parent);
+                index++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, index);
+                var match = child as T;
+                if (match != null)
+                {
+                    return match;
+                }
+
+                match = FindVisualChild<T>(child);
+                if (match != null)
+                {
+                    return match;
+                }
+            }
+
+            return null;
         }
 
         private void Refresh()

@@ -2,9 +2,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <sys:String x:Key="LOCPlaytimeInsightsName">Playtime Insights</sys:String>
-    <sys:String x:Key="LOCPlaytimeInsightsDashboardSubtitle">0.9.3 Release Candidate · Adaptive Trend Interaction</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSessionsTitle">Session Management</sys:String>
-    <sys:String x:Key="LOCPlaytimeInsightsSessionsSubtitle">0.9.3 Release Candidate · Adaptive Trend Interaction</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRefreshButton">_Refresh</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCancelButton">_Cancel</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSaveButton">_Save</sys:String>
@@ -54,6 +52,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsDeleteButton">Soft _delete</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRestoreButton">Rest_ore</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsDataTools">Data tools</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAdvancedOptions">⚙ Ad_vanced options</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsImportButton">_Import JSON / CSV</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsFullBackupButton">Full _backup</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRestoreBackupButton">Restore from bac_kup</sys:String>

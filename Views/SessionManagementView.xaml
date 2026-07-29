@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:PlaytimeInsights.Converters"
+             xmlns:models="clr-namespace:PlaytimeInsights.Models"
              mc:Ignorable="d"
              d:DesignHeight="800"
              d:DesignWidth="1200"
@@ -10,6 +12,7 @@
              KeyboardNavigation.TabNavigation="Continue"
              Foreground="{DynamicResource TextBrush}">
     <UserControl.Resources>
+        <converters:CoverImageConverter x:Key="CoverImageConverter" />
         <Style x:Key="PanelStyle" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
@@ -71,15 +74,20 @@
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                         </Border>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                <Setter TargetName="ItemBorder"
+                                        Property="Background"
+                                        Value="#202A2A2E" />
+                            </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ItemBorder"
                                         Property="Background"
-                                        Value="{DynamicResource ControlBackgroundBrush}" />
+                                        Value="#384A90E2" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="ItemBorder"
                                         Property="Background"
-                                        Value="{DynamicResource ControlBackgroundBrush}" />
+                                        Value="#484A90E2" />
                                 <Setter TargetName="ItemBorder"
                                         Property="BorderBrush"
                                         Value="{DynamicResource GlyphBrush}" />
@@ -99,6 +107,49 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+        <Style x:Key="SourceTagStyle" TargetType="{x:Type Border}">
+            <Setter Property="MinWidth" Value="72" />
+            <Setter Property="Padding" Value="7,2" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="#202F8CFF" />
+            <Setter Property="BorderBrush" Value="#702F8CFF" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Source}"
+                             Value="{x:Static models:SessionSource.Recovered}">
+                    <Setter Property="Background" Value="#30F0A43C" />
+                    <Setter Property="BorderBrush" Value="#A0F0A43C" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Source}"
+                             Value="{x:Static models:SessionSource.Imported}">
+                    <Setter Property="Background" Value="#28A45CFF" />
+                    <Setter Property="BorderBrush" Value="#80A45CFF" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Source}"
+                             Value="{x:Static models:SessionSource.Manual}">
+                    <Setter Property="Background" Value="#208A8A8A" />
+                    <Setter Property="BorderBrush" Value="#708A8A8A" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="StateTagStyle" TargetType="{x:Type Border}">
+            <Setter Property="MinWidth" Value="52" />
+            <Setter Property="Padding" Value="7,2" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="#2836C989" />
+            <Setter Property="BorderBrush" Value="#8036C989" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsDeleted}" Value="True">
+                    <Setter Property="Background" Value="#30E15B64" />
+                    <Setter Property="BorderBrush" Value="#90E15B64" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
     <Grid Margin="24">
@@ -129,10 +180,6 @@
                                FontSize="28"
                                FontWeight="SemiBold"
                                TextWrapping="Wrap" />
-                    <TextBlock Text="{DynamicResource LOCPlaytimeInsightsSessionsSubtitle}"
-                               Opacity="0.65"
-                               TextWrapping="Wrap"
-                               Margin="0,4,0,0" />
                 </StackPanel>
             </Grid>
             <WrapPanel Grid.Column="1"
@@ -149,16 +196,6 @@
                         Style="{StaticResource SecondaryButtonStyle}"
                         IsEnabled="{Binding CanEdit}"
                         Click="EditSessionButton_Click" />
-                <Button Content="{DynamicResource LOCPlaytimeInsightsDeleteButton}"
-                        AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsDeleteButton}"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        IsEnabled="{Binding CanDelete}"
-                        Click="DeleteSessionButton_Click" />
-                <Button Content="{DynamicResource LOCPlaytimeInsightsRestoreButton}"
-                        AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRestoreButton}"
-                        Style="{StaticResource SecondaryButtonStyle}"
-                        IsEnabled="{Binding CanRestore}"
-                        Click="RestoreSessionButton_Click" />
                 <Button Content="{DynamicResource LOCPlaytimeInsightsRefreshButton}"
                         AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRefreshButton}"
                         Style="{StaticResource SecondaryButtonStyle}"
@@ -174,40 +211,60 @@
                            FontSize="16"
                            FontWeight="SemiBold"
                            Margin="0,0,0,10" />
-                <WrapPanel>
-                    <Button Content="{DynamicResource LOCPlaytimeInsightsImportButton}"
-                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsImportButton}"
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <WrapPanel>
+                        <Button Content="{DynamicResource LOCPlaytimeInsightsImportButton}"
+                                AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsImportButton}"
+                                Padding="14,7"
+                                Margin="0,0,8,8"
+                                Click="ImportButton_Click" />
+                        <Button Content="{DynamicResource LOCPlaytimeInsightsExportCsvButton}"
+                                AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsExportCsvButton}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                IsEnabled="{Binding HasFilteredSessions}"
+                                Click="ExportCsvButton_Click" />
+                        <Button Content="{DynamicResource LOCPlaytimeInsightsExportJsonButton}"
+                                AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsExportJsonButton}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                IsEnabled="{Binding HasFilteredSessions}"
+                                Click="ExportJsonButton_Click" />
+                    </WrapPanel>
+                    <Button x:Name="AdvancedOptionsButton"
+                            Grid.Column="1"
+                            Content="{DynamicResource LOCPlaytimeInsightsAdvancedOptions}"
+                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsAdvancedOptions}"
                             Style="{StaticResource SecondaryButtonStyle}"
-                            Click="ImportButton_Click" />
-                    <Button Content="{DynamicResource LOCPlaytimeInsightsFullBackupButton}"
-                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsFullBackupButton}"
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            Click="BackupButton_Click" />
-                    <Button Content="{DynamicResource LOCPlaytimeInsightsRestoreBackupButton}"
-                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRestoreBackupButton}"
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            Click="RestoreBackupButton_Click" />
-                    <Button Content="{DynamicResource LOCPlaytimeInsightsReindexButton}"
-                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsReindexButton}"
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            Click="ReindexButton_Click" />
-                    <Button Content="{DynamicResource LOCPlaytimeInsightsDiagnosticsButton}"
-                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsDiagnosticsButton}"
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            Margin="0,0,20,8"
-                            ToolTip="{DynamicResource LOCPlaytimeInsightsDiagnosticsTooltip}"
-                            Click="DiagnosticsButton_Click" />
-                    <Button Content="{DynamicResource LOCPlaytimeInsightsExportCsvButton}"
-                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsExportCsvButton}"
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            IsEnabled="{Binding HasFilteredSessions}"
-                            Click="ExportCsvButton_Click" />
-                    <Button Content="{DynamicResource LOCPlaytimeInsightsExportJsonButton}"
-                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsExportJsonButton}"
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            IsEnabled="{Binding HasFilteredSessions}"
-                            Click="ExportJsonButton_Click" />
-                </WrapPanel>
+                            Margin="20,0,0,8"
+                            Click="AdvancedOptionsButton_Click">
+                        <Button.ContextMenu>
+                            <ContextMenu Placement="Bottom"
+                                         DataContext="{Binding PlacementTarget.DataContext,
+                                             RelativeSource={RelativeSource Self}}">
+                                <MenuItem Header="{DynamicResource LOCPlaytimeInsightsDeleteButton}"
+                                          IsEnabled="{Binding CanDelete}"
+                                          Click="DeleteSessionButton_Click" />
+                                <MenuItem Header="{DynamicResource LOCPlaytimeInsightsRestoreButton}"
+                                          IsEnabled="{Binding CanRestore}"
+                                          Click="RestoreSessionButton_Click" />
+                                <Separator />
+                                <MenuItem Header="{DynamicResource LOCPlaytimeInsightsFullBackupButton}"
+                                          Click="BackupButton_Click" />
+                                <MenuItem Header="{DynamicResource LOCPlaytimeInsightsRestoreBackupButton}"
+                                          Click="RestoreBackupButton_Click" />
+                                <MenuItem Header="{DynamicResource LOCPlaytimeInsightsReindexButton}"
+                                          Click="ReindexButton_Click" />
+                                <Separator />
+                                <MenuItem Header="{DynamicResource LOCPlaytimeInsightsDiagnosticsButton}"
+                                          ToolTip="{DynamicResource LOCPlaytimeInsightsDiagnosticsTooltip}"
+                                          Click="DiagnosticsButton_Click" />
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </Grid>
             </StackPanel>
         </Border>
 
@@ -283,7 +340,7 @@
                 </Grid.RowDefinitions>
                 <ScrollViewer HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Disabled">
-                    <Border MinWidth="860"
+                    <Border MinWidth="960"
                             Background="{DynamicResource PopupBackgroundBrush}"
                             BorderBrush="{DynamicResource PanelSeparatorBrush}"
                             BorderThickness="0,0,0,1"
@@ -305,21 +362,31 @@
                                        Text="{DynamicResource LOCPlaytimeInsightsStartTime}"
                                        Style="{StaticResource FieldLabelStyle}"
                                        Margin="0"
+                                       HorizontalAlignment="Right"
+                                       TextAlignment="Right"
+                                       Padding="0,0,12,0"
                                        VerticalAlignment="Center" />
                             <TextBlock Grid.Column="2"
                                        Text="{DynamicResource LOCPlaytimeInsightsDuration}"
                                        Style="{StaticResource FieldLabelStyle}"
                                        Margin="0"
+                                       HorizontalAlignment="Right"
+                                       TextAlignment="Right"
+                                       Padding="0,0,12,0"
                                        VerticalAlignment="Center" />
                             <TextBlock Grid.Column="3"
                                        Text="{DynamicResource LOCPlaytimeInsightsSessionSource}"
                                        Style="{StaticResource FieldLabelStyle}"
                                        Margin="0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
                                        VerticalAlignment="Center" />
                             <TextBlock Grid.Column="4"
                                        Text="{DynamicResource LOCPlaytimeInsightsSessionState}"
                                        Style="{StaticResource FieldLabelStyle}"
                                        Margin="0"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
                                        VerticalAlignment="Center" />
                             <TextBlock Grid.Column="5"
                                        Text="{DynamicResource LOCPlaytimeInsightsLibrary}"
@@ -334,6 +401,7 @@
                          AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsSessionsTitle}"
                          SelectedItem="{Binding SelectedSession, Mode=TwoWay}"
                          ItemContainerStyle="{StaticResource SessionListItemStyle}"
+                         AlternationCount="2"
                          Background="Transparent"
                          BorderThickness="0"
                          HorizontalContentAlignment="Stretch"
@@ -349,7 +417,7 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid Height="48" MinWidth="860" Margin="12,0">
+                            <Grid Height="44" MinWidth="960" Margin="12,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="170" />
@@ -358,27 +426,62 @@
                                     <ColumnDefinition Width="90" />
                                     <ColumnDefinition Width="180" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding GameName}"
-                                           VerticalAlignment="Center"
-                                           FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis" />
+                                <Grid Margin="0,3,12,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="24"
+                                            Height="34"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            Background="{DynamicResource PopupBackgroundBrush}"
+                                            BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="3"
+                                            ClipToBounds="True">
+                                        <Image Source="{Binding CoverImagePath,
+                                            Converter={StaticResource CoverImageConverter}}"
+                                               Stretch="UniformToFill"
+                                               RenderOptions.BitmapScalingMode="HighQuality"
+                                               Focusable="False"
+                                               IsHitTestVisible="False" />
+                                    </Border>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding GameName}"
+                                               VerticalAlignment="Center"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding StartedText}"
                                            VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"
+                                           TextAlignment="Right"
+                                           Margin="0,0,12,0"
                                            Opacity="0.75" />
                                 <TextBlock Grid.Column="2"
                                            Text="{Binding DurationText}"
                                            VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"
+                                           TextAlignment="Right"
+                                           Margin="0,0,12,0"
                                            FontWeight="SemiBold"
                                            Opacity="0.86" />
-                                <TextBlock Grid.Column="3"
-                                           Text="{Binding SourceText}"
-                                           VerticalAlignment="Center"
-                                           Opacity="0.68" />
-                                <TextBlock Grid.Column="4"
-                                           Text="{Binding StateText}"
-                                           VerticalAlignment="Center"
-                                           Opacity="0.68" />
+                                <Border Grid.Column="3"
+                                        Style="{StaticResource SourceTagStyle}">
+                                    <TextBlock Text="{Binding SourceText}"
+                                               HorizontalAlignment="Center"
+                                               TextAlignment="Center"
+                                               FontSize="11" />
+                                </Border>
+                                <Border Grid.Column="4"
+                                        Style="{StaticResource StateTagStyle}">
+                                    <TextBlock Text="{Binding StateText}"
+                                               HorizontalAlignment="Center"
+                                               TextAlignment="Center"
+                                               FontSize="11" />
+                                </Border>
                                 <TextBlock Grid.Column="5"
                                            Text="{Binding LibraryName}"
                                            VerticalAlignment="Center"

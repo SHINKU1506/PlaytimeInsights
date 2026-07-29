@@ -16,13 +16,19 @@ namespace PlaytimeInsights.ViewModels
     {
         public Guid SessionId { get; set; }
 
+        public Guid GameId { get; set; }
+
         public string GameName { get; set; }
+
+        public string CoverImagePath { get; set; }
 
         public string StartedText { get; set; }
 
         public string DurationText { get; set; }
 
         public string SourceText { get; set; }
+
+        public SessionSource Source { get; set; }
 
         public string StateText { get; set; }
 
@@ -264,7 +270,12 @@ namespace PlaytimeInsights.ViewModels
                         IncludeDeleted = IncludeDeleted
                     },
                     libraryNames);
-                pager.Reset(queryService.CreateItems(games, filteredSessions, libraryNames));
+                var items = queryService.CreateItems(
+                    games,
+                    filteredSessions,
+                    libraryNames);
+                ApplyCoverImages(items, games);
+                pager.Reset(items);
                 StatusText = filteredSessions.Count == 0
                     ? LocalizationService.Get(
                         "LOCPlaytimeInsightsNoFilteredSessions",
@@ -288,6 +299,37 @@ namespace PlaytimeInsights.ViewModels
             if (pager.AppendNextPage() > 0)
             {
                 NotifyPagingChanged();
+            }
+        }
+
+        private void ApplyCoverImages(
+            IEnumerable<SessionManagementItemViewModel> items,
+            IEnumerable<Playnite.SDK.Models.Game> games)
+        {
+            var gamesById = (games ?? Enumerable.Empty<Playnite.SDK.Models.Game>())
+                .GroupBy(game => game.Id)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            foreach (var item in items ??
+                Enumerable.Empty<SessionManagementItemViewModel>())
+            {
+                Playnite.SDK.Models.Game game;
+                if (!gamesById.TryGetValue(item.GameId, out game) ||
+                    string.IsNullOrWhiteSpace(game.CoverImage))
+                {
+                    item.CoverImagePath = null;
+                    continue;
+                }
+
+                try
+                {
+                    item.CoverImagePath =
+                        playniteApi.Database.GetFullFilePath(game.CoverImage);
+                }
+                catch
+                {
+                    item.CoverImagePath = null;
+                }
             }
         }
 
