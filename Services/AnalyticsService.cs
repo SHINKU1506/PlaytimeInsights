@@ -285,6 +285,7 @@ namespace PlaytimeInsights.Services
                     session.StartedAtUtc,
                     new SessionDetailViewModel
                     {
+                        GameId = session.GameId,
                         GameName = string.IsNullOrWhiteSpace(currentName)
                             ? session.GameName
                             : currentName,

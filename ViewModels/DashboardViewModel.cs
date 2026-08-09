@@ -67,7 +67,11 @@ namespace PlaytimeInsights.ViewModels
 
     public sealed class SessionDetailViewModel
     {
+        public Guid GameId { get; set; }
+
         public string GameName { get; set; }
+
+        public string CoverImagePath { get; set; }
 
         public string StartedText { get; set; }
 
@@ -920,6 +924,7 @@ namespace PlaytimeInsights.ViewModels
                 activeFilteredSessions,
                 startDate,
                 endDate);
+            ApplySessionDetailCoverImages(details, activeFilteredGames);
             sessionDetailPager.Reset(details);
             NotifySessionDetailPagingChanged();
             SessionDetailVisibility = Visibility.Visible;
@@ -961,6 +966,36 @@ namespace PlaytimeInsights.ViewModels
                 catch
                 {
                     ranking.CoverImagePath = null;
+                }
+            }
+        }
+
+        private void ApplySessionDetailCoverImages(
+            IEnumerable<SessionDetailViewModel> details,
+            IEnumerable<Game> games)
+        {
+            var gamesById = (games ?? Enumerable.Empty<Game>())
+                .GroupBy(game => game.Id)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            foreach (var detail in details ?? Enumerable.Empty<SessionDetailViewModel>())
+            {
+                Game game;
+                if (!gamesById.TryGetValue(detail.GameId, out game) ||
+                    string.IsNullOrWhiteSpace(game.CoverImage))
+                {
+                    detail.CoverImagePath = null;
+                    continue;
+                }
+
+                try
+                {
+                    detail.CoverImagePath =
+                        playniteApi.Database.GetFullFilePath(game.CoverImage);
+                }
+                catch
+                {
+                    detail.CoverImagePath = null;
                 }
             }
         }

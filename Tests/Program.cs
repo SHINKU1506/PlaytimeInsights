@@ -190,6 +190,15 @@ namespace PlaytimeInsights.Tests
             Equal(168, snapshot.Advanced.WeekHourCells.Count);
             Equal(120UL, snapshot.Advanced.WeekdayDistribution[0].Seconds);
             Equal(60UL, snapshot.Advanced.WeekdayDistribution[1].Seconds);
+            Equal(
+                true,
+                snapshot.Advanced.WeekdayDistribution[0].TooltipText.StartsWith(
+                    snapshot.Advanced.WeekdayDistribution[0].Label + "：",
+                    StringComparison.Ordinal));
+            Equal(
+                false,
+                snapshot.Advanced.WeekdayDistribution[0].TooltipText.Contains(
+                    "星期 " + snapshot.Advanced.WeekdayDistribution[0].Label));
             Equal(180UL, snapshot.Advanced.HourDistribution[18].Seconds);
             Equal(120UL, snapshot.Advanced.WeekHourCells[18].Seconds);
             Equal(60UL, snapshot.Advanced.WeekHourCells[24 + 18].Seconds);
@@ -785,6 +794,7 @@ namespace PlaytimeInsights.Tests
                 new DateTime(2026, 7, 28));
 
             Equal(1, details.Count);
+            Equal(session.GameId, details[0].GameId);
             Equal("0 分 30 秒", details[0].DurationText);
             Equal("异常恢复", details[0].SourceText);
         }
@@ -1991,6 +2001,21 @@ namespace PlaytimeInsights.Tests
             Equal(true, adaptiveTrendChart.Contains("GameSummaryText"));
             Equal(true, dashboard.Contains(
                 "<ListView ItemsSource=\"{Binding SessionDetails}\""));
+            var sessionDetailsStart = dashboard.IndexOf(
+                "<ListView ItemsSource=\"{Binding SessionDetails}\"",
+                StringComparison.Ordinal);
+            var sessionStartTimeColumn = dashboard.IndexOf(
+                "GridViewColumn Header=\"{DynamicResource LOCPlaytimeInsightsStartTime}\"",
+                sessionDetailsStart,
+                StringComparison.Ordinal);
+            Equal(true, sessionDetailsStart >= 0);
+            Equal(true, sessionStartTimeColumn > sessionDetailsStart);
+            Equal(
+                true,
+                dashboard.Substring(
+                    sessionDetailsStart,
+                    sessionStartTimeColumn - sessionDetailsStart)
+                    .Contains("Image Source=\"{Binding CoverImagePath,"));
             Equal(true, dashboard.Contains(
                 "<GridView AllowsColumnReorder=\"False\">"));
             Equal(true, dashboard.Contains(
@@ -2056,6 +2081,8 @@ namespace PlaytimeInsights.Tests
                 "Text=\"{DynamicResource LOCPlaytimeInsightsDurationComparison}\""));
             Equal(true, dashboardViewModel.Contains(
                 "GetFullFilePath(game.CoverImage)"));
+            Equal(true, dashboardViewModel.Contains(
+                "ApplySessionDetailCoverImages(details, activeFilteredGames)"));
             Equal(true, coverConverter.Contains(
                 "CacheOption = BitmapCacheOption.OnLoad"));
             Equal(true, coverConverter.Contains("DecodePixelWidth = 96"));
@@ -2187,8 +2214,19 @@ namespace PlaytimeInsights.Tests
             var readme = File.ReadAllText(Path.Combine(
                 sourceRoot,
                 "README.md"));
+            var project = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.csproj"));
+            var installerManifest = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "manifests",
+                "installer.yaml"));
+            var addonManifest = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "manifests",
+                "addon.yaml"));
 
-            Equal(true, manifest.Contains("Version: 0.9.4"));
+            Equal(true, manifest.Contains("Version: 0.9.8"));
             Equal(true, manifest.Contains(
                 "https://github.com/SHINKU1506/PlaytimeInsights"));
             Equal(true, manifest.Contains(
@@ -2196,9 +2234,9 @@ namespace PlaytimeInsights.Tests
             Equal(true, manifest.Contains(
                 "https://github.com/SHINKU1506/PlaytimeInsights/blob/main/CHANGELOG.md"));
             Equal(true, assemblyInfo.Contains(
-                "AssemblyVersion(\"0.9.4.0\")"));
+                "AssemblyVersion(\"0.9.8.0\")"));
             Equal(true, assemblyInfo.Contains(
-                "AssemblyFileVersion(\"0.9.4.0\")"));
+                "AssemblyFileVersion(\"0.9.8.0\")"));
 
             Equal(false, dashboard.Contains(
                 "LOCPlaytimeInsightsDashboardSubtitle"));
@@ -2213,7 +2251,7 @@ namespace PlaytimeInsights.Tests
             Equal(false, chinese.Contains(
                 "LOCPlaytimeInsightsSessionsSubtitle"));
 
-            Equal(true, readme.Contains("当前版本：`0.9.4`"));
+            Equal(true, readme.Contains("当前版本：`0.9.8`"));
             Equal(true, readme.Contains("## 安装与升级"));
             Equal(true, readme.Contains("## 数据、隐私与诊断"));
             Equal(true, readme.Contains("## 已知限制"));
@@ -2223,6 +2261,28 @@ namespace PlaytimeInsights.Tests
             Equal(false, readme.Contains("当前开发版本：`0.9.2`"));
             Equal(false, readme.Contains("原生柱形图与折线趋势"));
             Equal(false, readme.Contains("按日聚合柱形"));
+
+            Equal(true, project.Contains(
+                "<DebugType>None</DebugType>"));
+            Equal(true, project.Contains(
+                "<DebugSymbols>false</DebugSymbols>"));
+            Equal(true, project.Contains(
+                "<PathMap>$(MSBuildProjectDirectory)=/_/PlaytimeInsights</PathMap>"));
+            Equal(true, project.Contains(
+                "<None Update=\"LICENSE\" CopyToOutputDirectory=\"PreserveNewest\" />"));
+
+            Equal(true, installerManifest.Contains(
+                "AddonId: PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd"));
+            Equal(true, installerManifest.Contains("Version: 0.9.8"));
+            Equal(true, installerManifest.Contains(
+                "RequiredApiVersion: 6.16.0"));
+            Equal(true, installerManifest.Contains(
+                "/releases/download/v0.9.8/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_8.pext"));
+            Equal(true, addonManifest.Contains("Type: Generic"));
+            Equal(true, addonManifest.Contains(
+                "InstallerManifestUrl: https://raw.githubusercontent.com/SHINKU1506/PlaytimeInsights/main/manifests/installer.yaml"));
+            Equal(true, addonManifest.Contains(
+                "SourceUrl: https://github.com/SHINKU1506/PlaytimeInsights"));
         }
 
         private static void TestLocalizationSourceCoverage()

@@ -1,6 +1,6 @@
 # 开发与构建
 
-更新日期：2026-07-28
+更新日期：2026-07-29
 
 ## 环境
 
@@ -16,6 +16,10 @@
 
 运行时只引用 Playnite 自带的 `Playnite.SDK.dll`，并设置 `Private=false`，不会复制或分发 SDK DLL。
 
+正式 Release 配置设置 `DebugType=None`、`DebugSymbols=false`，不生成或分发 PDB；`PathMap` 将
+项目目录映射到 `/_/PlaytimeInsights`。构建后还会对 DLL 扫描用户名、开发目录和 PDB 路径，
+避免正式二进制泄露本机绝对路径。
+
 ## 恢复与编译
 
 ```powershell
@@ -28,11 +32,11 @@ dotnet build .\PlaytimeInsights.csproj -c Release --no-restore
 ```text
 bin\Release\net462\
   PlaytimeInsights.dll
-  PlaytimeInsights.pdb
   extension.yaml
   icon.png
   icon-dashboard.png
   icon-sessions.png
+  LICENSE
   PRIVACY.md
   Localization\
     en_US.xaml
@@ -57,11 +61,11 @@ dotnet build .\PlaytimeInsights.csproj -c Release -p:PlayniteInstallDir="X:\Play
 部署发布文件：
 
 - `PlaytimeInsights.dll`
-- `PlaytimeInsights.pdb`
 - `extension.yaml`
 - `icon.png`
 - `icon-dashboard.png`
 - `icon-sessions.png`
+- `LICENSE`
 - `PRIVACY.md`
 - `Localization\en_US.xaml`
 - `Localization\zh_CN.xaml`
@@ -76,24 +80,35 @@ D:\software\Playnite\Toolbox.exe pack `
   .\dist
 ```
 
-当前 0.9.4 包名：
+当前 0.9.8 包名：
 
 ```text
-PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_4.pext
+PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_8.pext
 ```
 
-当前 0.9.4 发布校验：
+当前 0.9.8 发布校验：
 
-- 程序集：`PlaytimeInsights, Version=0.9.4.0`；
-- 清单：`Version: 0.9.4`；
-- DLL SHA-256：`4BF5CE09C4A89B904FE67E0FF41F9A5822899F4D7863DCE68BC3D0355FC0E904`；
-- PEXT SHA-256：`15BAFE3225882D430129722EC2B9B54210F317591D0A9AFB9CFF1F99247C384D`；
-- PEXT 大小：191,488 字节；
+- 程序集：`PlaytimeInsights, Version=0.9.8.0`；
+- 清单：`Version: 0.9.8`；
+- DLL SHA-256：`0A214AA04597B0AD7B853835FAAAF9156E236B9DA422A29474731B7322634787`；
+- PEXT SHA-256：`62539010D9DC2F255181D08C416CB71F2962CAA58814E70AD050411470FC7201`；
+- PEXT 大小：189,577 字节；
 - 暂存目录与安装目录的 9 个发布文件逐项 SHA-256 一致；
-- PEXT 内容包含 `Localization/en_US.xaml` 与 `Localization/zh_CN.xaml`；
+- PEXT 内容包含 MIT `LICENSE` 与两个本地化 XAML，不包含 PDB；
+- DLL 敏感路径扫描未发现用户名、开发目录或 PDB 路径；
 - 发布过程不写入 `ExtensionsData`；部署后全部 7 个数据/备份文件的时间戳仍停留在
   2026-07-27 的用户测试操作，内容清单指纹为
-  `A89418D0B55A3421456702508E0A05F047CC77F9CE719EF2FD194DCA000C1AC7`。
+  `E43A8773C8D3F9D7E8BEE7EA0414A2C4DC7AE3D8A2B4096152A54D71C509BC11`。
+
+Playnite Add-on Database 清单位于 `manifests\installer.yaml` 和 `manifests\addon.yaml`。Toolbox
+已读取两份 YAML；当前 Installer 校验因尚未创建的 GitHub Release `PackageUrl` 不可达而停止，
+Add-on 校验因源码、图标和 installer 的公开 URL 均不可达而停止。将仓库设为可匿名访问、推送
+0.9.8 源码并上传 PEXT 后，需依次重新执行：
+
+```powershell
+D:\software\Playnite\Toolbox.exe verify installer .\manifests\installer.yaml
+D:\software\Playnite\Toolbox.exe verify addon .\manifests\addon.yaml
+```
 
 ## 0.2 数据流
 

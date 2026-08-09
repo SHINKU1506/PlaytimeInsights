@@ -1,0 +1,11 @@
+AddonId: PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd
+Packages:
+  - Version: 0.9.8
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: 2026-07-29
+    PackageUrl: https://github.com/SHINKU1506/PlaytimeInsights/releases/download/v0.9.8/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_8.pext
+    Changelog:
+      - Prepared the first public release candidate for Playnite's add-on browser.
+      - Added native playtime trends, heatmaps, rankings, filters, and session management.
+      - Added local session recovery, import/export, backup, diagnostics, and bilingual UI.
+      - Removed local debug paths and included the MIT license in the package.

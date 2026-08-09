@@ -1,8 +1,42 @@
 # Playtime Insights 实现状态
 
-最后更新：2026-07-29
+最后更新：2026-08-09
 
-当前阶段：0.9.4 公开界面与 README 清理已实现、验证、打包并部署，待客户端验收
+当前阶段：0.9.8 下钻会话封面修复已构建、打包并部署，待客户端复验
+
+## 0.9.8 正式发布候选
+
+- `extension.yaml` 与程序集统一升级为 0.9.8 / 0.9.8.0；
+- 星期分布 Tooltip 直接使用完整本地化星期标签，不再显示“星期 周一”之类的重复表达；
+- 趋势周期和日历热力图下钻会话现保留 GameId、解析 Playnite 本地封面路径，并在游戏列显示
+  24 × 34 缩略图；缺少封面或游戏已从库删除时保持稳定占位；
+- Release 设置 `DebugType=None`、`DebugSymbols=false` 和稳定 `PathMap`，不再生成或分发 PDB；
+- MIT `LICENSE` 已加入 Release 输出和 PEXT，包仍为 9 个预期文件；
+- 新增 `manifests\installer.yaml` 与 `manifests\addon.yaml`，版本、API 6.16.0、Release URL、
+  源码、图标、隐私与反馈链接均已落盘；
+- 发布元数据自动回归扩展到版本、README、Release 调试策略、LICENSE 和两层 manifest；
+- 干净 Release 构建 0 警告、0 错误，61/61 自动化回归通过；
+- DLL 未扫描到用户名、开发目录或 PDB 路径；
+- PEXT 只包含 9 个预期条目：DLL、清单、三个图标、LICENSE、PRIVACY 和两个本地化文件；
+- Release、`staging\0.9.8` 与安装目录 9 个文件逐项 SHA-256 一致；
+- 部署前后用户数据均为 7 个文件，内容、长度与时间戳联合指纹保持
+  `E43A8773C8D3F9D7E8BEE7EA0414A2C4DC7AE3D8A2B4096152A54D71C509BC11`；
+- DLL SHA-256：
+  `0A214AA04597B0AD7B853835FAAAF9156E236B9DA422A29474731B7322634787`；
+- PEXT SHA-256：
+  `62539010D9DC2F255181D08C416CB71F2962CAA58814E70AD050411470FC7201`；
+- PEXT 大小 189,577 字节；
+- 2026-07-30 用户确认当前客户端检查未发现问题；现有配置下的原位升级、主要分析页、
+  会话管理页和星期 Tooltip 修复通过；
+- 2026-08-09 下钻封面修复 Release 构建 0 警告/0 错误，61/61 回归通过；Release、staging、
+  安装目录 9 文件一致，部署前后用户数据指纹不变，等待客户端复验；
+- Toolbox 已成功打包。Installer manifest 当前因尚未上传的 GitHub Release URL 不可达而未完成；
+  Add-on manifest 当前因源码、图标和 installer 的公开 URL 均不可达而未完成。需确认仓库可匿名
+  访问、推送源码并上传 PEXT 后重新执行两项联动校验。
+
+下一人工关口：在独立 Portable 配置补空数据干净安装与正式中英文截图，并确认公开 Author。
+随后提交并推送源码，创建 `v0.9.8` Release、上传 PEXT、重新验证两层 manifest，再提交
+Playnite Add-on Database PR。
 
 ## 0.9.4 公开界面、README 与清单链接
 

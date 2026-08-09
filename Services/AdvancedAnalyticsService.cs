@@ -93,9 +93,7 @@ namespace PlaytimeInsights.Services
                 WeekdayDistribution = CreateDistribution(
                     weekdaySeconds,
                     weekdayLabels,
-                    LocalizationService.Get(
-                        "LOCPlaytimeInsightsWeekdayPrefix",
-                        "星期")),
+                    string.Empty),
                 HourDistribution = CreateDistribution(
                     hourSeconds,
                     hourLabels.Select(label => label + ":00").ToList(),
@@ -210,9 +208,10 @@ namespace PlaytimeInsights.Services
                 Seconds = value,
                 DurationText = AnalyticsService.FormatDurationPrecise(value),
                 TooltipText = string.Format(
-                    "{0} {1}：{2}",
-                    prefix,
-                    labels[index],
+                    "{0}：{1}",
+                    string.IsNullOrWhiteSpace(prefix)
+                        ? labels[index]
+                        : prefix + " " + labels[index],
                     AnalyticsService.FormatDurationPrecise(value)),
                 BarHeight = maximum == 0
                     ? 4

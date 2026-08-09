@@ -6,7 +6,7 @@ Playtime Insights 是一个面向 Playnite Desktop 的本地游玩时间分析�
 年或自定义范围分析游玩时间，并提供趋势、热力图、时间分布和游戏排名。插件不包含遥测，
 不上传游戏库或会话数据，也不依赖远程网页。
 
-当前版本：`0.9.4`
+当前版本：`0.9.8`
 
 ## 主要功能
 
@@ -95,7 +95,7 @@ Playnite 的累计时长以分钟为主要展示单位，插件会话内部保�
 - 异常退出恢复精度受一分钟检查点间隔限制；
 - 会话存储使用本地 JSON，文件体积会随会话数量增长；
 - Fullscreen 模式尚无专用统计界面；
-- 当前发布流程仍在进入 Playnite Add-on Database 前的准备阶段。
+- Playnite Add-on Database 收录需要等待 0.9.8 GitHub Release 发布后提交上游清单。
 
 ## 从源码构建
 
@@ -127,7 +127,9 @@ dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release `
 - [开发与技术实现](docs/DEVELOPMENT.md)
 - [当前实现状态](docs/IMPLEMENTATION_STATUS.md)
 - [发布检查清单](docs/RELEASE_CHECKLIST.md)
+- [0.9.8 客户端验收](docs/CLIENT_ACCEPTANCE_0.9.8.md)
 - [1.0 正式发布就绪审查](docs/RELEASE_READINESS_1.0.md)
+- [0.9.8 发布说明](docs/RELEASE_NOTES_0.9.8.md)
 - [变更日志](CHANGELOG.md)
 
 ## 问题反馈

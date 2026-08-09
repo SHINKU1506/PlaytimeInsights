@@ -909,7 +909,28 @@
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid Height="38">
-                                                <TextBlock Text="{Binding GameName}"
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="24"
+                                                        Height="34"
+                                                        HorizontalAlignment="Left"
+                                                        VerticalAlignment="Center"
+                                                        Background="{DynamicResource PopupBackgroundBrush}"
+                                                        BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="3"
+                                                        ClipToBounds="True">
+                                                    <Image Source="{Binding CoverImagePath,
+                                                        Converter={StaticResource CoverImageConverter}}"
+                                                           Stretch="UniformToFill"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"
+                                                           Focusable="False"
+                                                           IsHitTestVisible="False" />
+                                                </Border>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding GameName}"
                                                            VerticalAlignment="Center"
                                                            FontWeight="SemiBold"
                                                            TextTrimming="CharacterEllipsis" />
