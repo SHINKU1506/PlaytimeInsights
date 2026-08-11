@@ -21,11 +21,6 @@ namespace PlaytimeInsights.Views
             ViewModel?.Refresh();
         }
 
-        private void RefreshButton_Click(object sender, RoutedEventArgs e)
-        {
-            ViewModel?.Refresh();
-        }
-
         private void AdvancedOptionsButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
@@ -36,11 +31,6 @@ namespace PlaytimeInsights.Views
 
             button.ContextMenu.PlacementTarget = button;
             button.ContextMenu.IsOpen = true;
-        }
-
-        private void LoadMoreButton_Click(object sender, RoutedEventArgs e)
-        {
-            ViewModel?.LoadMore();
         }
 
         private void AddSessionButton_Click(object sender, RoutedEventArgs e)
@@ -68,11 +58,6 @@ namespace PlaytimeInsights.Views
             }
 
             ViewModel.DeleteSelectedSession();
-        }
-
-        private void RestoreSessionButton_Click(object sender, RoutedEventArgs e)
-        {
-            ViewModel?.RestoreSelectedSession();
         }
 
         private void ExportCsvButton_Click(object sender, RoutedEventArgs e)

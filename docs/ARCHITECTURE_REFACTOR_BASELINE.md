@@ -1,6 +1,6 @@
 # Playtime Insights 架构重构行为基线
 
-状态：重构准备基线
+状态：阶段 B 后行为基线
 
 记录日期：2026-08-11
 
@@ -36,13 +36,13 @@ schema、插件 ID、统计口径、对话框和客户端行为。
 | 处理器 | 当前分类 | 当前行为 | 计划迁移 |
 |---|---|---|---|
 | `SessionManagementView_Loaded` | UI 适配 | 首次加载时刷新 ViewModel | 保留 View 生命周期适配 |
-| `RefreshButton_Click` | 简单命令 | 调用 `Refresh()` | 阶段 B：`RefreshCommand` |
+| `RefreshButton_Click` | 已迁移 | 原调用 `Refresh()` | 已删除，按钮绑定 `RefreshCommand` |
 | `AdvancedOptionsButton_Click` | UI 适配 | 设置 PlacementTarget 并打开 ContextMenu | 保留在 View |
-| `LoadMoreButton_Click` | 简单命令 | 调用 `LoadMore()` | 阶段 B：`LoadMoreCommand` |
+| `LoadMoreButton_Click` | 已迁移 | 原调用 `LoadMore()` | 已删除，按钮绑定 `LoadMoreCommand` |
 | `AddSessionButton_Click` | 多步骤工作流 | 打开空白编辑器并在确认后补录 | 阶段 C：Coordinator |
 | `EditSessionButton_Click` | 多步骤工作流 | 读取选中会话并在确认后更新 | 阶段 C：Coordinator |
 | `DeleteSessionButton_Click` | 多步骤工作流 | 危险确认后软删除 | 阶段 C：Coordinator |
-| `RestoreSessionButton_Click` | 简单命令 | 恢复选中的已删除会话 | 阶段 B：`RestoreSelectedCommand` |
+| `RestoreSessionButton_Click` | 已迁移 | 原恢复选中的已删除会话 | 已删除，菜单绑定 `RestoreSelectedCommand` |
 | `ExportCsvButton_Click` | 多步骤工作流 | 选择保存路径后导出 CSV | 阶段 C：Coordinator |
 | `ExportJsonButton_Click` | 多步骤工作流 | 选择保存路径后导出 JSON | 阶段 C：Coordinator |
 | `ImportButton_Click` | 多步骤工作流 | 多文件选择、预览、确认、提交和错误呈现 | 阶段 C：Coordinator |
@@ -59,11 +59,11 @@ Coordinator；窗口 Owner、默认文件名、文件过滤器和本地化错误
 | 处理器 | 当前分类 | 当前行为 | 计划迁移 |
 |---|---|---|---|
 | `PlaytimeInsightsDashboardView_Loaded` | UI 适配 | 首次加载时刷新 | 保留生命周期适配 |
-| `RefreshButton_Click` | 简单命令 | 刷新完整分析快照 | 阶段 B：`RefreshCommand` |
-| `AdaptiveTrendChart_PeriodSelected` | UI 适配 | 将自定义事件参数传给 `SelectPeriod` | 保留一行适配或转发命令 |
-| `HeatmapCell_MouseLeftButtonUp` | UI 适配 | 从 Tag 取热力格并下钻 | 保留适配或迁移为参数命令 |
-| `WeekdayDistribution_Click` | UI 适配 | 从 Tag 取星期柱并切换筛选 | 阶段 B：参数命令 |
-| `LoadMoreSessionDetails_Click` | 简单命令 | 加载下一批下钻会话 | 阶段 B：命令 |
+| `RefreshButton_Click` | 已迁移 | 原刷新完整分析快照 | 已删除，按钮绑定 `RefreshCommand` |
+| `AdaptiveTrendChart_PeriodSelected` | UI 适配 | 将自定义事件参数传给 `SelectPeriodCommand` | 保留薄适配 |
+| `HeatmapCell_MouseLeftButtonUp` | UI 适配 | 从 Tag 取热力格并转交 `SelectHeatmapDateCommand` | 保留薄适配 |
+| `WeekdayDistribution_Click` | 已迁移 | 原从 Tag 取星期柱并切换筛选 | 已删除，按钮使用参数命令 |
+| `LoadMoreSessionDetails_Click` | 已迁移 | 原加载下一批下钻会话 | 已删除，按钮绑定分页命令 |
 | `NestedScrollViewer_PreviewMouseWheel` | 纯视觉行为 | 内层到边界后把滚轮转发给外层 | 保留在 View |
 
 `CanContinueVerticalScroll`、`FindVisualChild<T>` 和外层滚轮事件重建属于纯 View 逻辑，不迁移
@@ -86,16 +86,16 @@ Coordinator；窗口 Owner、默认文件名、文件过滤器和本地化错误
 |---|---|
 | 编辑 | `CanEdit`：存在选中会话且未删除 |
 | 软删除 | `CanDelete`：存在选中会话且未删除 |
-| 恢复会话 | `CanRestore`：存在选中会话且已删除 |
+| 恢复会话 | `RestoreSelectedCommand.CanExecute`：存在选中会话且已删除，并且不在刷新 |
 | CSV/JSON 导出 | `HasFilteredSessions`：筛选结果非空 |
 | 确认导入 | `CanImport`：预览包含可导入候选 |
-| 会话页加载更多 | `LoadMoreVisibility`：200 条分页器仍有下一页 |
-| 主看板下钻加载更多 | `LoadMoreVisibility`：100 条分页器仍有下一页 |
-| 刷新 | 当前按钮始终可用，内部 `RefreshReentrancyGuard` 拒绝嵌套刷新 |
+| 会话页加载更多 | `LoadMoreVisibility` 控制显示；命令要求 200 条分页器仍有下一页且不在刷新 |
+| 主看板下钻加载更多 | `LoadMoreVisibility` 控制显示；命令要求 100 条分页器仍有下一页且不在刷新 |
+| 刷新 | 会话页和主看板均由 `RefreshReentrancyGuard` 拒绝嵌套刷新，刷新期间命令禁用 |
 | 补录、导入、备份、恢复备份、重建、诊断 | 当前入口始终可用，处理器先检查 ViewModel/选择结果 |
 
-阶段 B 引入命令后，条件来源仍由 ViewModel 状态驱动；`SelectedSession`、筛选结果、分页器和
-刷新状态变化必须显式触发 `CanExecuteChanged`。
+阶段 B 已完成上述迁移。条件来源仍由 ViewModel 状态驱动；`SelectedSession`、分页器和刷新状态
+变化均显式触发 `CanExecuteChanged`。
 
 ## 键盘、焦点与无障碍基线
 
@@ -144,11 +144,11 @@ Coordinator；窗口 Owner、默认文件名、文件过滤器和本地化错误
 护栏不要求 Code-behind 行数为零，也不强制保留已经迁移的处理器。事件从 XAML 删除后可以从
 职责矩阵的“当前处理器”部分移入迁移记录；新增事件必须先分类。
 
-## 阶段 A 结果与进入阶段 B 的条件
+## 阶段 B 结果与进入阶段 C 的条件
 
-- 当前 61 项发布回归、1 项架构护栏和 8 项工作流回归共 70 项均通过；
+- 当前 61 项发布回归、1 项架构护栏、8 项工作流和 4 项命令回归共 74 项均通过；
 - Release 构建保持 0 警告、0 错误；
 - 生产代码与 0.9.8 行为一致；
 - 强类型交互边界和取消、拒绝、无效输入、文件失败测试已建立；
-- 阶段 B 只迁移低风险命令，不同时改变视觉布局、存储或异步模型；
+- RelayCommand 与低风险命令迁移完成，未改变视觉布局、存储或异步模型；
 - Coordinator 在阶段 C 接线前不得绕过现有 WPF 文案、Owner、默认文件名和过滤器语义。

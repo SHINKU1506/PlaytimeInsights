@@ -54,8 +54,6 @@ namespace PlaytimeInsights.Presentation.Coordinators
         {
             return Export(
                 ".csv",
-                "LOCPlaytimeInsightsExportCsvButton",
-                "导出 CSV",
                 path => operations.ExportCsv(path));
         }
 
@@ -63,8 +61,6 @@ namespace PlaytimeInsights.Presentation.Coordinators
         {
             return Export(
                 ".json",
-                "LOCPlaytimeInsightsExportJsonButton",
-                "导出 JSON",
                 path => operations.ExportJson(path));
         }
 
@@ -219,13 +215,11 @@ namespace PlaytimeInsights.Presentation.Coordinators
 
         private bool Export(
             string extension,
-            string errorTitleKey,
-            string errorTitleFallback,
             Func<string, int> export)
         {
             return Run(
-                errorTitleKey,
-                errorTitleFallback,
+                "LOCPlaytimeInsightsExportFailedTitle",
+                "导出失败",
                 () =>
                 {
                     var path = interaction.SelectExportPath(extension);

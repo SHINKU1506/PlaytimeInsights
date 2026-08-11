@@ -11,8 +11,8 @@
 
 准备分支新增第 62 项回归 `Architecture refactor baseline keeps boundaries documented`。该测试会
 动态扫描 XAML 事件并核对职责矩阵，同时阻止 ViewModel 引入具体对话框/Window 类型或外部 MVVM
-框架。阶段 A 又新增 8 项 Coordinator 假交互测试，当前共 70 项；协调器尚未接入真实 View，
-客户端行为不变。进入阶段 B 前应运行：
+框架。阶段 A 新增 8 项 Coordinator 假交互测试；阶段 B 再新增 4 项 RelayCommand、绑定和错误
+标题回归，当前共 74 项。Coordinator 尚未接入真实 View；进入阶段 C 前应运行：
 
 ```powershell
 dotnet build PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite"

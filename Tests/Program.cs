@@ -80,6 +80,10 @@ namespace PlaytimeInsights.Tests
             Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
             Run("Nested dashboard scrollers hand wheel input to page boundaries", TestDashboardMouseWheelRouting);
             Run("Architecture refactor baseline keeps boundaries documented", TestArchitectureRefactorBaseline);
+            Run("RelayCommand executes and raises state changes", TestRelayCommand);
+            Run("Generic RelayCommand validates parameters", TestGenericRelayCommand);
+            Run("Stage B commands keep low-risk bindings", TestStageBCommandBindings);
+            Run("Export errors use a non-mnemonic title", TestExportErrorTitle);
             Run("Session coordinator cancels import file selection", TestCoordinatorCancelsImportFileSelection);
             Run("Session coordinator cancels import preview", TestCoordinatorCancelsImportPreview);
             Run("Session coordinator cancels delete confirmation", TestCoordinatorCancelsDeleteConfirmation);
@@ -1942,7 +1946,7 @@ namespace PlaytimeInsights.Tests
             Equal(false, string.Join(string.Empty, xamlFiles.Select(File.ReadAllText))
                 .Contains("WindowBackgroundBrush"));
             Equal(true, dashboard.Contains(
-                "Click=\"WeekdayDistribution_Click\""));
+                "DataContext.SelectWeekdayCommand"));
             Equal(true, dashboard.Contains(
                 "AutomationProperties.Name=\"{Binding AutomationName}\""));
             Equal(true, dashboard.Contains(
@@ -2356,7 +2360,6 @@ namespace PlaytimeInsights.Tests
             {
                 "IsEnabled=\"{Binding CanEdit}\"",
                 "IsEnabled=\"{Binding CanDelete}\"",
-                "IsEnabled=\"{Binding CanRestore}\"",
                 "IsEnabled=\"{Binding HasFilteredSessions}\"",
                 "Visibility=\"{Binding LoadMoreVisibility}\""
             })
@@ -2365,6 +2368,8 @@ namespace PlaytimeInsights.Tests
             }
             Equal(true, importXaml.Contains(
                 "IsEnabled=\"{Binding CanImport}\""));
+            Equal(true, sessionXaml.Contains(
+                "Command=\"{Binding RestoreSelectedCommand}\""));
             Equal(true, dashboardXaml.Contains(
                 "Visibility=\"{Binding LoadMoreVisibility}\""));
 
@@ -2393,6 +2398,163 @@ namespace PlaytimeInsights.Tests
             {
                 Equal(true, baseline.Contains(scenario));
             }
+        }
+
+        private static void TestRelayCommand()
+        {
+            var enabled = false;
+            var executeCount = 0;
+            var changedCount = 0;
+            var command = new global::PlaytimeInsights.ViewModels.RelayCommand(
+                () => executeCount++,
+                () => enabled);
+            command.CanExecuteChanged += (sender, args) => changedCount++;
+
+            Equal(false, command.CanExecute(null));
+            enabled = true;
+            command.RaiseCanExecuteChanged();
+            Equal(1, changedCount);
+            Equal(true, command.CanExecute(null));
+            command.Execute(null);
+            Equal(1, executeCount);
+        }
+
+        private static void TestGenericRelayCommand()
+        {
+            string captured = null;
+            var changedCount = 0;
+            var command =
+                new global::PlaytimeInsights.ViewModels.RelayCommand<string>(
+                value => captured = value,
+                value => !string.IsNullOrWhiteSpace(value));
+            command.CanExecuteChanged += (sender, args) => changedCount++;
+
+            Equal(false, command.CanExecute(null));
+            Equal(false, command.CanExecute(42));
+            Equal(true, command.CanExecute("weekday"));
+            command.Execute("weekday");
+            Equal("weekday", captured);
+            command.RaiseCanExecuteChanged();
+            Equal(1, changedCount);
+
+            var threw = false;
+            try
+            {
+                command.Execute(42);
+            }
+            catch (ArgumentException)
+            {
+                threw = true;
+            }
+
+            Equal(true, threw);
+            Equal(
+                false,
+                new global::PlaytimeInsights.ViewModels.RelayCommand<int>(
+                    value => { })
+                    .CanExecute(null));
+        }
+
+        private static void TestStageBCommandBindings()
+        {
+            var sourceRoot = FindSourceRoot();
+            var sessionXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml"));
+            var sessionCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml.cs"));
+            var sessionViewModel = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "SessionManagementViewModel.cs"));
+            var dashboardXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var dashboardCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+            var dashboardViewModel = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+
+            foreach (var command in new[]
+            {
+                "Command=\"{Binding RefreshCommand}\"",
+                "Command=\"{Binding RestoreSelectedCommand}\"",
+                "Command=\"{Binding LoadMoreCommand}\""
+            })
+            {
+                Equal(true, sessionXaml.Contains(command));
+            }
+            Equal(false, sessionXaml.Contains("Click=\"RefreshButton_Click\""));
+            Equal(false, sessionXaml.Contains("Click=\"LoadMoreButton_Click\""));
+            Equal(false, sessionXaml.Contains("Click=\"RestoreSessionButton_Click\""));
+            Equal(false, sessionCode.Contains("RefreshButton_Click"));
+            Equal(false, sessionCode.Contains("LoadMoreButton_Click"));
+            Equal(false, sessionCode.Contains("RestoreSessionButton_Click"));
+            Equal(true, sessionViewModel.Contains(
+                "public RelayCommand RestoreSelectedCommand"));
+            Equal(true, sessionViewModel.Contains(
+                "!refreshGuard.IsActive && CanRestore"));
+            Equal(true, sessionViewModel.Contains(
+                "!refreshGuard.IsActive && pager.HasMore"));
+
+            Equal(true, dashboardXaml.Contains(
+                "Command=\"{Binding RefreshCommand}\""));
+            Equal(true, dashboardXaml.Contains(
+                "DataContext.SelectWeekdayCommand"));
+            Equal(true, dashboardXaml.Contains(
+                "CommandParameter=\"{Binding}\""));
+            Equal(true, dashboardXaml.Contains(
+                "Command=\"{Binding LoadMoreSessionDetailsCommand}\""));
+            Equal(false, dashboardXaml.Contains(
+                "Click=\"WeekdayDistribution_Click\""));
+            Equal(false, dashboardCode.Contains("WeekdayDistribution_Click"));
+            Equal(true, dashboardCode.Contains("SelectPeriodCommand"));
+            Equal(true, dashboardCode.Contains("SelectHeatmapDateCommand"));
+            Equal(true, dashboardViewModel.Contains(
+                "private readonly RefreshReentrancyGuard refreshGuard"));
+            Equal(true, dashboardViewModel.Contains(
+                "public RelayCommand<DistributionBarViewModel> SelectWeekdayCommand"));
+            Equal(true, dashboardViewModel.Contains(
+                "public RelayCommand<HeatmapCellViewModel> SelectHeatmapDateCommand"));
+            Equal(true, dashboardViewModel.Contains(
+                "public RelayCommand<PeriodActivityViewModel> SelectPeriodCommand"));
+        }
+
+        private static void TestExportErrorTitle()
+        {
+            var sourceRoot = FindSourceRoot();
+            var coordinator = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Presentation",
+                "Coordinators",
+                "SessionManagementCoordinator.cs"));
+            var english = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Localization",
+                "en_US.xaml"));
+            var chinese = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Localization",
+                "zh_CN.xaml"));
+
+            Equal(true, coordinator.Contains(
+                "LOCPlaytimeInsightsExportFailedTitle"));
+            Equal(false, coordinator.Contains(
+                "LOCPlaytimeInsightsExportCsvButton"));
+            Equal(false, coordinator.Contains(
+                "LOCPlaytimeInsightsExportJsonButton"));
+            Equal(true, english.Contains(
+                "x:Key=\"LOCPlaytimeInsightsExportFailedTitle\">Export failed<"));
+            Equal(true, chinese.Contains(
+                "x:Key=\"LOCPlaytimeInsightsExportFailedTitle\">导出失败<"));
         }
 
         private static void TestCoordinatorCancelsImportFileSelection()

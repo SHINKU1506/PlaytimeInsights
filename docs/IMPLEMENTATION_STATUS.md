@@ -2,7 +2,7 @@
 
 最后更新：2026-08-11
 
-当前阶段：0.9.8 已正式发布；架构重构阶段 A 已完成，阶段 B 待实施
+当前阶段：0.9.8 已正式发布；架构重构阶段 B 已完成，阶段 C 待实施
 
 ## 架构重构准备分支
 
@@ -18,9 +18,14 @@
 - 已新增强类型 `ISessionManagementInteraction`、`ISessionManagementOperations` 和尚未接线的
   `SessionManagementCoordinator`；
 - 8 项假交互测试覆盖文件选择取消、预览取消、删除拒绝、无效恢复、恢复拒绝、导出失败、编辑
-  取消和重建拒绝；Release 构建 0 警告/0 错误，当前 70/70 回归通过；
+  取消和重建拒绝；
+- 阶段 B 新增非泛型/泛型 RelayCommand，无第三方依赖；会话页刷新/分页/恢复和主看板刷新/分页/
+  星期筛选已改为命令，趋势与热力图 Code-behind 只保留参数适配；
+- 会话页和主看板刷新期间均禁用相关命令，并在选中、分页和刷新状态变化时主动刷新 CanExecute；
+- 导出异常统一使用无访问键的 `LOCPlaytimeInsightsExportFailedTitle`，不会再显示“导出 CSV(_C)”；
+- 中英资源各 272 个键；Release 构建 0 警告/0 错误，当前 74/74 回归通过；
 - Coordinator 尚未接入真实 View，客户端仍走 0.9.8 路径；
-- 下一步是阶段 B：实现 RelayCommand，并只迁移刷新、分页、恢复会话和星期筛选等低风险命令。
+- 下一步是阶段 C：实现 WPF 交互对象并将多步骤会话管理流程接入 Coordinator。
 
 ## 0.9.8 正式发布候选
 

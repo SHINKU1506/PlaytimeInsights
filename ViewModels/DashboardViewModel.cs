@@ -249,6 +249,8 @@ namespace PlaytimeInsights.ViewModels
         private readonly SessionQueryService queryService;
         private readonly PlaytimeInsightsSettingsViewModel settings;
         private readonly SessionDetailPager sessionDetailPager = new SessionDetailPager(100);
+        private readonly RefreshReentrancyGuard refreshGuard =
+            new RefreshReentrancyGuard();
         private SelectionOption<DateRangePreset> selectedRangeOption;
         private SelectionOption<AggregationPeriod> selectedAggregationOption;
         private SelectionOption<RankingMetric> selectedRankingMetricOption;
@@ -401,6 +403,26 @@ namespace PlaytimeInsights.ViewModels
             AdvancedHourLabels = new ObservableCollection<string>();
             Anomalies = new ObservableCollection<AnomalySessionViewModel>();
             SessionDetails = sessionDetailPager.VisibleItems;
+            RefreshCommand = new RelayCommand(
+                Refresh,
+                CanRefresh);
+            LoadMoreSessionDetailsCommand = new RelayCommand(
+                LoadMoreSessionDetails,
+                () => !refreshGuard.IsActive && sessionDetailPager.HasMore);
+            SelectWeekdayCommand =
+                new RelayCommand<DistributionBarViewModel>(
+                    SelectWeekdayDistribution,
+                    CanSelectWeekday);
+            SelectHeatmapDateCommand =
+                new RelayCommand<HeatmapCellViewModel>(
+                    SelectHeatmapDate,
+                    cell => !refreshGuard.IsActive &&
+                        cell != null &&
+                        cell.CellVisibility == Visibility.Visible);
+            SelectPeriodCommand =
+                new RelayCommand<PeriodActivityViewModel>(
+                    SelectPeriod,
+                    period => !refreshGuard.IsActive && period != null);
             RefreshMetadataValueOptions();
         }
 
@@ -726,6 +748,16 @@ namespace PlaytimeInsights.ViewModels
 
         public ObservableCollection<SessionDetailViewModel> SessionDetails { get; }
 
+        public RelayCommand RefreshCommand { get; }
+
+        public RelayCommand LoadMoreSessionDetailsCommand { get; }
+
+        public RelayCommand<DistributionBarViewModel> SelectWeekdayCommand { get; }
+
+        public RelayCommand<HeatmapCellViewModel> SelectHeatmapDateCommand { get; }
+
+        public RelayCommand<PeriodActivityViewModel> SelectPeriodCommand { get; }
+
         public string SessionDetailCountText =>
             sessionDetailPager.TotalCount == 0
                 ? LocalizationService.Get(
@@ -741,6 +773,25 @@ namespace PlaytimeInsights.ViewModels
             sessionDetailPager.HasMore ? Visibility.Visible : Visibility.Collapsed;
 
         public void Refresh()
+        {
+            if (!refreshGuard.TryEnter())
+            {
+                return;
+            }
+
+            RaiseCommandStates();
+            try
+            {
+                RefreshCore();
+            }
+            finally
+            {
+                refreshGuard.Exit();
+                RaiseCommandStates();
+            }
+        }
+
+        private void RefreshCore()
         {
             if (SelectedRangeOption == null ||
                 SelectedAggregationOption == null ||
@@ -1012,6 +1063,32 @@ namespace PlaytimeInsights.ViewModels
         {
             OnPropertyChanged(nameof(SessionDetailCountText));
             OnPropertyChanged(nameof(LoadMoreVisibility));
+            LoadMoreSessionDetailsCommand?.RaiseCanExecuteChanged();
+        }
+
+        private bool CanRefresh()
+        {
+            return !refreshGuard.IsActive &&
+                SelectedRangeOption != null &&
+                SelectedAggregationOption != null &&
+                SelectedRankingMetricOption != null &&
+                SelectedMetadataDimensionOption != null;
+        }
+
+        private bool CanSelectWeekday(DistributionBarViewModel bar)
+        {
+            return !refreshGuard.IsActive &&
+                bar != null &&
+                WeekdayDistribution.Contains(bar);
+        }
+
+        private void RaiseCommandStates()
+        {
+            RefreshCommand?.RaiseCanExecuteChanged();
+            LoadMoreSessionDetailsCommand?.RaiseCanExecuteChanged();
+            SelectWeekdayCommand?.RaiseCanExecuteChanged();
+            SelectHeatmapDateCommand?.RaiseCanExecuteChanged();
+            SelectPeriodCommand?.RaiseCanExecuteChanged();
         }
 
         private void RefreshMetadataValueOptions(

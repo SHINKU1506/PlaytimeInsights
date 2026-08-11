@@ -125,6 +125,15 @@ namespace PlaytimeInsights.ViewModels
             Sessions = pager.VisibleItems;
             selectedSource = SourceOptions[0];
             selectedMetadataDimension = MetadataDimensionOptions[0];
+            RefreshCommand = new RelayCommand(
+                Refresh,
+                () => !refreshGuard.IsActive);
+            LoadMoreCommand = new RelayCommand(
+                LoadMore,
+                () => !refreshGuard.IsActive && pager.HasMore);
+            RestoreSelectedCommand = new RelayCommand(
+                () => RestoreSelectedSession(),
+                () => !refreshGuard.IsActive && CanRestore);
         }
 
         public ObservableCollection<SelectionOption<SessionSource?>> SourceOptions { get; }
@@ -135,6 +144,12 @@ namespace PlaytimeInsights.ViewModels
         public ObservableCollection<SelectionOption<string>> MetadataValueOptions { get; }
 
         public ObservableCollection<SessionManagementItemViewModel> Sessions { get; }
+
+        public RelayCommand RefreshCommand { get; }
+
+        public RelayCommand LoadMoreCommand { get; }
+
+        public RelayCommand RestoreSelectedCommand { get; }
 
         public string SearchText
         {
@@ -224,6 +239,7 @@ namespace PlaytimeInsights.ViewModels
                     OnPropertyChanged(nameof(CanEdit));
                     OnPropertyChanged(nameof(CanDelete));
                     OnPropertyChanged(nameof(CanRestore));
+                    RestoreSelectedCommand?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -252,6 +268,8 @@ namespace PlaytimeInsights.ViewModels
             {
                 return;
             }
+
+            RaiseCommandStates();
 
             try
             {
@@ -293,6 +311,7 @@ namespace PlaytimeInsights.ViewModels
             finally
             {
                 refreshGuard.Exit();
+                RaiseCommandStates();
             }
         }
 
@@ -638,6 +657,14 @@ namespace PlaytimeInsights.ViewModels
         {
             OnPropertyChanged(nameof(CountText));
             OnPropertyChanged(nameof(LoadMoreVisibility));
+            LoadMoreCommand?.RaiseCanExecuteChanged();
+        }
+
+        private void RaiseCommandStates()
+        {
+            RefreshCommand?.RaiseCanExecuteChanged();
+            LoadMoreCommand?.RaiseCanExecuteChanged();
+            RestoreSelectedCommand?.RaiseCanExecuteChanged();
         }
 
         private static void EnsureExportPath(string path)
