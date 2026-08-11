@@ -1,6 +1,7 @@
 using Playnite.SDK;
 using Playnite.SDK.Plugins;
 using PlaytimeInsights.Models;
+using PlaytimeInsights.Presentation.Coordinators;
 using PlaytimeInsights.Services;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,8 @@ namespace PlaytimeInsights.ViewModels
         public string LibraryName { get; set; }
     }
 
-    public sealed class SessionManagementViewModel : ObservableObject
+    public sealed class SessionManagementViewModel : ObservableObject,
+        ISessionManagementOperations
     {
         private readonly IPlayniteAPI playniteApi;
         private readonly SessionRepository repository;

@@ -1,5 +1,7 @@
 using Playnite.SDK;
 using PlaytimeInsights.Models;
+using PlaytimeInsights.Presentation.Coordinators;
+using PlaytimeInsights.Presentation.Interactions;
 using PlaytimeInsights.Services;
 using PlaytimeInsights.ViewModels;
 using Newtonsoft.Json;
@@ -78,6 +80,14 @@ namespace PlaytimeInsights.Tests
             Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
             Run("Nested dashboard scrollers hand wheel input to page boundaries", TestDashboardMouseWheelRouting);
             Run("Architecture refactor baseline keeps boundaries documented", TestArchitectureRefactorBaseline);
+            Run("Session coordinator cancels import file selection", TestCoordinatorCancelsImportFileSelection);
+            Run("Session coordinator cancels import preview", TestCoordinatorCancelsImportPreview);
+            Run("Session coordinator cancels delete confirmation", TestCoordinatorCancelsDeleteConfirmation);
+            Run("Session coordinator blocks invalid restore", TestCoordinatorBlocksInvalidRestore);
+            Run("Session coordinator cancels restore confirmation", TestCoordinatorCancelsRestoreConfirmation);
+            Run("Session coordinator contains export failure", TestCoordinatorContainsExportFailure);
+            Run("Session coordinator cancels editor", TestCoordinatorCancelsEditor);
+            Run("Session coordinator cancels reindex", TestCoordinatorCancelsReindex);
             Run("Release metadata and public README stay current", TestReleaseMetadataAndReadme);
             Run("Localization keys and format placeholders stay source-complete", TestLocalizationSourceCoverage);
             Run("Release 0.1 through 0.9 settings keep compatible defaults", TestLegacySettingsMatrix);
@@ -2185,7 +2195,6 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Views",
                 "PlaytimeInsightsDashboardView.xaml.cs"));
-
             Equal(true, dashboard.Contains(
                 "x:Name=\"DashboardScrollViewer\""));
             Equal(
@@ -2239,6 +2248,16 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Views",
                 "PlaytimeInsightsDashboardView.xaml.cs"));
+            var interactionContract = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Presentation",
+                "Interactions",
+                "ISessionManagementInteraction.cs"));
+            var coordinator = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Presentation",
+                "Coordinators",
+                "SessionManagementCoordinator.cs"));
 
             var eventPattern = new Regex(
                 "(?:Click|PreviewMouseWheel|PeriodSelected|" +
@@ -2296,6 +2315,29 @@ namespace PlaytimeInsights.Tests
                 }
             }
 
+            foreach (var token in new[]
+            {
+                "System.Windows",
+                "MessageBox",
+                "MessageBoxResult",
+                "OpenFileDialog",
+                "SaveFileDialog",
+                "SessionEditorWindow",
+                "SessionImportPreviewWindow"
+            })
+            {
+                Equal(false, interactionContract.Contains(token));
+                Equal(false, coordinator.Contains(token));
+            }
+            Equal(true, interactionContract.Contains(
+                "IReadOnlyList<string> SelectImportFiles()"));
+            Equal(true, interactionContract.Contains(
+                "bool ConfirmRestore(SessionRestorePreview preview)"));
+            Equal(true, interactionContract.Contains(
+                "GameSession EditSession(SessionEditorViewModel editor)"));
+            Equal(true, coordinator.Contains(
+                "public sealed class SessionManagementCoordinator"));
+
             var project = File.ReadAllText(Path.Combine(
                 sourceRoot,
                 "PlaytimeInsights.csproj"));
@@ -2351,6 +2393,172 @@ namespace PlaytimeInsights.Tests
             {
                 Equal(true, baseline.Contains(scenario));
             }
+        }
+
+        private static void TestCoordinatorCancelsImportFileSelection()
+        {
+            var operations = new FakeSessionManagementOperations();
+            var interaction = new FakeSessionManagementInteraction();
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.ImportSessions());
+            Equal(0, operations.PreviewImportCalls);
+            Equal(0, operations.CommitImportCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCancelsImportPreview()
+        {
+            var operations = new FakeSessionManagementOperations();
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ImportFiles = new[] { "sessions.csv" },
+                ConfirmImportResult = false
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.ImportSessions());
+            Equal(1, operations.PreviewImportCalls);
+            Equal(1, interaction.ConfirmImportCalls);
+            Equal(0, operations.CommitImportCalls);
+            Equal(0, operations.MutationCalls);
+        }
+
+        private static void TestCoordinatorCancelsDeleteConfirmation()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                CanDelete = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ConfirmDeleteResult = false
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.DeleteSelectedSession());
+            Equal(1, interaction.ConfirmDeleteCalls);
+            Equal(0, operations.DeleteCalls);
+            Equal(0, operations.MutationCalls);
+        }
+
+        private static void TestCoordinatorBlocksInvalidRestore()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                RestorePreview = new SessionRestorePreview
+                {
+                    IsValid = false,
+                    Error = "Invalid backup"
+                }
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                RestorePath = "invalid.json"
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.RestoreBackup());
+            Equal(1, operations.PreviewRestoreCalls);
+            Equal(0, interaction.ConfirmRestoreCalls);
+            Equal(0, operations.RestoreCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(1, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCancelsRestoreConfirmation()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                RestorePreview = new SessionRestorePreview
+                {
+                    IsValid = true,
+                    SessionCount = 4,
+                    SchemaVersion = GameSession.CurrentSchemaVersion
+                }
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                RestorePath = "backup.json",
+                ConfirmRestoreResult = false
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.RestoreBackup());
+            Equal(1, operations.PreviewRestoreCalls);
+            Equal(1, interaction.ConfirmRestoreCalls);
+            Equal(0, operations.RestoreCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorContainsExportFailure()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                ThrowOnExportCsv = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ExportPath = "sessions.csv"
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.ExportCsv());
+            Equal(1, operations.ExportCsvCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(1, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCancelsEditor()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                CanEdit = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                EditorResult = null
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.EditSelectedSession());
+            Equal(1, operations.CreateEditorCalls);
+            Equal(1, interaction.EditSessionCalls);
+            Equal(0, operations.UpdateCalls);
+            Equal(0, operations.MutationCalls);
+        }
+
+        private static void TestCoordinatorCancelsReindex()
+        {
+            var operations = new FakeSessionManagementOperations();
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ConfirmReindexResult = false
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.Reindex());
+            Equal(1, interaction.ConfirmReindexCalls);
+            Equal(0, operations.ReindexCalls);
+            Equal(0, operations.MutationCalls);
         }
 
         private static void TestReleaseMetadataAndReadme()
@@ -2628,6 +2836,240 @@ namespace PlaytimeInsights.Tests
             {
                 throw new InvalidOperationException(
                     string.Format("Expected {0}, actual {1}.", expected, actual));
+            }
+        }
+
+        private sealed class FakeSessionManagementOperations :
+            ISessionManagementOperations
+        {
+            public bool CanEdit { get; set; }
+
+            public bool CanDelete { get; set; }
+
+            public bool ThrowOnExportCsv { get; set; }
+
+            public int ExportCsvCalls { get; private set; }
+
+            public int PreviewImportCalls { get; private set; }
+
+            public int CommitImportCalls { get; private set; }
+
+            public int PreviewRestoreCalls { get; private set; }
+
+            public int RestoreCalls { get; private set; }
+
+            public int CreateEditorCalls { get; private set; }
+
+            public int UpdateCalls { get; private set; }
+
+            public int DeleteCalls { get; private set; }
+
+            public int ReindexCalls { get; private set; }
+
+            public int MutationCalls { get; private set; }
+
+            public GameSession SelectedSession { get; set; } = new GameSession
+            {
+                Id = Guid.NewGuid(),
+                GameId = Guid.NewGuid(),
+                GameName = "Test Game"
+            };
+
+            public SessionImportPreview ImportPreview { get; set; } =
+                new SessionImportPreview();
+
+            public SessionRestorePreview RestorePreview { get; set; } =
+                new SessionRestorePreview { IsValid = true };
+
+            public int ExportCsv(string path)
+            {
+                ExportCsvCalls++;
+                if (ThrowOnExportCsv)
+                {
+                    throw new IOException("Export failed.");
+                }
+
+                return 0;
+            }
+
+            public int ExportJson(string path)
+            {
+                return 0;
+            }
+
+            public void SaveDiagnostics(string path)
+            {
+            }
+
+            public GameSession GetSelectedSession()
+            {
+                return SelectedSession;
+            }
+
+            public SessionEditorViewModel CreateEditor(
+                GameSession existing = null)
+            {
+                CreateEditorCalls++;
+                return new SessionEditorViewModel(
+                    Enumerable.Empty<Playnite.SDK.Models.Game>(),
+                    existing);
+            }
+
+            public bool AddSession(GameSession session)
+            {
+                MutationCalls++;
+                return true;
+            }
+
+            public bool UpdateSelectedSession(GameSession session)
+            {
+                UpdateCalls++;
+                MutationCalls++;
+                return true;
+            }
+
+            public bool DeleteSelectedSession()
+            {
+                DeleteCalls++;
+                MutationCalls++;
+                return true;
+            }
+
+            public SessionImportPreview PreviewImport(
+                IEnumerable<string> paths)
+            {
+                PreviewImportCalls++;
+                return ImportPreview;
+            }
+
+            public SessionImportCommitResult CommitImport(
+                SessionImportPreview preview)
+            {
+                CommitImportCalls++;
+                MutationCalls++;
+                return new SessionImportCommitResult();
+            }
+
+            public string CreateBackup(string path)
+            {
+                return path;
+            }
+
+            public SessionRestorePreview PreviewRestore(string path)
+            {
+                PreviewRestoreCalls++;
+                return RestorePreview;
+            }
+
+            public SessionRestoreResult RestoreBackup(string path)
+            {
+                RestoreCalls++;
+                MutationCalls++;
+                return new SessionRestoreResult();
+            }
+
+            public SessionReindexResult Reindex()
+            {
+                ReindexCalls++;
+                MutationCalls++;
+                return new SessionReindexResult();
+            }
+        }
+
+        private sealed class FakeSessionManagementInteraction :
+            ISessionManagementInteraction
+        {
+            public IReadOnlyList<string> ImportFiles { get; set; } =
+                new string[0];
+
+            public string ExportPath { get; set; }
+
+            public string BackupPath { get; set; }
+
+            public string RestorePath { get; set; }
+
+            public string DiagnosticsPath { get; set; }
+
+            public bool ConfirmDeleteResult { get; set; }
+
+            public bool ConfirmRestoreResult { get; set; }
+
+            public bool ConfirmReindexResult { get; set; }
+
+            public bool ConfirmImportResult { get; set; }
+
+            public GameSession EditorResult { get; set; }
+
+            public int ConfirmDeleteCalls { get; private set; }
+
+            public int ConfirmRestoreCalls { get; private set; }
+
+            public int ConfirmReindexCalls { get; private set; }
+
+            public int ConfirmImportCalls { get; private set; }
+
+            public int EditSessionCalls { get; private set; }
+
+            public int ErrorCount { get; private set; }
+
+            public IReadOnlyList<string> SelectImportFiles()
+            {
+                return ImportFiles;
+            }
+
+            public string SelectExportPath(string extension)
+            {
+                return ExportPath;
+            }
+
+            public string SelectBackupPath()
+            {
+                return BackupPath;
+            }
+
+            public string SelectRestorePath()
+            {
+                return RestorePath;
+            }
+
+            public string SelectDiagnosticsPath()
+            {
+                return DiagnosticsPath;
+            }
+
+            public bool ConfirmDelete(string gameName)
+            {
+                ConfirmDeleteCalls++;
+                return ConfirmDeleteResult;
+            }
+
+            public bool ConfirmRestore(SessionRestorePreview preview)
+            {
+                ConfirmRestoreCalls++;
+                return ConfirmRestoreResult;
+            }
+
+            public bool ConfirmReindex()
+            {
+                ConfirmReindexCalls++;
+                return ConfirmReindexResult;
+            }
+
+            public bool ConfirmImport(SessionImportPreview preview)
+            {
+                ConfirmImportCalls++;
+                return ConfirmImportResult;
+            }
+
+            public GameSession EditSession(SessionEditorViewModel editor)
+            {
+                EditSessionCalls++;
+                return EditorResult;
+            }
+
+            public void ShowError(string title, Exception exception)
+            {
+                ErrorCount++;
             }
         }
 
