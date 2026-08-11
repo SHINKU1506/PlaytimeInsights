@@ -60,11 +60,10 @@
 
 0.9.8 完整客户端验收步骤见 `docs\CLIENT_ACCEPTANCE_0.9.8.md`。
 
-## 公共发布前剩余动作
+## 公共发布完成状态
 
 - Git 仓库、MIT LICENSE、`origin/main` 和上游跟踪已建立；
-- 0.9.8 基线已提交并推送；2026-08-11 staging 默认项排除、视觉修订、作者、截图、发布日期、
-  文档及 README 改写仍为未提交改动；
+- 0.9.8 最终发布提交 `8e19718` 已推送并与 `origin/main` 同步；
 - 0.9.8 已冻结版本、移除界面候选字样并清理公开 README；
 - DLL/PDB 本机路径和许可证阻塞已解决：正式包无 PDB，LICENSE 已纳入 PEXT；
 - 公开 README 已重写，并已接入 0.9.8 中文/英文正式截图；
@@ -74,9 +73,10 @@
 - 公开 Author 已统一确认为 `SHINKU1506`；
 - 独立 Playnite Portable 环境的安装和卸载验收已完成；
 - GitHub 仓库已设为 Public；匿名 HTTP 已确认仓库、图标、Add-on 和 installer URL 返回 200；
-- 创建 `v0.9.8` Git 标签和 GitHub Release，PEXT 作为 Release 附件；
-- 两层 manifest 已通过本机 HTTP 完整联动校验；推送最终截图并上传 PEXT 后，再完成正式 URL 校验；
-- 向 `JosefNemec/PlayniteAddonDatabase` 提交 Add-on manifest PR；
+- `v0.9.8` Git 标签和 GitHub Release 已创建，PEXT 已作为 Release 附件上传；
+- 两层 manifest 已通过本机 HTTP 和正式公网 URL 的 Toolbox 完整联动校验；
+- 已向 `JosefNemec/PlayniteAddonDatabase` 提交 Add-on manifest
+  [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626)，等待上游审核；
 - 完整审查见 `docs\RELEASE_READINESS_1.0.md`。
 
 ## 2026-07-28 忽略规则验证

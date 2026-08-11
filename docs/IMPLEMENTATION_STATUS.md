@@ -2,7 +2,7 @@
 
 最后更新：2026-08-11
 
-当前阶段：0.9.8 客户端、Portable 和正式截图验收已完成，待提交与公开 Release
+当前阶段：0.9.8 已正式发布，Add-on Database PR 等待上游审核
 
 ## 0.9.8 正式发布候选
 
@@ -39,21 +39,20 @@
 - 最终 PEXT 含 9 个预期条目、LICENSE 和 0.9.8 清单，不含 PDB；Release、staging、安装目录
   逐文件一致，部署前后 7 个用户数据文件联合指纹保持
   `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`；
-- 两层 manifest 通过一次性本机 HTTP 完整联动校验；2026-08-11 匿名访问正式仓库、图标、
-  Add-on manifest 和 installer manifest 均为 HTTP 200，GitHub Release 附件仍为 HTTP 404；
+- 两层 manifest 通过一次性本机 HTTP 和正式公网 URL 完整联动校验；2026-08-11 匿名访问正式
+  仓库、图标、三张截图、两层 manifest 和 GitHub Release 附件均为 HTTP 200；
 - 星期分布选中卡片新增 `#334A90E2 → #1A4A90E2` 低透明渐变、蓝紫 1px 全围框、轻微蓝色
   Glow、右上角状态点、白色粗体标题及 120ms 上移/回落动画；筛选逻辑保持不变；
 - 2026-08-11 用户确认当前客户端验收完成；正式截图已归档中文/英文分析页和中文设置页，并接入
   README/Add-on manifest；会话管理页截图不纳入公开发布材料；
 - extension、程序集、LICENSE、README 和 Add-on manifest 的公开 Author 统一为
   `SHINKU1506`；独立 Portable 安装和卸载验收已通过；
-- Toolbox 已成功打包。Installer manifest 当前因尚未上传的 GitHub Release URL 不可达而未完成；
-  Add-on manifest 的仓库、图标和 installer URL 已可达，但新截图仍需随最终源码推送，且联动过程
-  仍受 PEXT URL 阻塞。推送源码与截图并上传 PEXT 后重新执行两项联动校验。
+- 最终发布提交 `8e19718` 已推送，`v0.9.8` 标签和 GitHub Release 已创建，134,031 字节 PEXT
+  已上传；Toolbox Installer/Add-on 正式远程校验均通过；
+- Add-on Database 清单已提交为 [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626)，
+  当前等待上游审核合并。
 
-下一发布关口：提交并推送源码与截图，创建 `v0.9.8` Release、上传 PEXT、重新验证两层
-manifest，再提交
-Playnite Add-on Database PR。
+0.9.8 发布链路已完成。后续只需跟踪 Add-on Database PR 的上游审查结果；不再有本地发布阻塞项。
 
 ## 0.9.4 公开界面、README 与清单链接
 

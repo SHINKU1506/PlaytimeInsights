@@ -57,5 +57,6 @@
 
 ## 验收后
 
-当前客户端、正式截图和 Portable 安装/卸载验收均已通过。下一步可执行源码提交与推送、创建
-`v0.9.8` GitHub Release、上传 PEXT、Toolbox 远程清单复验和 Add-on Database PR。
+当前客户端、正式截图和 Portable 安装/卸载验收均已通过。最终源码、`v0.9.8` GitHub Release、
+PEXT 上传和 Toolbox 远程清单复验均已完成；Add-on Database [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626)
+已提交并等待上游审核。

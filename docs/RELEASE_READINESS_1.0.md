@@ -2,9 +2,10 @@
 
 审查日期：2026-08-11
 
-结论：0.9.8 本地工程和安装包已达到正式发布候选质量；版本冻结、LICENSE 入包、PDB/本机
-路径清理、当前客户端验收、Portable 安装/卸载、正式截图和两层 manifest 源文件已经完成。
-当前仅剩最终提交及 GitHub/上游外部发布动作。
+结论：0.9.8 已完成正式发布。版本冻结、LICENSE 入包、PDB/本机路径清理、客户端验收、
+Portable 安装/卸载、正式截图、源码推送、GitHub Release、PEXT 上传及两层 manifest 远程校验
+全部完成。Add-on Database [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626)
+已提交，当前只需等待上游审核。
 
 ## 已通过
 
@@ -23,14 +24,13 @@
 - MIT `LICENSE` 已存在于源码仓库；
 - `main` 已配置跟踪 `origin/main`，生成目录与 PEXT 没有进入 Git 跟踪。
 
-## 正式发布阻塞项
+## 正式发布执行记录
 
 ### P0：必须完成
 
-1. **提交并推送最终 0.9.8 修订**
-   - 0.9.8 基线 `e018001` 已推送并与 `origin/main` 同步；
-   - 2026-08-10 可复现构建修复、manifest 日期、文档和当前 README 改写尚未提交；
-   - 客户端复验后应创建最终提交并推送。
+1. **提交并推送最终 0.9.8 修订（已完成）**
+   - 最终发布提交为 `8e19718`；
+   - `main` 已推送并与 `origin/main` 同步。
 
 2. **冻结正式版本号（已完成）**
    - 两个页面不显示版本、发布候选或阶段功能说明；
@@ -48,14 +48,13 @@
    - 中文/英文分析页和中文设置页三张正式截图已归档；会话管理页截图不附加；
    - 独立 Playnite Portable 环境的安装和卸载验收已完成。
 
-5. **创建公开 GitHub Release**
+5. **创建公开 GitHub Release（已完成）**
    - GitHub 仓库已公开；匿名 HTTP 对仓库、raw installer、图标和 Add-on manifest 均返回 200；
-   - 当前远程没有 `v0.9.8` Git 标签，Release 页面和 PEXT 附件仍返回 404；
-   - 创建 `v0.9.8` 标签和 GitHub Release；
-   - 上传最终 PEXT，发布页记录 SHA-256、最低 Playnite API 版本、安装方法、已知限制和变更摘要；
+   - `v0.9.8` 注释标签和公开 GitHub Release 已创建；
+   - 最终 PEXT 已上传，匿名 HTTP 返回 200，大小为 134,031 字节；
    - PEXT 作为 Release 附件，不提交到源码历史。
 
-6. **验证并提交 Playnite Add-on Database 两层清单**
+6. **验证并提交 Playnite Add-on Database 两层清单（已完成提交）**
    - `manifests\addon.yaml` 和 `manifests\installer.yaml` 已创建；
    - Add-on manifest 至少需要：
      `AddonId`、`Type: Generic`、`Name`、`Author`、`ShortDescription`、
@@ -67,9 +66,9 @@
      `RequiredApiVersion: 6.16.0`；
    - PackageUrl 已指向 `v0.9.8` Release 中的最终 PEXT 文件名；
    - 两层 YAML 已通过一次性本机 HTTP 完整联动校验；
-   - 正式 Toolbox 校验目前仍因 PEXT 附件 URL 404 失败；新截图 URL 也需等待最终提交推送；
-   - 上传 PEXT 并推送最终清单/截图后，使用 `Toolbox.exe verify installer ...` 和
-     `Toolbox.exe verify addon ...` 完成联动校验，再向数据库 `addons\generic` 提交 PR。
+   - `Toolbox.exe verify installer ...` 与 `Toolbox.exe verify addon ...` 已在正式公网 URL 上通过；
+   - Add-on manifest 已提交为 [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626)，
+     当前等待上游审核。
 
 ### P1：强烈建议
 
@@ -95,12 +94,12 @@
    - 建议增加可选 CI，至少自动执行 Release build、61 项测试、Toolbox 之外的
      包内容检查与敏感路径扫描。
 
-## 推荐发布顺序
+## 发布结果
 
-1. 提交并推送最终源码、截图和发布元数据；
-2. 创建 `v0.9.8` 和 GitHub Release，上传最终 PEXT；
-3. 用 Toolbox 完成 Installer/Add-on manifest 的远程 URL 联动校验；
-4. 向 Playnite Add-on Database 的 `addons\generic` 提交 Add-on manifest PR。
+1. 最终源码、截图和发布元数据已推送；
+2. `v0.9.8` Release 与 PEXT 已发布；
+3. Installer/Add-on manifest 远程 URL 联动校验已通过；
+4. Add-on Database PR 已提交，等待上游合并。
 
 ## 当前正式包证据
 

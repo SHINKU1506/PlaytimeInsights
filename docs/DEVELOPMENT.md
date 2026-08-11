@@ -105,19 +105,18 @@ PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_8.pext
   联合指纹均为
   `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`。
 
-Playnite Add-on Database 清单位于 `manifests\installer.yaml` 和 `manifests\addon.yaml`。Toolbox
-已读取两份 YAML。2026-08-11 匿名 HTTP 已确认仓库、图标、Add-on manifest 和 installer manifest
-可达；当前 Installer 校验仍因尚未创建的 GitHub Release `PackageUrl` 不可达而停止，正式截图也需
-随本轮源码推送后才可达。推送 0.9.8 最终源码与截图并上传 PEXT 后，需依次重新执行：
+Playnite Add-on Database 清单位于 `manifests\installer.yaml` 和 `manifests\addon.yaml`。2026-08-11
+`v0.9.8` Release 和 PEXT 已发布，仓库、图标、三张截图、Installer manifest、Add-on manifest
+及 PackageUrl 均可匿名访问。正式远程校验命令为：
 
 ```powershell
 D:\software\Playnite\Toolbox.exe verify installer .\manifests\installer.yaml
 D:\software\Playnite\Toolbox.exe verify addon .\manifests\addon.yaml
 ```
 
-2026-08-10 使用同一 PEXT、图标和两层 YAML 建立一次性本机 HTTP 镜像，Toolbox 的 installer
-与 addon（含远程 installer 联动）均完整通过；临时镜像随后删除。正式 URL 校验仍需等待仓库
-公开及 GitHub Release 附件上线。
+2026-08-10 使用一次性本机 HTTP 镜像完成预校验；2026-08-11 在正式公网 URL 上再次运行，
+installer 与 addon（含远程 installer 联动）均完整通过。Add-on Database 清单已通过
+[PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626) 提交。
 
 0.9.8 正式截图位于 `docs\screenshots\0.9.8`：中文/英文分析页和中文插件设置页。会话管理页
 截图按发布决定不附加；README 与 Add-on manifest 均只引用三张公开截图；公开 Author 为

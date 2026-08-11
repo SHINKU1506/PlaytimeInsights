@@ -514,7 +514,7 @@ Playnite 插件程序集版本冲突。
   PEXT SHA-256 为 `15BAFE3225882D430129722EC2B9B54210F317591D0A9AFB9CFF1F99247C384D`，
   PEXT 大小为 191,488 字节。
 
-#### 0.9.8 — 正式发布候选（本地工程项已完成）
+#### 0.9.8 — 已正式发布
 
 - 版本和程序集冻结为 0.9.8 / 0.9.8.0；
 - Release 关闭 PDB 输出并设置稳定 PathMap，DLL 敏感路径扫描通过；
@@ -528,7 +528,9 @@ Playnite 插件程序集版本冲突。
 - 2026-08-11 客户端复验和独立 Portable 安装/卸载通过；中文/英文分析页与中文设置页
   三张公开截图归档，会话管理页截图不附加；公开 Author 统一为 `SHINKU1506`，GitHub 仓库已
   可匿名访问；
-- 待完成最终提交推送、GitHub Release、Toolbox 远程 URL 校验和 Add-on Database PR。
+- 最终提交 `8e19718`、`v0.9.8` Release、PEXT 上传及 Toolbox 远程 URL 校验均已完成；
+- Add-on Database [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626) 已提交，
+  等待上游审核合并。
 
 ### 1.0 — 首次公开发布
 
