@@ -2,7 +2,19 @@
 
 最后更新：2026-08-11
 
-当前阶段：0.9.8 已正式发布，Add-on Database PR 等待上游审核
+当前阶段：0.9.8 已正式发布；架构重构准备分支已建立，阶段 A 待实施
+
+## 架构重构准备分支
+
+- 分支：`refactor/architecture-preparation`；
+- 完整事件、按钮、键盘、焦点与副作用基线已落盘到
+  `docs\ARCHITECTURE_REFACTOR_BASELINE.md`；
+- `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md` 已增加阶段 0 完成状态和下一步准入条件；
+- 新增第 62 项静态架构护栏：动态扫描四个 XAML 的事件处理器，要求全部进入职责矩阵；
+- 护栏禁止 ViewModel 引入 MessageBox、文件对话框、具体 Window 类型和外部 MVVM/Behavior
+  框架，并锁定现有 CanExecute 来源、分页可见性和两个对话框的键盘语义；
+- 本轮只建立重构安全边界，不修改任何生产代码、会话数据或客户端行为；
+- 下一步是阶段 A：先引入可替换的强类型交互边界并覆盖取消/拒绝/失败路径，不直接迁移全部按钮。
 
 ## 0.9.8 正式发布候选
 

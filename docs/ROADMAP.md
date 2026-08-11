@@ -550,6 +550,10 @@ Playnite 插件程序集版本冲突。
 - `docs\VISUAL_UX_OPTIMIZATION_PLAN.md`：响应式指标卡、空状态、文本层级和局部微交互；
 - `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md`：命令基础设施、会话工作流协调器和 ViewModel 拆分。
 
+2026-08-11 已创建 `refactor/architecture-preparation` 分支并完成架构阶段 0：事件职责、按钮状态、
+键盘焦点和取消/失败副作用基线已落盘，新增第 62 项架构边界护栏。下一步按计划执行阶段 A，
+本分支不混入视觉优化。
+
 ### 1.1+
 
 - 年度回顾；

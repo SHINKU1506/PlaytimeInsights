@@ -77,6 +77,7 @@ namespace PlaytimeInsights.Tests
             Run("Native views use portable theme brushes and responsive overflow", TestThemeAndResponsiveLayout);
             Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
             Run("Nested dashboard scrollers hand wheel input to page boundaries", TestDashboardMouseWheelRouting);
+            Run("Architecture refactor baseline keeps boundaries documented", TestArchitectureRefactorBaseline);
             Run("Release metadata and public README stay current", TestReleaseMetadataAndReadme);
             Run("Localization keys and format placeholders stay source-complete", TestLocalizationSourceCoverage);
             Run("Release 0.1 through 0.9 settings keep compatible defaults", TestLegacySettingsMatrix);
@@ -2205,6 +2206,151 @@ namespace PlaytimeInsights.Tests
                 "DashboardScrollViewer.RaiseEvent(forwardedEvent)"));
             Equal(true, dashboardCode.Contains(
                 "FindVisualChild<ScrollViewer>"));
+        }
+
+        private static void TestArchitectureRefactorBaseline()
+        {
+            var sourceRoot = FindSourceRoot();
+            var baseline = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "docs",
+                "ARCHITECTURE_REFACTOR_BASELINE.md"));
+            var sessionXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml"));
+            var dashboardXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var editorXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionEditorWindow.xaml"));
+            var importXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionImportPreviewWindow.xaml"));
+            var sessionCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml.cs"));
+            var dashboardCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+
+            var eventPattern = new Regex(
+                "(?:Click|PreviewMouseWheel|PeriodSelected|" +
+                "MouseLeftButtonUp)=\"([A-Za-z_][A-Za-z0-9_]*)\"");
+            foreach (var xaml in new[]
+            {
+                sessionXaml,
+                dashboardXaml,
+                editorXaml,
+                importXaml
+            })
+            {
+                foreach (Match match in eventPattern.Matches(xaml))
+                {
+                    Equal(true, baseline.Contains(
+                        "`" + match.Groups[1].Value + "`"));
+                }
+            }
+
+            var loadedPattern = new Regex(
+                "Loaded \\+= ([A-Za-z_][A-Za-z0-9_]*);");
+            foreach (var code in new[] { sessionCode, dashboardCode })
+            {
+                foreach (Match match in loadedPattern.Matches(code))
+                {
+                    Equal(true, baseline.Contains(
+                        "`" + match.Groups[1].Value + "`"));
+                }
+            }
+
+            var forbiddenViewModelTokens = new[]
+            {
+                "MessageBox",
+                "OpenFileDialog",
+                "SaveFileDialog",
+                "SessionEditorWindow",
+                "SessionImportPreviewWindow",
+                "Window.GetWindow",
+                "System.Windows.Controls"
+            };
+            foreach (var viewModelFile in new[]
+            {
+                "SessionManagementViewModel.cs",
+                "DashboardViewModel.cs",
+                "SessionEditorViewModel.cs"
+            })
+            {
+                var viewModel = File.ReadAllText(Path.Combine(
+                    sourceRoot,
+                    "ViewModels",
+                    viewModelFile));
+                foreach (var token in forbiddenViewModelTokens)
+                {
+                    Equal(false, viewModel.Contains(token));
+                }
+            }
+
+            var project = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.csproj"));
+            foreach (var dependency in new[]
+            {
+                "CommunityToolkit.Mvvm",
+                "Microsoft.Xaml.Behaviors",
+                "Prism",
+                "ReactiveUI"
+            })
+            {
+                Equal(false, project.Contains(dependency));
+            }
+
+            foreach (var binding in new[]
+            {
+                "IsEnabled=\"{Binding CanEdit}\"",
+                "IsEnabled=\"{Binding CanDelete}\"",
+                "IsEnabled=\"{Binding CanRestore}\"",
+                "IsEnabled=\"{Binding HasFilteredSessions}\"",
+                "Visibility=\"{Binding LoadMoreVisibility}\""
+            })
+            {
+                Equal(true, sessionXaml.Contains(binding));
+            }
+            Equal(true, importXaml.Contains(
+                "IsEnabled=\"{Binding CanImport}\""));
+            Equal(true, dashboardXaml.Contains(
+                "Visibility=\"{Binding LoadMoreVisibility}\""));
+
+            Equal(true, editorXaml.Contains(
+                "FocusManager.FocusedElement=\"{Binding ElementName=GameSelector}\""));
+            Equal(true, editorXaml.Contains(
+                "KeyboardNavigation.TabNavigation=\"Cycle\""));
+            Equal(true, editorXaml.Contains("IsCancel=\"True\""));
+            Equal(true, editorXaml.Contains("IsDefault=\"True\""));
+            Equal(true, importXaml.Contains(
+                "KeyboardNavigation.TabNavigation=\"Cycle\""));
+            Equal(true, importXaml.Contains("IsCancel=\"True\""));
+            Equal(true, importXaml.Contains("IsDefault=\"True\""));
+
+            foreach (var scenario in new[]
+            {
+                "取消导入文件选择",
+                "导入预览后取消",
+                "删除确认取消",
+                "无效备份恢复",
+                "恢复确认取消",
+                "导出写入失败",
+                "编辑或补录窗口取消",
+                "重建索引确认取消"
+            })
+            {
+                Equal(true, baseline.Contains(scenario));
+            }
         }
 
         private static void TestReleaseMetadataAndReadme()

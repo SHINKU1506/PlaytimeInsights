@@ -1,6 +1,23 @@
 # 开发与构建
 
-更新日期：2026-07-29
+更新日期：2026-08-11
+
+## 架构重构准备
+
+架构重构在 `refactor/architecture-preparation` 分支独立进行，不与视觉计划混合。执行依据：
+
+- `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md`：阶段、边界和完成定义；
+- `docs\ARCHITECTURE_REFACTOR_BASELINE.md`：当前事件、启用条件、键盘焦点和副作用基线。
+
+准备分支新增第 62 项回归 `Architecture refactor baseline keeps boundaries documented`。该测试会
+动态扫描 XAML 事件并核对职责矩阵，同时阻止 ViewModel 引入具体对话框/Window 类型或外部 MVVM
+框架。准备阶段没有生产代码改动；阶段 A 开始前应先运行：
+
+```powershell
+dotnet build PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite"
+dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release `
+  -p:PlayniteInstallDir="D:\software\Playnite"
+```
 
 ## 环境
 
