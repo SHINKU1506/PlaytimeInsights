@@ -2,6 +2,8 @@
 
 Playtime Insights 在 Playnite Desktop 内提供原生、本地优先的游玩时长分析和会话管理。
 
+作者：[SHINKU1506](https://github.com/SHINKU1506)
+
 ## 主要内容
 
 - 按今天、本周、本月、本年或自定义范围统计精确会话；
@@ -12,6 +14,8 @@ Playtime Insights 在 Playnite Desktop 内提供原生、本地优先的游玩�
 - 运行中检查点与异常关闭恢复；
 - 中文、英文和原生 Playnite 主题资源；
 - 全部分析在本机执行，不包含遥测或网络上传。
+- 提供中文/英文分析页与插件设置页正式截图。
+- 已通过独立 Playnite Portable 环境的安装和卸载验收。
 
 ## 安装
 
@@ -36,8 +40,8 @@ Playtime Insights 在 Playnite Desktop 内提供原生、本地优先的游玩�
 ## 完整性
 
 - PEXT SHA-256：
-  `62539010D9DC2F255181D08C416CB71F2962CAA58814E70AD050411470FC7201`
-- PEXT 大小：189,577 字节
+`09ACBD2CE1B62346AC658C4FE3C2539FA456394C7CC6773EAE46BBAA3BAB4B82`
+- PEXT 大小：134,031 字节
 - DLL SHA-256：
-  `0A214AA04597B0AD7B853835FAAAF9156E236B9DA422A29474731B7322634787`
+`9BEFE2370DA5BA3E21F5E5E55862B59497EC6DA8CE6840BD268942F900DB5AB4`
 - 包含 MIT LICENSE，不包含调试符号或本机源码路径。

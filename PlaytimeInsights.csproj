@@ -22,6 +22,11 @@
     <Page Include="App.xaml" />
     <Compile Remove="Tests\**\*.cs" />
     <None Remove="Tests\**\*" />
+    <Compile Remove="staging\**\*.cs" />
+    <Page Remove="staging\**\*.xaml" />
+    <Resource Remove="staging\**\*" />
+    <EmbeddedResource Remove="staging\**\*" />
+    <None Remove="staging\**\*" />
   </ItemGroup>
 
   <ItemGroup>

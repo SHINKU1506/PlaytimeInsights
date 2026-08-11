@@ -1,9 +1,10 @@
 # Playtime Insights 1.0 正式发布就绪审查
 
-审查日期：2026-07-29
+审查日期：2026-08-11
 
 结论：0.9.8 本地工程和安装包已达到正式发布候选质量；版本冻结、LICENSE 入包、PDB/本机
-路径清理和两层 manifest 源文件已经完成。当前仍需客户端最终验收及 GitHub/上游外部发布动作。
+路径清理、当前客户端验收、Portable 安装/卸载、正式截图和两层 manifest 源文件已经完成。
+当前仅剩最终提交及 GitHub/上游外部发布动作。
 
 ## 已通过
 
@@ -26,10 +27,10 @@
 
 ### P0：必须完成
 
-1. **提交并推送 0.9.8**
-   - 0.9.4 基线已提交为 `b141707`，当前分支领先 `origin/main` 一个提交；
-   - 当前 0.9.8 版本、发布配置、manifest 和文档改动仍需在客户端最终验收后提交；
-   - 推送后远程源码才会包含最新 UI、滚轮修复和可供 Add-on manifest 引用的 installer。
+1. **提交并推送最终 0.9.8 修订**
+   - 0.9.8 基线 `e018001` 已推送并与 `origin/main` 同步；
+   - 2026-08-10 可复现构建修复、manifest 日期、文档和当前 README 改写尚未提交；
+   - 客户端复验后应创建最终提交并推送。
 
 2. **冻结正式版本号（已完成）**
    - 两个页面不显示版本、发布候选或阶段功能说明；
@@ -43,11 +44,13 @@
 4. **完成最终客户端验收**
    - 2026-07-30 用户确认现有配置客户端检查未发现问题；
    - 0.9.4 → 0.9.8 原位升级、主要分析页、会话页和星期 Tooltip 修复视为通过；
-   - 仍需补一次独立空数据目录的干净安装、卸载/重装和正式中英文截图。
+   - 2026-08-11 当前客户端复验完成，星期选中态和下钻封面未发现问题；
+   - 中文/英文分析页和中文设置页三张正式截图已归档；会话管理页截图不附加；
+   - 独立 Playnite Portable 环境的安装和卸载验收已完成。
 
 5. **创建公开 GitHub Release**
-   - 当前远程没有 Git 标签，且 Toolbox 无法匿名访问当前 GitHub 源码 URL；
-   - 正式发布前需确认仓库为公开状态；
+   - GitHub 仓库已公开；匿名 HTTP 对仓库、raw installer、图标和 Add-on manifest 均返回 200；
+   - 当前远程没有 `v0.9.8` Git 标签，Release 页面和 PEXT 附件仍返回 404；
    - 创建 `v0.9.8` 标签和 GitHub Release；
    - 上传最终 PEXT，发布页记录 SHA-256、最低 Playnite API 版本、安装方法、已知限制和变更摘要；
    - PEXT 作为 Release 附件，不提交到源码历史。
@@ -63,9 +66,9 @@
    - 本插件编译引用为 `Playnite.SDK 6.16.0.0`，建议首包声明
      `RequiredApiVersion: 6.16.0`；
    - PackageUrl 已指向 `v0.9.8` Release 中的最终 PEXT 文件名；
-   - 当前 Toolbox 对 installer 报告 Release 包 URL 不可达，对 add-on 报告源码、图标和
-     installer URL 均不可达；
-   - 上传 PEXT 并推送 installer 后，使用 `Toolbox.exe verify installer ...` 和
+   - 两层 YAML 已通过一次性本机 HTTP 完整联动校验；
+   - 正式 Toolbox 校验目前仍因 PEXT 附件 URL 404 失败；新截图 URL 也需等待最终提交推送；
+   - 上传 PEXT 并推送最终清单/截图后，使用 `Toolbox.exe verify installer ...` 和
      `Toolbox.exe verify addon ...` 完成联动校验，再向数据库 `addons\generic` 提交 PR。
 
 ### P1：强烈建议
@@ -74,20 +77,17 @@
    - 0.9.8 已补齐功能、数据口径、兼容性、安装升级、使用入口、隐私、已知限制、构建、
      问题反馈和许可证；
    - 已删除旧版本号以及聚合柱形图、按日柱形等过时描述；
-   - 正式发布前可再补英文长版或保持当前英文摘要，并加入最终截图。
+   - 正式发布前可再补英文长版，或保持当前英文摘要；最终截图已加入。
 
-2. **补拍正式版截图**
-   - 现有 6 张截图均为 0.9.2 UI 审查证据；
-   - 缺少 0.9.8 当前趋势 Crosshair、最新会话表格、高级菜单和最终英文界面；
-   - Add-on Database 截图虽非强制字段，但正式发布应至少提供主看板和会话页各一张当前截图，
-     并生成较小的 Thumbnail URL。
+2. **补拍正式版截图（已完成基础集合）**
+   - 0.9.8 已归档中文分析页、英文分析页和中文插件设置页；会话管理页截图不附加；
+   - README 和 Add-on manifest 已引用稳定路径；
+   - 当前 Thumbnail 与原图使用同一 URL，后续可选生成较小缩略图以降低列表加载流量。
 
-3. **统一作者身份**
-   - `extension.yaml` 与程序集显示 `chan`，LICENSE 使用 `Chen Xiaoyang`，GitHub 用户为
-     `SHINKU1506`；
-   - 三者可以不同，但正式发布前应决定面向用户显示的 Author；
-   - 0.9.8 的 `extension.yaml` 已包含源码、变更日志和问题反馈 `Links`；
-   - 正式发布前仍需决定面向用户显示的 Author。
+3. **统一作者身份（已完成）**
+   - 用户确认公开 Author 使用 GitHub 用户名 `SHINKU1506`；
+   - extension、程序集、LICENSE、README 和 Add-on manifest 已统一；
+   - `extension.yaml` 已包含源码、变更日志和问题反馈 `Links`。
 
 4. **改善公开构建可复现性**
    - 两个 csproj 默认使用本机 `D:\software\Playnite`；
@@ -97,19 +97,17 @@
 
 ## 推荐发布顺序
 
-1. 用户完成最新客户端验收；
-2. 补正式截图、确认 Author；
-3. 完成 0.9.8 客户端升级、干净安装和英文界面验收；
-4. 提交并推送源码；
-5. 创建 `v0.9.8` 和 GitHub Release，上传最终 PEXT；
-6. 用 Toolbox 完成 Installer/Add-on manifest 的远程 URL 联动校验；
-7. 向 Playnite Add-on Database 的 `addons\generic` 提交 Add-on manifest PR。
+1. 提交并推送最终源码、截图和发布元数据；
+2. 创建 `v0.9.8` 和 GitHub Release，上传最终 PEXT；
+3. 用 Toolbox 完成 Installer/Add-on manifest 的远程 URL 联动校验；
+4. 向 Playnite Add-on Database 的 `addons\generic` 提交 Add-on manifest PR。
 
 ## 当前正式包证据
 
 - 当前 0.9.8 候选 DLL SHA-256：
-  `0A214AA04597B0AD7B853835FAAAF9156E236B9DA422A29474731B7322634787`；
+  `9BEFE2370DA5BA3E21F5E5E55862B59497EC6DA8CE6840BD268942F900DB5AB4`；
+- 当前 0.9.8 DLL 大小：282,112 字节；
 - 当前 0.9.8 PEXT SHA-256：
-  `62539010D9DC2F255181D08C416CB71F2962CAA58814E70AD050411470FC7201`；
-- 当前 0.9.8 PEXT 大小：189,577 字节；
+  `09ACBD2CE1B62346AC658C4FE3C2539FA456394C7CC6773EAE46BBAA3BAB4B82`；
+- 当前 0.9.8 PEXT 大小：134,031 字节；
 - PEXT 含 LICENSE、不含 PDB，Release/staging/安装目录哈希一致。

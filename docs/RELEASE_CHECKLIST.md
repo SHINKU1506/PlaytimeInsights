@@ -1,6 +1,6 @@
 # Playtime Insights 发布检查清单
 
-更新日期：2026-08-09
+更新日期：2026-08-11
 
 ## 当前候选
 
@@ -12,11 +12,13 @@
 - 自动化回归：61/61；
 - 中英文资源：各 271 个键；
 - 发布包：`dist\PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_8.pext`。
-- DLL SHA-256：`0A214AA04597B0AD7B853835FAAAF9156E236B9DA422A29474731B7322634787`；
-- PEXT SHA-256：`62539010D9DC2F255181D08C416CB71F2962CAA58814E70AD050411470FC7201`；
-- PEXT 大小：189,577 字节；
+- DLL SHA-256：`9BEFE2370DA5BA3E21F5E5E55862B59497EC6DA8CE6840BD268942F900DB5AB4`；
+- DLL 大小：282,112 字节；
+- PEXT SHA-256：`09ACBD2CE1B62346AC658C4FE3C2539FA456394C7CC6773EAE46BBAA3BAB4B82`；
+- PEXT 大小：134,031 字节；
 - PEXT 内容：9 个预期文件。
 - Release 隐私：无 PDB，DLL 敏感路径扫描通过，MIT LICENSE 已入包。
+- 可复现性：连续两轮干净构建 DLL SHA-256 一致，未生成 staging BAML。
 
 ## Git 边界
 
@@ -61,16 +63,19 @@
 ## 公共发布前剩余动作
 
 - Git 仓库、MIT LICENSE、`origin/main` 和上游跟踪已建立；
-- 0.9.4 基线已本地提交；当前 0.9.8 发布改动仍需在最终客户端验收后提交并推送；
+- 0.9.8 基线已提交并推送；2026-08-11 staging 默认项排除、视觉修订、作者、截图、发布日期、
+  文档及 README 改写仍为未提交改动；
 - 0.9.8 已冻结版本、移除界面候选字样并清理公开 README；
 - DLL/PDB 本机路径和许可证阻塞已解决：正式包无 PDB，LICENSE 已纳入 PEXT；
-- 公开 README 已重写；仍需补最新中英文截图；
+- 公开 README 已重写，并已接入 0.9.8 中文/英文正式截图；
 - 现有配置下的 0.9.4 → 0.9.8 原位升级及主要客户端交互已于 2026-07-30 验收通过；
-- 2026-08-09 下钻会话封面修复已部署，需复验按日趋势周期与日历热力图下钻条目的缩略图；
-- 仍需补独立空数据目录干净安装、正式中英文截图和最终 Author 确认；
-- 确认 GitHub 仓库可匿名访问；当前 Toolbox 无法访问源码、图标和 installer URL；
+- 2026-08-11 客户端复验通过，按日/热力图下钻封面和星期选中态未发现问题；
+- 中文/英文分析页和中文设置页三张正式截图已归档并接入发布元数据；会话管理页截图不附加；
+- 公开 Author 已统一确认为 `SHINKU1506`；
+- 独立 Playnite Portable 环境的安装和卸载验收已完成；
+- GitHub 仓库已设为 Public；匿名 HTTP 已确认仓库、图标、Add-on 和 installer URL 返回 200；
 - 创建 `v0.9.8` Git 标签和 GitHub Release，PEXT 作为 Release 附件；
-- 两层 manifest 已创建；上传 PEXT 且推送 installer 后，用 Toolbox 完成 URL 联动校验；
+- 两层 manifest 已通过本机 HTTP 完整联动校验；推送最终截图并上传 PEXT 后，再完成正式 URL 校验；
 - 向 `JosefNemec/PlayniteAddonDatabase` 提交 Add-on manifest PR；
 - 完整审查见 `docs\RELEASE_READINESS_1.0.md`。
 

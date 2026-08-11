@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Playtime Insights")]
 [assembly: AssemblyDescription("Local playtime session tracking and analytics for Playnite.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("SHINKU1506")]
 [assembly: AssemblyProduct("Playtime Insights")]
-[assembly: AssemblyCopyright("Copyright © chan 2026")]
+[assembly: AssemblyCopyright("Copyright © SHINKU1506 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

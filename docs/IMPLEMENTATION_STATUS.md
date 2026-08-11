@@ -1,8 +1,8 @@
 # Playtime Insights 实现状态
 
-最后更新：2026-08-09
+最后更新：2026-08-11
 
-当前阶段：0.9.8 下钻会话封面修复已构建、打包并部署，待客户端复验
+当前阶段：0.9.8 客户端、Portable 和正式截图验收已完成，待提交与公开 Release
 
 ## 0.9.8 正式发布候选
 
@@ -20,22 +20,39 @@
 - PEXT 只包含 9 个预期条目：DLL、清单、三个图标、LICENSE、PRIVACY 和两个本地化文件；
 - Release、`staging\0.9.8` 与安装目录 9 个文件逐项 SHA-256 一致；
 - 部署前后用户数据均为 7 个文件，内容、长度与时间戳联合指纹保持
-  `E43A8773C8D3F9D7E8BEE7EA0414A2C4DC7AE3D8A2B4096152A54D71C509BC11`；
+  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`；
 - DLL SHA-256：
-  `0A214AA04597B0AD7B853835FAAAF9156E236B9DA422A29474731B7322634787`；
+  `9BEFE2370DA5BA3E21F5E5E55862B59497EC6DA8CE6840BD268942F900DB5AB4`；
+- DLL 大小 282,112 字节；
 - PEXT SHA-256：
-  `62539010D9DC2F255181D08C416CB71F2962CAA58814E70AD050411470FC7201`；
-- PEXT 大小 189,577 字节；
+  `09ACBD2CE1B62346AC658C4FE3C2539FA456394C7CC6773EAE46BBAA3BAB4B82`；
+- PEXT 大小 134,031 字节；
 - 2026-07-30 用户确认当前客户端检查未发现问题；现有配置下的原位升级、主要分析页、
   会话管理页和星期 Tooltip 修复通过；
 - 2026-08-09 下钻封面修复 Release 构建 0 警告/0 错误，61/61 回归通过；Release、staging、
   安装目录 9 文件一致，部署前后用户数据指纹不变，等待客户端复验；
+- 2026-08-10 正式发布复审发现 SDK-style WPF 会误编译被 Git 忽略的 `staging` 本地化 XAML；
+  项目已显式排除所有 staging 默认编译项并加入回归；连续两轮干净构建 DLL 哈希相同，obj 中
+  staging BAML 为 0，61/61 回归通过；
+- 依赖枚举仅包含 Playnite.SDK 6.16.0.0、WPF 和 .NET Framework 系统程序集；中英资源各
+  271 键，DLL 不含 PDB、本机用户名、源码目录或 Playnite 安装路径；
+- 最终 PEXT 含 9 个预期条目、LICENSE 和 0.9.8 清单，不含 PDB；Release、staging、安装目录
+  逐文件一致，部署前后 7 个用户数据文件联合指纹保持
+  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`；
+- 两层 manifest 通过一次性本机 HTTP 完整联动校验；2026-08-11 匿名访问正式仓库、图标、
+  Add-on manifest 和 installer manifest 均为 HTTP 200，GitHub Release 附件仍为 HTTP 404；
+- 星期分布选中卡片新增 `#334A90E2 → #1A4A90E2` 低透明渐变、蓝紫 1px 全围框、轻微蓝色
+  Glow、右上角状态点、白色粗体标题及 120ms 上移/回落动画；筛选逻辑保持不变；
+- 2026-08-11 用户确认当前客户端验收完成；正式截图已归档中文/英文分析页和中文设置页，并接入
+  README/Add-on manifest；会话管理页截图不纳入公开发布材料；
+- extension、程序集、LICENSE、README 和 Add-on manifest 的公开 Author 统一为
+  `SHINKU1506`；独立 Portable 安装和卸载验收已通过；
 - Toolbox 已成功打包。Installer manifest 当前因尚未上传的 GitHub Release URL 不可达而未完成；
-  Add-on manifest 当前因源码、图标和 installer 的公开 URL 均不可达而未完成。需确认仓库可匿名
-  访问、推送源码并上传 PEXT 后重新执行两项联动校验。
+  Add-on manifest 的仓库、图标和 installer URL 已可达，但新截图仍需随最终源码推送，且联动过程
+  仍受 PEXT URL 阻塞。推送源码与截图并上传 PEXT 后重新执行两项联动校验。
 
-下一人工关口：在独立 Portable 配置补空数据干净安装与正式中英文截图，并确认公开 Author。
-随后提交并推送源码，创建 `v0.9.8` Release、上传 PEXT、重新验证两层 manifest，再提交
+下一发布关口：提交并推送源码与截图，创建 `v0.9.8` Release、上传 PEXT、重新验证两层
+manifest，再提交
 Playnite Add-on Database PR。
 
 ## 0.9.4 公开界面、README 与清单链接

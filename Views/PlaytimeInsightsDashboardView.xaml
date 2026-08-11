@@ -18,6 +18,19 @@
         <SolidColorBrush x:Key="RankingSilverFillBrush" Color="#33BFC7D5" />
         <SolidColorBrush x:Key="RankingBronzeBrush" Color="#FFC9824A" />
         <SolidColorBrush x:Key="RankingBronzeFillBrush" Color="#33C9824A" />
+        <LinearGradientBrush x:Key="WeekdaySelectedBackgroundBrush"
+                             StartPoint="0.5,0"
+                             EndPoint="0.5,1">
+            <GradientStop Color="#334A90E2" Offset="0" />
+            <GradientStop Color="#1A4A90E2" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="WeekdaySelectedBorderBrush"
+                             StartPoint="0,0.5"
+                             EndPoint="1,0.5">
+            <GradientStop Color="#FF4A90E2" Offset="0" />
+            <GradientStop Color="#FF8B5CF6" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="WeekdaySelectedIndicatorBrush" Color="#FF60A5FA" />
         <Style x:Key="PanelStyle" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
@@ -268,23 +281,40 @@
         <Style x:Key="WeekdayButtonStyle" TargetType="{x:Type Button}">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0,0,0,2" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="VerticalContentAlignment" Value="Stretch" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Button}">
-                        <Border x:Name="ButtonBorder"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
-                        </Border>
+                        <Grid x:Name="ButtonRoot" RenderTransformOrigin="0.5,0.5">
+                            <Grid.RenderTransform>
+                                <TranslateTransform x:Name="SelectionTransform" Y="0" />
+                            </Grid.RenderTransform>
+                            <Border x:Name="ButtonBorder"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            </Border>
+                            <Ellipse x:Name="SelectionIndicator"
+                                     Width="5"
+                                     Height="5"
+                                     Margin="0,6,6,0"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Top"
+                                     Fill="{StaticResource WeekdaySelectedIndicatorBrush}"
+                                     Visibility="Collapsed"
+                                     Focusable="False"
+                                     IsHitTestVisible="False" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBorder"
@@ -305,13 +335,50 @@
                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                 <Setter TargetName="ButtonBorder"
                                         Property="Background"
-                                        Value="{DynamicResource ControlBackgroundBrush}" />
+                                        Value="{StaticResource WeekdaySelectedBackgroundBrush}" />
                                 <Setter TargetName="ButtonBorder"
                                         Property="BorderBrush"
-                                        Value="{DynamicResource GlyphBrush}" />
+                                        Value="{StaticResource WeekdaySelectedBorderBrush}" />
                                 <Setter TargetName="ButtonBorder"
                                         Property="BorderThickness"
-                                        Value="0,0,0,2" />
+                                        Value="1" />
+                                <Setter TargetName="ButtonBorder" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#FF4A90E2"
+                                                          BlurRadius="12"
+                                                          ShadowDepth="2"
+                                                          Direction="270"
+                                                          Opacity="0.32" />
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="SelectionIndicator"
+                                        Property="Visibility"
+                                        Value="Visible" />
+                                <Setter Property="Foreground" Value="#FFFFFFFF" />
+                                <Setter Property="FontWeight" Value="Bold" />
+                                <Setter Property="Panel.ZIndex" Value="2" />
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="SelectionTransform"
+                                                             Storyboard.TargetProperty="Y"
+                                                             To="-2"
+                                                             Duration="0:0:0.12"
+                                                             DecelerationRatio="0.8" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="SelectionTransform"
+                                                             Storyboard.TargetProperty="Y"
+                                                             To="0"
+                                                             Duration="0:0:0.12"
+                                                             AccelerationRatio="0.35" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
                             </DataTrigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.45" />

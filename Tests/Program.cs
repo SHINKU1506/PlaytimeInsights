@@ -1947,10 +1947,29 @@ namespace PlaytimeInsights.Tests
                 @"<Trigger Property=""IsKeyboardFocused"" Value=""True"">" +
                 @".*?TextBrush.*?Property=""BorderThickness"".*?Value=""1""",
                 RegexOptions.CultureInvariant | RegexOptions.Singleline));
+            Equal(true, dashboard.Contains("WeekdaySelectedBackgroundBrush"));
+            Equal(true, dashboard.Contains("Color=\"#334A90E2\""));
+            Equal(true, dashboard.Contains("Color=\"#1A4A90E2\""));
+            Equal(true, dashboard.Contains("WeekdaySelectedBorderBrush"));
+            Equal(true, dashboard.Contains("Color=\"#FF8B5CF6\""));
+            Equal(true, dashboard.Contains("x:Name=\"SelectionIndicator\""));
+            Equal(true, dashboard.Contains("WeekdaySelectedIndicatorBrush"));
+            Equal(true, dashboard.Contains("<DropShadowEffect Color=\"#FF4A90E2\""));
+            Equal(true, dashboard.Contains("BlurRadius=\"12\""));
+            Equal(true, dashboard.Contains("ShadowDepth=\"2\""));
+            Equal(true, dashboard.Contains("Opacity=\"0.32\""));
+            Equal(true, dashboard.Contains("<TranslateTransform x:Name=\"SelectionTransform\""));
+            Equal(true, dashboard.Contains("Storyboard.TargetName=\"SelectionTransform\""));
+            Equal(true, dashboard.Contains("To=\"-2\""));
+            Equal(true, dashboard.Contains("Duration=\"0:0:0.12\""));
             Equal(true, Regex.IsMatch(
                 dashboard,
                 @"<DataTrigger Binding=""\{Binding IsSelected\}"" Value=""True"">" +
-                @".*?GlyphBrush.*?Property=""BorderThickness"".*?Value=""0,0,0,2""",
+                @".*?WeekdaySelectedBackgroundBrush.*?WeekdaySelectedBorderBrush" +
+                @".*?Property=""BorderThickness"".*?Value=""1""" +
+                @".*?Property=""Visibility"".*?Value=""Visible""" +
+                @".*?Property=""Foreground"".*?#FFFFFFFF" +
+                @".*?Property=""FontWeight"".*?Bold",
                 RegexOptions.CultureInvariant | RegexOptions.Singleline));
             Equal(true, dashboard.Contains(
                 "Source=\"{Binding CoverImagePath, Converter={StaticResource CoverImageConverter}}\""));
@@ -2032,7 +2051,10 @@ namespace PlaytimeInsights.Tests
             Equal(true, dashboard.Contains("x:Name=\"PART_Indicator\""));
             Equal(true, dashboard.Contains("Grid.ColumnSpan=\"4\""));
             Equal(true, dashboard.Contains("Margin=\"-8,-5\""));
-            Equal(false, dashboard.Contains("Height=\"5\""));
+            Equal(false, Regex.IsMatch(
+                dashboard,
+                @"<ProgressBar\b[^>]*Height=""5""",
+                RegexOptions.CultureInvariant | RegexOptions.Singleline));
             Equal(true, dashboard.Contains("HelpIconButtonStyle"));
             Equal(true, management.Contains("HelpIconButtonStyle"));
             Equal(true, dashboard.Contains(
@@ -2225,8 +2247,12 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "manifests",
                 "addon.yaml"));
+            var license = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "LICENSE"));
 
             Equal(true, manifest.Contains("Version: 0.9.8"));
+            Equal(true, manifest.Contains("Author: SHINKU1506"));
             Equal(true, manifest.Contains(
                 "https://github.com/SHINKU1506/PlaytimeInsights"));
             Equal(true, manifest.Contains(
@@ -2237,6 +2263,12 @@ namespace PlaytimeInsights.Tests
                 "AssemblyVersion(\"0.9.8.0\")"));
             Equal(true, assemblyInfo.Contains(
                 "AssemblyFileVersion(\"0.9.8.0\")"));
+            Equal(true, assemblyInfo.Contains(
+                "AssemblyCompany(\"SHINKU1506\")"));
+            Equal(true, assemblyInfo.Contains(
+                "Copyright © SHINKU1506 2026"));
+            Equal(true, license.Contains(
+                "Copyright (c) 2026 SHINKU1506"));
 
             Equal(false, dashboard.Contains(
                 "LOCPlaytimeInsightsDashboardSubtitle"));
@@ -2252,6 +2284,9 @@ namespace PlaytimeInsights.Tests
                 "LOCPlaytimeInsightsSessionsSubtitle"));
 
             Equal(true, readme.Contains("当前版本：`0.9.8`"));
+            Equal(true, readme.Contains(
+                "作者：[SHINKU1506](https://github.com/SHINKU1506)"));
+            Equal(true, readme.Contains("## 界面预览"));
             Equal(true, readme.Contains("## 安装与升级"));
             Equal(true, readme.Contains("## 数据、隐私与诊断"));
             Equal(true, readme.Contains("## 已知限制"));
@@ -2270,6 +2305,10 @@ namespace PlaytimeInsights.Tests
                 "<PathMap>$(MSBuildProjectDirectory)=/_/PlaytimeInsights</PathMap>"));
             Equal(true, project.Contains(
                 "<None Update=\"LICENSE\" CopyToOutputDirectory=\"PreserveNewest\" />"));
+            Equal(true, project.Contains(
+                "<Page Remove=\"staging\\**\\*.xaml\" />"));
+            Equal(true, project.Contains(
+                "<Resource Remove=\"staging\\**\\*\" />"));
 
             Equal(true, installerManifest.Contains(
                 "AddonId: PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd"));
@@ -2279,10 +2318,29 @@ namespace PlaytimeInsights.Tests
             Equal(true, installerManifest.Contains(
                 "/releases/download/v0.9.8/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_8.pext"));
             Equal(true, addonManifest.Contains("Type: Generic"));
+            Equal(true, addonManifest.Contains("Author: SHINKU1506"));
             Equal(true, addonManifest.Contains(
                 "InstallerManifestUrl: https://raw.githubusercontent.com/SHINKU1506/PlaytimeInsights/main/manifests/installer.yaml"));
             Equal(true, addonManifest.Contains(
                 "SourceUrl: https://github.com/SHINKU1506/PlaytimeInsights"));
+            Equal(true, addonManifest.Contains("Screenshots:"));
+
+            var screenshotRoot = Path.Combine(
+                sourceRoot,
+                "docs",
+                "screenshots",
+                "0.9.8");
+            foreach (var screenshot in new[]
+            {
+                "dashboard-zh.png",
+                "dashboard-en.png",
+                "settings-zh.png"
+            })
+            {
+                Equal(true, File.Exists(Path.Combine(screenshotRoot, screenshot)));
+                Equal(true, addonManifest.Contains(
+                    "/docs/screenshots/0.9.8/" + screenshot));
+            }
         }
 
         private static void TestLocalizationSourceCoverage()

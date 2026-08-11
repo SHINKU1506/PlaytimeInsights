@@ -523,8 +523,12 @@ Playnite 插件程序集版本冲突。
 - 干净构建 0 警告、0 错误，61/61 回归通过；
 - Release、`staging\0.9.8`、安装目录逐文件一致，用户数据指纹不变；
 - 2026-08-09 修复趋势周期/日历热力图下钻会话缺少封面缩略图，自动化通过并已部署待复验；
-- 待人工完成客户端升级/干净安装/英文验收、正式截图、提交推送、GitHub Release、
-  Toolbox 远程 URL 校验和 Add-on Database PR。
+- 2026-08-10 排除 staging 默认 WPF 编译项；双重干净构建哈希一致，最终 PEXT 9 条目及本机
+  manifest 联动验证通过，当时待客户端复验、仓库公开和 GitHub Release；
+- 2026-08-11 客户端复验和独立 Portable 安装/卸载通过；中文/英文分析页与中文设置页
+  三张公开截图归档，会话管理页截图不附加；公开 Author 统一为 `SHINKU1506`，GitHub 仓库已
+  可匿名访问；
+- 待完成最终提交推送、GitHub Release、Toolbox 远程 URL 校验和 Add-on Database PR。
 
 ### 1.0 — 首次公开发布
 
@@ -538,6 +542,11 @@ Playnite 插件程序集版本冲突。
   版本冻结、PDB 本机路径清理、LICENSE 入包、最终客户端验收、GitHub Release、Installer
   manifest 和 Add-on manifest；
 - 完整阻塞项与执行顺序见 `docs\RELEASE_READINESS_1.0.md`。
+
+后续优化已按职责拆分为两份独立执行计划：
+
+- `docs\VISUAL_UX_OPTIMIZATION_PLAN.md`：响应式指标卡、空状态、文本层级和局部微交互；
+- `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md`：命令基础设施、会话工作流协调器和 ViewModel 拆分。
 
 ### 1.1+
 

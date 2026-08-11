@@ -20,6 +20,10 @@
 项目目录映射到 `/_/PlaytimeInsights`。构建后还会对 DLL 扫描用户名、开发目录和 PDB 路径，
 避免正式二进制泄露本机绝对路径。
 
+`staging\**` 显式从 `Compile`、`Page`、`Resource`、`EmbeddedResource` 和 `None` 默认项中排除。
+这项设置不可删除：SDK-style WPF 否则会把被 Git 忽略的历史暂存 `Localization\*.xaml` 编译成
+BAML 并嵌入 DLL，导致同一源码在不同开发机或暂存状态下产生不同程序集。
+
 ## 恢复与编译
 
 ```powershell
@@ -90,25 +94,34 @@ PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_8.pext
 
 - 程序集：`PlaytimeInsights, Version=0.9.8.0`；
 - 清单：`Version: 0.9.8`；
-- DLL SHA-256：`0A214AA04597B0AD7B853835FAAAF9156E236B9DA422A29474731B7322634787`；
-- PEXT SHA-256：`62539010D9DC2F255181D08C416CB71F2962CAA58814E70AD050411470FC7201`；
-- PEXT 大小：189,577 字节；
+- DLL SHA-256：`9BEFE2370DA5BA3E21F5E5E55862B59497EC6DA8CE6840BD268942F900DB5AB4`；
+- DLL 大小：282,112 字节；
+- PEXT SHA-256：`09ACBD2CE1B62346AC658C4FE3C2539FA456394C7CC6773EAE46BBAA3BAB4B82`；
+- PEXT 大小：134,031 字节；
 - 暂存目录与安装目录的 9 个发布文件逐项 SHA-256 一致；
 - PEXT 内容包含 MIT `LICENSE` 与两个本地化 XAML，不包含 PDB；
 - DLL 敏感路径扫描未发现用户名、开发目录或 PDB 路径；
-- 发布过程不写入 `ExtensionsData`；部署后全部 7 个数据/备份文件的时间戳仍停留在
-  2026-07-27 的用户测试操作，内容清单指纹为
-  `E43A8773C8D3F9D7E8BEE7EA0414A2C4DC7AE3D8A2B4096152A54D71C509BC11`。
+- 发布过程不写入 `ExtensionsData`；本轮部署前后全部 7 个数据/备份文件的内容、长度与时间戳
+  联合指纹均为
+  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`。
 
 Playnite Add-on Database 清单位于 `manifests\installer.yaml` 和 `manifests\addon.yaml`。Toolbox
-已读取两份 YAML；当前 Installer 校验因尚未创建的 GitHub Release `PackageUrl` 不可达而停止，
-Add-on 校验因源码、图标和 installer 的公开 URL 均不可达而停止。将仓库设为可匿名访问、推送
-0.9.8 源码并上传 PEXT 后，需依次重新执行：
+已读取两份 YAML。2026-08-11 匿名 HTTP 已确认仓库、图标、Add-on manifest 和 installer manifest
+可达；当前 Installer 校验仍因尚未创建的 GitHub Release `PackageUrl` 不可达而停止，正式截图也需
+随本轮源码推送后才可达。推送 0.9.8 最终源码与截图并上传 PEXT 后，需依次重新执行：
 
 ```powershell
 D:\software\Playnite\Toolbox.exe verify installer .\manifests\installer.yaml
 D:\software\Playnite\Toolbox.exe verify addon .\manifests\addon.yaml
 ```
+
+2026-08-10 使用同一 PEXT、图标和两层 YAML 建立一次性本机 HTTP 镜像，Toolbox 的 installer
+与 addon（含远程 installer 联动）均完整通过；临时镜像随后删除。正式 URL 校验仍需等待仓库
+公开及 GitHub Release 附件上线。
+
+0.9.8 正式截图位于 `docs\screenshots\0.9.8`：中文/英文分析页和中文插件设置页。会话管理页
+截图按发布决定不附加；README 与 Add-on manifest 均只引用三张公开截图；公开 Author 为
+`SHINKU1506`。
 
 ## 0.2 数据流
 
