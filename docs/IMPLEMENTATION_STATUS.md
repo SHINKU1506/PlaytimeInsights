@@ -1,6 +1,6 @@
 # Playtime Insights 实现状态
 
-最后更新：2026-08-11
+最后更新：2026-08-12
 
 当前阶段：0.9.8 已正式发布；架构重构阶段 B 已完成，阶段 C 待实施
 
@@ -24,6 +24,11 @@
 - 会话页和主看板刷新期间均禁用相关命令，并在选中、分页和刷新状态变化时主动刷新 CanExecute；
 - 导出异常统一使用无访问键的 `LOCPlaytimeInsightsExportFailedTitle`，不会再显示“导出 CSV(_C)”；
 - 中英资源各 272 个键；Release 构建 0 警告/0 错误，当前 74/74 回归通过；
+- 阶段 B Release 已在 Playnite 关闭时部署到 `staging\architecture-stage-b` 和插件安装目录，
+  两处与 Release 输出 9/9 文件一致；DLL 大小 290,816 字节，SHA-256 为
+  `654CEDAE3753E205507828C0A5634D4D5234CAD26CD7F60C93392408EC77B5B0`；
+- 部署前后用户数据均为 7 个文件，联合指纹保持
+  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`；
 - Coordinator 尚未接入真实 View，客户端仍走 0.9.8 路径；
 - 下一步是阶段 C：实现 WPF 交互对象并将多步骤会话管理流程接入 Coordinator。
 

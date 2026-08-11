@@ -20,6 +20,10 @@ dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release `
   -p:PlayniteInstallDir="D:\software\Playnite"
 ```
 
+阶段 B 验证产物部署到 `staging\architecture-stage-b` 和本机插件目录；两处 9 个发布文件均与
+Release 输出一致。该开发 DLL SHA-256 为
+`654CEDAE3753E205507828C0A5634D4D5234CAD26CD7F60C93392408EC77B5B0`，部署未改变用户数据指纹。
+
 ## 环境
 
 - Playnite 安装目录：`D:\software\Playnite`
