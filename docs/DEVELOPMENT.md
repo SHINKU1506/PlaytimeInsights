@@ -13,12 +13,15 @@
 动态扫描 XAML 事件并核对职责矩阵，同时阻止 ViewModel 引入具体对话框/Window 类型或外部 MVVM
 框架。阶段 A 新增 8 项 Coordinator 假交互测试，阶段 B 新增 4 项命令回归，阶段 C 新增 6 项
 WPF 接线及成功/失败路径回归；阶段 D/E 又覆盖 Dashboard 组合、导航生命周期、刷新快照与事件
-对称性，当前共 85 项。应运行：
+对称性；聚合趋势图修复新增原子发布与真实 STA/WPF 数据源生命周期回归，当前共 87 项。应显式
+构建测试项目，避免 `--no-build` 运行旧二进制：
 
 ```powershell
 dotnet build PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite"
-dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release `
+dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release `
   -p:PlayniteInstallDir="D:\software\Playnite"
+dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release `
+  --no-build
 ```
 
 阶段 B 验证产物部署到 `staging\architecture-stage-b` 和本机插件目录；两处 9 个发布文件均与
@@ -62,6 +65,17 @@ Drilldown 四个子 ViewModel 组合根对象。根 `DashboardViewModel` 是唯�
 `3DDF721B41078D694984D044C71797A38A801098D1359B6F824EDED1926F9126`，仅含 9 个预期条目。
 第二轮 Release 已部署至 `staging\architecture-stage-e\deployed` 和本机插件目录；部署前后用户
 数据联合指纹保持 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
+
+聚合趋势图的 `PeriodActivities` 必须以完整新 `IReadOnlyList` 一次发布，不得恢复为对同一集合执行
+`Clear + Add`。`AdaptiveTrendChart` 负责管理 `INotifyCollectionChanged` 数据源生命周期：换源时
+通过 `CollectionChangedEventManager` 退订旧源、订阅新源，任何源变更都要清除 Hover、渲染项目
+与命中点缓存并调用 `InvalidateVisual()`；生产代码不得用 `UpdateLayout()` 或同步 Dispatcher 强制
+绘制。最终干净构建 87/87 通过，10 万会话 557 ms，schema 4 载入 1,066 ms。DLL SHA-256 为
+`B142B20DAF2EA1F6B968A3F96557CA4CD7B393A8DA1EF161E424B4468816F18C`，确定性 PEXT SHA-256 为
+`E74F9B5774DBFF44BE168CB136D72650EF77549BEBCBCCFFAAFB22799DF6CA05`；三处 9/9 发布文件一致，
+用户数据规范化联合指纹部署前后保持
+`8739B76AD190E16BC9BCD752D268B6FE52C4C59D5B169D9779836ACEFE3C18EF`。后续异步、generation、
+取消和加载态方案见 `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md`，不得与当前同步原子刷新混为一体。
 
 ## 环境
 

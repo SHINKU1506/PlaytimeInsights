@@ -31,7 +31,7 @@
 - Consumes: `DashboardDistributionViewModel.Apply(DashboardSnapshot snapshot)` and `DashboardSnapshot.PeriodActivities`.
 - Produces: `IReadOnlyList<PeriodActivityViewModel> DashboardDistributionViewModel.PeriodActivities` and the matching read-only forwarding property on `DashboardViewModel`.
 
-- [ ] **Step 1: Register a behavior regression**
+- [x] **Step 1: Register a behavior regression**
 
 Add this test registration immediately after the Stage E architecture closure test:
 
@@ -39,7 +39,7 @@ Add this test registration immediately after the Stage E architecture closure te
 Run("Trend periods publish one complete replacement", TestTrendPeriodsPublishAtomically);
 ```
 
-- [ ] **Step 2: Add the failing real-ViewModel test**
+- [x] **Step 2: Add the failing real-ViewModel test**
 
 Create two complete minimal `DashboardSnapshot` values through a test helper. Apply the first snapshot, subscribe to `PropertyChanged`, apply the second, then assert the collection reference changed, `PeriodActivities` raised exactly once and only the two second-snapshot labels are visible:
 
@@ -103,18 +103,18 @@ private static DashboardSnapshot CreateDistributionSnapshot(
 }
 ```
 
-- [ ] **Step 3: Run the regression suite and verify RED**
+- [x] **Step 3: Run the regression suite and verify RED**
 
 Run:
 
 ```powershell
-dotnet build PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite"
+dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release -p:PlayniteInstallDir="D:\software\Playnite"
 dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release --no-build
 ```
 
 Expected: exactly the new `Trend periods publish one complete replacement` test fails because `ReferenceEquals(oldPeriods, viewModel.PeriodActivities)` is `true`; the existing 85 tests remain green.
 
-- [ ] **Step 4: Implement the minimal atomic publication**
+- [x] **Step 4: Implement the minimal atomic publication**
 
 In `DashboardDistributionViewModel`, replace the constructor-owned mutable period collection with a field and property:
 
@@ -143,11 +143,11 @@ public IReadOnlyList<PeriodActivityViewModel> PeriodActivities =>
     Distribution.PeriodActivities;
 ```
 
-- [ ] **Step 5: Run tests and verify GREEN**
+- [x] **Step 5: Run tests and verify GREEN**
 
 Run the same Release build and full regression command. Expected: 86/86 tests pass, 0 warnings and 0 errors.
 
-- [ ] **Step 6: Review and commit Task 1**
+- [x] **Step 6: Review and commit Task 1**
 
 Run `git diff --check`, confirm aggregation service/XAML are unchanged and `perf_test.ps1` remains untracked, then commit only Task 1 files:
 
@@ -169,7 +169,7 @@ git commit -m "fix(dashboard): publish trend periods atomically"
 - Consumes: `AdaptiveTrendChart.ItemsSource` as any `IEnumerable`; optionally consumes `INotifyCollectionChanged` from that source.
 - Produces: an `ItemsSourceProperty` callback, weak old/new collection subscription and one private `ResetRenderedState()` cache/invalidity boundary.
 
-- [ ] **Step 1: Enable and register the WPF behavior regression**
+- [x] **Step 1: Enable and register the WPF behavior regression**
 
 Add an explicit `<Reference Include="PresentationFramework" />` to the test project. Add these exact imports to `Tests/Program.cs`:
 
@@ -189,7 +189,7 @@ Register:
 Run("Trend chart follows source lifecycle changes", TestTrendChartSourceLifecycle);
 ```
 
-- [ ] **Step 2: Add the failing STA integration test**
+- [x] **Step 2: Add the failing STA integration test**
 
 Run the test body through a `RunOnSta(Action action)` helper that starts a real thread, sets `ApartmentState.STA`, captures/rethrows any exception and always joins. Inside it:
 
@@ -202,11 +202,11 @@ Run the test body through a `RunOnSta(Action action)` helper that starts a real 
 
 The test catches these production mutations: removing the dependency-property callback, failing to detach the old collection, failing to subscribe to the current collection, or preserving a stale hover/index cache.
 
-- [ ] **Step 3: Run the regression suite and verify RED**
+- [x] **Step 3: Run the regression suite and verify RED**
 
-Run the Release build and full regression suite. Expected: the new lifecycle test fails immediately after `ItemsSource` replacement because current code retains the old rendered cache and hover index; the preceding 86 tests remain green.
+Run `dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release -p:PlayniteInstallDir="D:\software\Playnite"` and the full regression suite. Expected: the new lifecycle test fails immediately after `ItemsSource` replacement because current code retains the old rendered cache and hover index; the preceding 86 tests remain green.
 
-- [ ] **Step 4: Implement source lifecycle handling**
+- [x] **Step 4: Implement source lifecycle handling**
 
 Add `using System.Collections.Specialized;`. Extend the dependency-property metadata with `OnItemsSourceChanged` while retaining `AffectsRender`:
 
@@ -247,11 +247,11 @@ private static void OnItemsSourceChanged(
 
 The collection handler calls `ResetRenderedState()`. That method resets `hoverIndex`, replaces both cached lists with empty lists and calls `InvalidateVisual()`. Do not call `UpdateLayout`, Dispatcher methods or render directly.
 
-- [ ] **Step 5: Run tests and verify GREEN**
+- [x] **Step 5: Run tests and verify GREEN**
 
 Run the Release build and full suite. Expected: 87/87 tests pass, 0 warnings and 0 errors.
 
-- [ ] **Step 6: Review and commit Task 2**
+- [x] **Step 6: Review and commit Task 2**
 
 Run `git diff --check`, inspect `git diff`, confirm source replacement, old-source detachment and current-source mutation are all exercised, then commit:
 
@@ -274,38 +274,39 @@ git commit -m "fix(chart): redraw when trend data changes"
 - Consumes: green Task 1/2 tree, existing deterministic pack script and installed plugin path.
 - Produces: fresh Release/PEXT evidence, deployed nine-file plugin and client acceptance checklist.
 
-- [ ] **Step 1: Record pre-deployment safety state**
+- [x] **Step 1: Record pre-deployment safety state**
 
 Confirm no `Playnite*` process is running. Record all seven files under
 `ExtensionsData\7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd` as relative path, length, UTC timestamp and SHA-256, then hash that normalized manifest. If Playnite is open, stop before deployment and request the user to exit it.
 
-- [ ] **Step 2: Run a clean final Release verification**
+- [x] **Step 2: Run a clean final Release verification**
 
 Run:
 
 ```powershell
 dotnet clean PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite"
 dotnet build PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite" --no-restore
+dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release -p:PlayniteInstallDir="D:\software\Playnite" --no-restore
 dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release --no-build
 ```
 
 Require 0 warnings, 0 errors and 87/87 passing tests. Record the 100k analytics and schema-load timings and require both existing release budgets.
 
-- [ ] **Step 3: Build and inspect one deterministic PEXT**
+- [x] **Step 3: Build and inspect one deterministic PEXT**
 
 Run `scripts/Pack-Deterministic.ps1` against `bin/Release/net462` into
 `staging/atomic-trend-refresh/dist`. Require the same exact nine entry names as the Stage E release, no PDB/rooted/parent path and no username/development/PDB strings in the DLL. Record DLL and PEXT size/SHA-256.
 
-- [ ] **Step 4: Deploy only the nine Release files**
+- [x] **Step 4: Deploy only the nine Release files**
 
 Copy the verified nine files to `staging/atomic-trend-refresh/deployed` and
 `Extensions/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd`. Compare relative names and every SHA-256 across Release, staging and installed directories. Recompute the user-data manifest fingerprint and require an exact pre/post match.
 
-- [ ] **Step 5: Update status and design evidence**
+- [x] **Step 5: Update status and design evidence**
 
 Mark the design implemented and record root cause, atomic property publication, weak collection subscription, test count, timings, hashes, nine-file deployment match, unchanged user-data fingerprint and remaining client checks. Keep the later asynchronous generation/cancellation route explicitly pending.
 
-- [ ] **Step 6: Run completion verification and commit**
+- [x] **Step 6: Run completion verification and commit**
 
 Run the full Release test command fresh after documentation changes, `git diff --check`, inspect the complete diff from `91862b7`, and confirm `perf_test.ps1` hash remains
 `2CE6EA067F5321869C2BD8E2E49EE5A6D0E520F8B2F26E7F2822B2AB3F42B12E`.
@@ -317,6 +318,6 @@ git add -- docs/superpowers/specs/2026-08-12-atomic-trend-chart-refresh-design.m
 git commit -m "docs(performance): record trend refresh fix"
 ```
 
-- [ ] **Step 7: Push and hand off client checks**
+- [x] **Step 7: Push and hand off client checks**
 
 Push `refactor/architecture-preparation`, verify local and remote HEAD match, keep the branch intact and ask the user to exercise the six client checks in the approved design before any merge decision.

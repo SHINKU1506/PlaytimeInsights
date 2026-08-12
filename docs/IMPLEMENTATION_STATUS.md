@@ -2,7 +2,7 @@
 
 最后更新：2026-08-12
 
-当前阶段：0.9.8 已正式发布；架构重构阶段 E 工程验收完成，等待客户端复验
+当前阶段：0.9.8 已正式发布；阶段 E 与聚合趋势图原子刷新工程验收完成，等待客户端复验
 
 ## 架构重构准备分支
 
@@ -98,6 +98,28 @@
   `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`；
 - Playnite 保持关闭；下一步为客户端复验 Dashboard/会话导航、显式刷新、筛选保留、图表下钻、
   滚轮、Advanced Options、编辑/导入窗口键盘行为及会话 CRUD/导入导出。
+- 聚合粒度切换后的旧图残留已定位为自绘 `AdaptiveTrendChart` 没有监听同一
+  `ObservableCollection` 的内容变化：依赖属性引用不变时 `AffectsRender` 不会触发，旧的
+  `renderedItems`、`renderedPoints` 和 Hover 索引会一直保留到后续鼠标、布局或视口事件；
+- 修复按 TDD 分两步完成：第一项回归先因两次 `Apply` 返回同一集合引用失败，随后
+  `DashboardDistributionViewModel` 改为一次发布完整的新
+  `IReadOnlyList<PeriodActivityViewModel>`；第二项真实 STA/WPF 回归先因换源后缓存仍为 1 失败，
+  随后控件通过 `CollectionChangedEventManager` 弱订阅新源、退订旧源，并统一重置 Hover 与
+  渲染缓存后调用 `InvalidateVisual()`；
+- 最终双 clean Release 构建 0 警告/0 错误，87/87 回归通过；10 万会话分析为 557 ms，schema 4
+  JSON 载入为 1,066 ms，均在既有发布预算内；
+- 最终 DLL 为 294,912 字节，SHA-256：
+  `B142B20DAF2EA1F6B968A3F96557CA4CD7B393A8DA1EF161E424B4468816F18C`；确定性 PEXT 为
+  139,530 字节，SHA-256：
+  `E74F9B5774DBFF44BE168CB136D72650EF77549BEBCBCCFFAAFB22799DF6CA05`；
+- Release 与 PEXT 均严格包含 9 个预期文件，PEXT 不含 PDB、绝对/父级路径，DLL 未扫描到用户
+  名、开发目录或 PDB 痕迹；Release、`staging\atomic-trend-refresh\deployed` 和插件安装目录
+  9/9 文件哈希一致；
+- 部署前后用户数据均为 7 个文件，以相对路径、长度、UTC 时间戳和文件 SHA-256 生成的规范化
+  联合指纹保持 `8739B76AD190E16BC9BCD752D268B6FE52C4C59D5B169D9779836ACEFE3C18EF`；
+  Playnite 保持关闭；
+- 后续异步可取消刷新仍仅作为独立性能路线保留：先捕获不可变 DTO，再引入后台纯分析、generation、
+  取消过期请求与轻量加载状态；本轮未改变统计口径、图表视觉、下钻、XAML、版本或用户数据。
 
 ## 0.9.8 正式发布候选
 

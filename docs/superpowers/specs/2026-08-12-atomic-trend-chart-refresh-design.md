@@ -2,7 +2,7 @@
 
 日期：2026-08-12
 
-状态：已确认，待实施
+状态：已实施，待客户端复验
 
 适用分支：`refactor/architecture-preparation`
 
@@ -163,3 +163,23 @@ UI 线程同步计算完整 DashboardSnapshot
 - Hover、Crosshair 和点击命中缓存不会跨粒度复用；
 - 不改变统计结果、图表视觉、下钻边界和 Dashboard 单快照架构；
 - 自动化、构建、性能、部署、数据保护和客户端验收完成。
+
+## 实施结果
+
+2026-08-12 已按本设计完成工程实施：
+
+- `DashboardDistributionViewModel.PeriodActivities` 改为一次发布完整的新只读列表；一次快照只产生
+  一次属性通知，不再暴露 Clear/Add 中间状态；
+- `AdaptiveTrendChart` 在数据源引用变化时通过 `CollectionChangedEventManager` 弱退订/订阅，
+  并在换源或当前源内容变化时重置 Hover、渲染项目和点缓存，调用正常的 `InvalidateVisual()`；
+- 原子发布回归先因旧集合引用仍相同而失败，修复后通过；真实 STA/WPF 回归先因换源后旧缓存仍为
+  1 而失败，修复后覆盖换源清理、旧源退订、当前源失效和新源重新渲染；
+- 双 clean Release 构建 0 警告/0 错误，87/87 回归通过；10 万会话 557 ms，schema 4 载入
+  1,066 ms；
+- DLL 为 294,912 字节，SHA-256
+  `B142B20DAF2EA1F6B968A3F96557CA4CD7B393A8DA1EF161E424B4468816F18C`；确定性 PEXT 为
+  139,530 字节，SHA-256
+  `E74F9B5774DBFF44BE168CB136D72650EF77549BEBCBCCFFAAFB22799DF6CA05`；
+- Release、PEXT、阶段暂存和安装目录均为精确 9 文件，部署前后 7 个用户数据文件规范化联合指纹
+  保持 `8739B76AD190E16BC9BCD752D268B6FE52C4C59D5B169D9779836ACEFE3C18EF`；
+- 异步可取消刷新路线继续保留为后续独立性能阶段，当前只待本文“客户端验收”六项检查。
