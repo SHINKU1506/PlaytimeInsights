@@ -93,6 +93,7 @@ namespace PlaytimeInsights.Tests
             Run("Session coordinator cancels editor", TestCoordinatorCancelsEditor);
             Run("Session coordinator cancels reindex", TestCoordinatorCancelsReindex);
             Run("Stage C composes WPF session workflows", TestStageCComposition);
+            Run("Stage D dashboard keeps one snapshot coordination boundary", TestStageDDashboardComposition);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -1923,10 +1924,19 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Views",
                 "SessionImportPreviewWindow.xaml"));
-            var dashboardViewModel = File.ReadAllText(Path.Combine(
-                sourceRoot,
-                "ViewModels",
-                "DashboardViewModel.cs"));
+            var dashboardViewModel = string.Join(
+                Environment.NewLine,
+                new[]
+                {
+                    File.ReadAllText(Path.Combine(
+                        sourceRoot,
+                        "ViewModels",
+                        "DashboardViewModel.cs"))
+                }.Concat(Directory
+                    .GetFiles(
+                        Path.Combine(sourceRoot, "ViewModels", "Dashboard"),
+                        "*.cs")
+                    .Select(File.ReadAllText)));
             var coverConverter = File.ReadAllText(Path.Combine(
                 sourceRoot,
                 "Converters",
@@ -2125,10 +2135,61 @@ namespace PlaytimeInsights.Tests
             Equal(true, dashboardViewModel.Contains(
                 "GetFullFilePath(game.CoverImage)"));
             Equal(true, dashboardViewModel.Contains(
-                "ApplySessionDetailCoverImages(details, activeFilteredGames)"));
+                "ApplyCoverImages(details, activeGames)"));
             Equal(true, coverConverter.Contains(
                 "CacheOption = BitmapCacheOption.OnLoad"));
             Equal(true, coverConverter.Contains("DecodePixelWidth = 96"));
+        }
+
+        private static void TestStageDDashboardComposition()
+        {
+            var sourceRoot = FindSourceRoot();
+            var rootPath = Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs");
+            var dashboardDirectory = Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "Dashboard");
+            var root = File.ReadAllText(rootPath);
+            var childFiles = new[]
+            {
+                "DashboardFilterViewModel.cs",
+                "DashboardMetricsViewModel.cs",
+                "DashboardDistributionViewModel.cs",
+                "DashboardDrilldownViewModel.cs"
+            };
+
+            foreach (var childFile in childFiles)
+            {
+                Equal(true, File.Exists(Path.Combine(dashboardDirectory, childFile)));
+            }
+
+            Equal(1, Regex.Matches(
+                root,
+                @"analyticsService\.CreateSnapshot\(",
+                RegexOptions.CultureInvariant).Count);
+            Equal(true, root.Contains("Metrics.Apply(snapshot, allGames)"));
+            Equal(true, root.Contains("Distribution.Apply(snapshot)"));
+            Equal(true, root.Contains(
+                "Drilldown.ResetContext(filteredGames, filteredSessions)"));
+            Equal(true, root.Contains(
+                "public DashboardFilterViewModel Filter { get; }"));
+            Equal(true, root.Contains(
+                "public DashboardMetricsViewModel Metrics { get; }"));
+            Equal(true, root.Contains(
+                "public DashboardDistributionViewModel Distribution { get; }"));
+            Equal(true, root.Contains(
+                "public DashboardDrilldownViewModel Drilldown { get; }"));
+
+            var childSource = string.Join(
+                Environment.NewLine,
+                childFiles.Select(file => File.ReadAllText(
+                    Path.Combine(dashboardDirectory, file))));
+            Equal(false, childSource.Contains("SessionRepository"));
+            Equal(false, childSource.Contains("CreateSnapshot("));
+            Equal(false, childSource.Contains("sessionRepository.GetAll"));
         }
 
         private static void TestSessionManagementVisualHierarchy()
