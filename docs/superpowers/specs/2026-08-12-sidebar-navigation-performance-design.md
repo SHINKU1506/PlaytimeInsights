@@ -2,7 +2,7 @@
 
 日期：2026-08-12
 
-状态：待书面规格复核
+状态：已确认并实施
 
 适用分支：`refactor/architecture-preparation`
 
@@ -154,3 +154,16 @@ GetAllIncludingDeleted 一次
 - Dashboard 运行期筛选缓存不退化；
 - 自动化、构建、性能、部署和数据保护验收全部通过；
 - 修正后的根因、实施结果和客户端检查步骤同步到项目状态文档。
+
+## 实施结果
+
+2026-08-12 已按本设计完成修复：
+
+- 删除 Dashboard 和 SessionManagement 两个 `SidebarItem.Opened` 中的主动刷新；
+- 两个 View 的 `Loaded` 成为页面进入时唯一自动刷新入口；
+- Dashboard 的运行期 ViewModel 缓存、筛选保留、显式刷新和数据变更刷新保持不变；
+- 会话页 `CountText` 改为读取本轮 `GetAllIncludingDeleted()` 快照计算的活动会话总数，不再在
+  WPF 读取绑定属性时访问 Repository；
+- 两项新回归均先在旧代码上按预期失败，再由最小生产改动转为通过；
+- 干净 Release 构建 0 警告、0 错误，84/84 项回归通过，10 万会话分析为 483 ms；
+- 未缓存会话 ViewModel 或游戏列表，未引入异步、数据库事件订阅或新依赖。

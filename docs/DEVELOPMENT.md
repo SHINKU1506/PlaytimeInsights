@@ -45,6 +45,16 @@ Drilldown 四个子 ViewModel 组合根对象。根 `DashboardViewModel` 是唯�
 7 个文件，联合指纹保持
 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
 
+侧边栏性能修复规定 View `Loaded` 是页面进入时唯一的自动刷新入口，`SidebarItem.Opened` 只负责
+组装或复用 ViewModel 和 View。不要同时在两处调用 `Refresh()`，否则会在 UI 线程重复枚举游戏库、
+克隆会话、重建筛选与可观察集合。`SessionManagementViewModel.CountText` 必须只投影最近一次刷新
+快照中的 `activeSessionCount`，不得在属性 getter 中调用 Repository。
+
+本次性能修复验证产物已部署到 `staging\architecture-stage-d` 和本机插件目录；三处 9/9 文件
+逐项一致。DLL 为 294,400 字节，SHA-256 为
+`7A763012974D25685A512CDB4A10A7ACE32FF31C08B09DF2A583F20DFA807ADE`；部署前后 7 个用户数据
+文件联合指纹保持 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
+
 ## 环境
 
 - Playnite 安装目录：`D:\software\Playnite`
