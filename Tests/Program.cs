@@ -98,6 +98,7 @@ namespace PlaytimeInsights.Tests
             Run("Sidebar navigation uses one automatic refresh", TestSidebarNavigationUsesSingleAutomaticRefresh);
             Run("Session count reuses the refresh snapshot", TestSessionCountUsesRefreshSnapshot);
             Run("Stage E architecture closure keeps event boundaries symmetric", TestStageEArchitectureClosure);
+            Run("Trend periods publish one complete replacement", TestTrendPeriodsPublishAtomically);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -2355,6 +2356,59 @@ namespace PlaytimeInsights.Tests
             {
                 Equal(true, architecture.Contains(boundary));
             }
+        }
+
+        private static void TestTrendPeriodsPublishAtomically()
+        {
+            var viewModel = new DashboardDistributionViewModel();
+            viewModel.Apply(CreateDistributionSnapshot(
+                new PeriodActivityViewModel { Label = "old", Seconds = 10 }));
+            var oldPeriods = viewModel.PeriodActivities;
+            var notifications = 0;
+            viewModel.PropertyChanged += (sender, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.PeriodActivities))
+                {
+                    notifications++;
+                }
+            };
+
+            viewModel.Apply(CreateDistributionSnapshot(
+                new PeriodActivityViewModel { Label = "new-a", Seconds = 20 },
+                new PeriodActivityViewModel { Label = "new-b", Seconds = 30 }));
+
+            Equal(false, ReferenceEquals(oldPeriods, viewModel.PeriodActivities));
+            Equal(1, notifications);
+            Equal(2, viewModel.PeriodActivities.Count);
+            Equal("new-a", viewModel.PeriodActivities[0].Label);
+            Equal("new-b", viewModel.PeriodActivities[1].Label);
+        }
+
+        private static DashboardSnapshot CreateDistributionSnapshot(
+            params PeriodActivityViewModel[] periods)
+        {
+            return new DashboardSnapshot
+            {
+                PeriodActivities = (periods ??
+                    new PeriodActivityViewModel[0]).ToList(),
+                HeatmapCells = new List<HeatmapCellViewModel>(),
+                HeatmapWeekdayLabels = new List<string>(),
+                HeatmapColumnCount = 1,
+                TrendLinePoints = new System.Windows.Media.PointCollection(),
+                TrendLineGeometry = System.Windows.Media.Geometry.Empty,
+                TrendAreaGeometry = System.Windows.Media.Geometry.Empty,
+                TrendPoints = new List<TrendPointViewModel>(),
+                Advanced = new AdvancedAnalyticsSnapshot
+                {
+                    WeekdayDistribution = new List<DistributionBarViewModel>(),
+                    HourDistribution = new List<DistributionBarViewModel>(),
+                    WeekHourCells = new List<WeekHourCellViewModel>(),
+                    WeekdayLabels = new List<string>(),
+                    HourLabels = new List<string>(),
+                    AnomalyVisibility = System.Windows.Visibility.Collapsed,
+                    Anomalies = new List<AnomalySessionViewModel>()
+                }
+            };
         }
 
         private static void TestSessionManagementVisualHierarchy()

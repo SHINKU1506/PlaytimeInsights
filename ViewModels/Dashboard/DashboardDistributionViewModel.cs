@@ -15,6 +15,8 @@ namespace PlaytimeInsights.ViewModels
         private Geometry trendLineGeometry = Geometry.Empty;
         private Geometry trendAreaGeometry = Geometry.Empty;
         private Visibility anomalyVisibility = Visibility.Collapsed;
+        private IReadOnlyList<PeriodActivityViewModel> periodActivities =
+            new List<PeriodActivityViewModel>();
         private int? selectedWeekdayIndex;
         private IList<DistributionBarViewModel> allHourDistribution =
             new List<DistributionBarViewModel>();
@@ -24,7 +26,6 @@ namespace PlaytimeInsights.ViewModels
 
         public DashboardDistributionViewModel()
         {
-            PeriodActivities = new ObservableCollection<PeriodActivityViewModel>();
             HeatmapCells = new ObservableCollection<HeatmapCellViewModel>();
             HeatmapWeekdayLabels = new ObservableCollection<string>();
             TrendPoints = new ObservableCollection<TrendPointViewModel>();
@@ -50,7 +51,11 @@ namespace PlaytimeInsights.ViewModels
 
         public string HourDistributionTitle { get => hourDistributionTitle; private set => SetValue(ref hourDistributionTitle, value); }
 
-        public ObservableCollection<PeriodActivityViewModel> PeriodActivities { get; }
+        public IReadOnlyList<PeriodActivityViewModel> PeriodActivities
+        {
+            get => periodActivities;
+            private set => SetValue(ref periodActivities, value);
+        }
 
         public ObservableCollection<HeatmapCellViewModel> HeatmapCells { get; }
 
@@ -78,7 +83,8 @@ namespace PlaytimeInsights.ViewModels
             TrendLineGeometry = snapshot.TrendLineGeometry;
             TrendAreaGeometry = snapshot.TrendAreaGeometry;
             AnomalyVisibility = snapshot.Advanced.AnomalyVisibility;
-            Replace(PeriodActivities, snapshot.PeriodActivities);
+            PeriodActivities = (snapshot.PeriodActivities ??
+                Enumerable.Empty<PeriodActivityViewModel>()).ToList();
             Replace(HeatmapCells, snapshot.HeatmapCells);
             Replace(HeatmapWeekdayLabels, snapshot.HeatmapWeekdayLabels);
             Replace(TrendPoints, snapshot.TrendPoints);

@@ -185,7 +185,8 @@ namespace PlaytimeInsights.ViewModels
 
         public string HourDistributionTitle => Distribution.HourDistributionTitle;
 
-        public ObservableCollection<PeriodActivityViewModel> PeriodActivities => Distribution.PeriodActivities;
+        public IReadOnlyList<PeriodActivityViewModel> PeriodActivities =>
+            Distribution.PeriodActivities;
 
         public ObservableCollection<HeatmapCellViewModel> HeatmapCells => Distribution.HeatmapCells;
 
