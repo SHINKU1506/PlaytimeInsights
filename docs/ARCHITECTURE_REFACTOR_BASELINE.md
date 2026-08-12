@@ -1,6 +1,6 @@
 # Playtime Insights 架构重构行为基线
 
-状态：阶段 C 后行为基线
+状态：阶段 E 最终行为基线
 
 记录日期：2026-08-11
 
@@ -14,19 +14,22 @@
 已迁移的事件处理器，但不得在没有更新本基线和自动化护栏的情况下改变这些行为。
 
 阶段 0 没有修改生产代码。阶段 A 建立交互/操作接口与 Coordinator，阶段 B 完成低风险命令，
-阶段 C 已由插件根组装 `WpfSessionManagementInteraction` 与 Coordinator。存储 schema、插件 ID、
-统计口径、对话框文案和用户操作顺序保持不变。
+阶段 C 由插件根组装 `WpfSessionManagementInteraction` 与 Coordinator，阶段 D 完成 Dashboard
+组合拆分，阶段 E 完成事件对称性审计和最终文档。存储 schema、插件 ID、统计口径、对话框文案
+和用户操作顺序保持不变。
 
 ## 当前组装边界
 
-- `PlaytimeInsights.cs` 创建 `DashboardViewModel` 和 `SessionManagementViewModel`，并向其传入
-  Playnite API、仓库、查询、分析、导入导出和诊断服务；
+- `PlaytimeInsights.cs` 是组装根：运行期缓存 Dashboard ViewModel；每次会话页打开时创建
+  `SessionManagementViewModel`、WPF Interaction、Coordinator 和 View；
 - View 通过 `DataContext` 获取 ViewModel；ViewModel 不创建具体窗口；
-- `SessionManagementView.xaml.cs` 当前负责文件选择、确认、窗口 Owner 和多步骤流程；
-- `PlaytimeInsightsDashboardView.xaml.cs` 当前负责自定义事件适配和嵌套滚轮接力；
+- `SessionManagementView.xaml.cs` 只负责 Loaded、ContextMenu 放置和 Coordinator 薄转发；
+- `PlaytimeInsightsDashboardView.xaml.cs` 只负责 Loaded、自定义事件适配和嵌套滚轮接力；
 - `SessionEditorWindow` 与 `SessionImportPreviewWindow` 负责自身对话框生命周期；
 - `SessionManagementCoordinator` 已由插件根创建并注入 `SessionManagementView`；
 - `WpfSessionManagementInteraction` 独占文件选择、Owner、确认、具体窗口和 MessageBox；
+- `DashboardViewModel` 每次刷新只读取一次游戏/会话输入并创建一个 `DashboardSnapshot`，再分发给
+  Filter、Metrics、Distribution 和 Drilldown 四个子状态；
 - ViewModel 可以使用 `Visibility`、`Geometry`、`PointCollection` 等 WPF 表示层值，但禁止依赖
   `Window`、文件对话框、`MessageBox` 或具体窗口类型。
 
@@ -141,14 +144,16 @@
 4. 锁定当前编辑/删除/恢复/导出/导入和分页条件；
 5. 锁定编辑与导入窗口的循环 Tab、默认按钮、取消按钮和初始焦点语义。
 6. 锁定强类型交互接口和 Coordinator 不引用 WPF、MessageBox、文件对话框或具体窗口。
+7. 阶段 E 动态比较 XAML/Loaded 事件源与 Code-behind 私有处理器，双向拒绝孤立事件或孤立方法；
+8. 要求 `docs\ARCHITECTURE.md` 持续记录 Dashboard 单快照、四个子状态和会话交互/协调边界。
 
 护栏不要求 Code-behind 行数为零，也不强制保留已经迁移的处理器。事件从 XAML 删除后可以从
 职责矩阵的“当前处理器”部分移入迁移记录；新增事件必须先分类。
 
-## 阶段 D 结果与进入阶段 E 的条件
+## 阶段 E 清理结果
 
-- 当前发布回归、架构护栏、阶段 A 工作流、阶段 B 命令、阶段 C 接线以及新增阶段 D 组合边界
-  共 81 项均通过；
+- 当前发布回归、架构护栏、阶段 A 工作流、阶段 B 命令、阶段 C 接线、阶段 D 组合边界和阶段 E
+  收尾护栏共 85 项；
 - Release 构建保持 0 警告、0 错误；
 - 生产代码与 0.9.8 行为一致；
 - 强类型交互边界和取消、拒绝、无效输入、文件失败测试已建立；
@@ -156,4 +161,6 @@
 - Coordinator 已正式接线，现有 WPF 文案、Owner、默认文件名和过滤器语义保持；
 - 阶段 D 已按两个独立提交完成机械类型搬迁和组合式职责拆分；根对象仍只创建一次一致快照，
   子 ViewModel 不持有 Repository，也不调用 `CreateSnapshot`；
-- 阶段 E 只进行无引用事件清理、架构文档和最终验证，不混入视觉布局或存储改动。
+- 阶段 E 审计未发现可删除的孤立处理器，因此生产事件删除数为 0；现有 Loaded、自定义事件、
+  滚轮、ContextMenu、Coordinator 转发和窗口内部事件均有真实事件源与明确 View 职责；
+- 动态对称性护栏取代“Code-behind 必须为 0 行”之类机械标准；阶段 E 不混入视觉布局或存储改动。

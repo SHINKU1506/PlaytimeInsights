@@ -15,6 +15,7 @@ namespace PlaytimeInsights.Views
             this.coordinator = coordinator ??
                 throw new System.ArgumentNullException(nameof(coordinator));
             InitializeComponent();
+            // Loaded is the sole automatic refresh boundary for sidebar activation.
             Loaded += SessionManagementView_Loaded;
         }
 
@@ -25,6 +26,7 @@ namespace PlaytimeInsights.Views
 
         private void AdvancedOptionsButton_Click(object sender, RoutedEventArgs e)
         {
+            // PlacementTarget and ContextMenu opening depend on the concrete Button.
             var button = sender as Button;
             if (button?.ContextMenu == null)
             {
@@ -37,6 +39,7 @@ namespace PlaytimeInsights.Views
 
         private void AddSessionButton_Click(object sender, RoutedEventArgs e)
         {
+            // Multi-step UI workflows are coordinated outside the ViewModel.
             coordinator.AddSession();
         }
 

@@ -10,6 +10,7 @@ namespace PlaytimeInsights.Views
         public SessionEditorWindow()
         {
             InitializeComponent();
+            // Work-area sizing belongs to the concrete WPF Window lifecycle.
             Loaded += (sender, args) =>
                 WindowLayoutService.ConstrainToWorkArea(this);
         }
@@ -18,6 +19,7 @@ namespace PlaytimeInsights.Views
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
+            // The dialog owns validation-to-DialogResult translation.
             var viewModel = DataContext as SessionEditorViewModel;
             GameSession session;
             if (viewModel != null && viewModel.TryBuild(out session))

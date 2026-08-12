@@ -12,6 +12,7 @@ namespace PlaytimeInsights.Views
         public PlaytimeInsightsDashboardView()
         {
             InitializeComponent();
+            // Loaded is the sole automatic refresh boundary for sidebar activation.
             Loaded += PlaytimeInsightsDashboardView_Loaded;
         }
 
@@ -24,6 +25,7 @@ namespace PlaytimeInsights.Views
             object sender,
             TrendPeriodSelectedEventArgs e)
         {
+            // Custom control events stay in the View as typed command adapters.
             var command = (DataContext as DashboardViewModel)?.SelectPeriodCommand;
             if (command?.CanExecute(e.Period) == true)
             {
@@ -47,6 +49,7 @@ namespace PlaytimeInsights.Views
             object sender,
             MouseWheelEventArgs e)
         {
+            // VisualTree inspection and routed-input handoff are WPF View concerns.
             if (e.Handled || DashboardScrollViewer == null)
             {
                 return;

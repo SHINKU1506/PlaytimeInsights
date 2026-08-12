@@ -14,6 +14,7 @@ namespace PlaytimeInsights.Views
         public SessionImportPreviewWindow()
         {
             InitializeComponent();
+            // Work-area sizing belongs to the concrete WPF Window lifecycle.
             Loaded += (sender, args) =>
                 WindowLayoutService.ConstrainToWorkArea(this);
         }
@@ -27,6 +28,7 @@ namespace PlaytimeInsights.Views
 
         private void SaveErrorsButton_Click(object sender, RoutedEventArgs e)
         {
+            // This dialog-local export needs its Window owner and file picker.
             if (Preview == null || Preview.Errors.Count == 0)
             {
                 MessageBox.Show(

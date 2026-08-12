@@ -29,13 +29,13 @@
 - Consumes: four View XAML files, four View Code-behind files and constructor-level `Loaded +=` subscriptions.
 - Produces: `TestStageEArchitectureClosure`, which dynamically rejects orphan event handlers and requires the final architecture reference.
 
-- [ ] Add a regression that collects handler names from XAML attributes `Click`, `PreviewMouseWheel`, `PeriodSelected` and `MouseLeftButtonUp`, plus named `Loaded +=` subscriptions in Code-behind.
-- [ ] Collect private methods ending in `_Click`, `_PreviewMouseWheel`, `_PeriodSelected`, `_MouseLeftButtonUp` or `_Loaded`; assert the source and declaration sets are equal.
-- [ ] Assert `docs/ARCHITECTURE.md` exists and names `DashboardFilterViewModel`, `DashboardMetricsViewModel`, `DashboardDistributionViewModel`, `DashboardDrilldownViewModel`, `SessionManagementCoordinator`, `ISessionManagementInteraction`, `WpfSessionManagementInteraction`, and the one-snapshot rule.
-- [ ] Build and run the suite. Expected RED: architecture reference is absent; handler symmetry already passes and proves there is no production handler to delete.
-- [ ] Create `docs/ARCHITECTURE.md` with responsibilities, construction dependencies, runtime refresh paths, retained View adapters and test boundaries.
-- [ ] Rebuild and run the full suite. Expected GREEN.
-- [ ] Commit with `test(architecture): establish stage E closure guard`.
+- [x] Add a regression that collects handler names from XAML attributes `Click`, `PreviewMouseWheel`, `PeriodSelected` and `MouseLeftButtonUp`, plus named `Loaded +=` subscriptions in Code-behind.
+- [x] Collect private methods ending in `_Click`, `_PreviewMouseWheel`, `_PeriodSelected`, `_MouseLeftButtonUp` or `_Loaded`; assert the source and declaration sets are equal.
+- [x] Assert `docs/ARCHITECTURE.md` exists and names `DashboardFilterViewModel`, `DashboardMetricsViewModel`, `DashboardDistributionViewModel`, `DashboardDrilldownViewModel`, `SessionManagementCoordinator`, `ISessionManagementInteraction`, `WpfSessionManagementInteraction`, and the one-snapshot rule.
+- [x] Build and run the suite. Expected RED: architecture reference is absent; handler symmetry already passes and proves there is no production handler to delete.
+- [x] Create `docs/ARCHITECTURE.md` with responsibilities, construction dependencies, runtime refresh paths, retained View adapters and test boundaries.
+- [x] Rebuild and run the full suite. Expected GREEN.
+- [x] Commit with `test(architecture): establish stage E closure guard`.
 
 ### Task 2: Annotate retained View boundaries and synchronize baseline
 
@@ -50,11 +50,11 @@
 - Consumes: the audited handler set from Task 1.
 - Produces: concise comments explaining why each category remains in View code, and a current post-Stage-E responsibility matrix.
 
-- [ ] Add one concise comment per retained category: lifecycle refresh, custom chart/heatmap adapter, nested scroll routing, ContextMenu placement, coordinator forwarding, work-area sizing and dialog-local validation/file interaction.
-- [ ] Do not add comments that merely restate method names or implementation steps.
-- [ ] Update the baseline status and composition section: WPF interaction owns file/window work for session management; `SessionManagementView` owns lifecycle, ContextMenu placement and coordinator forwarding; Dashboard root fans one snapshot to four child states.
-- [ ] Record the zero-deletion result and dynamic handler-symmetry rule.
-- [ ] Run the full regression suite and `git diff --check`.
+- [x] Add one concise comment per retained category: lifecycle refresh, custom chart/heatmap adapter, nested scroll routing, ContextMenu placement, coordinator forwarding, work-area sizing and dialog-local validation/file interaction.
+- [x] Do not add comments that merely restate method names or implementation steps.
+- [x] Update the baseline status and composition section: WPF interaction owns file/window work for session management; `SessionManagementView` owns lifecycle, ContextMenu placement and coordinator forwarding; Dashboard root fans one snapshot to four child states.
+- [x] Record the zero-deletion result and dynamic handler-symmetry rule.
+- [x] Run the full regression suite and `git diff --check`.
 - [ ] Commit with `docs(architecture): finalize view boundaries`.
 
 ### Task 3: Verify command, localization, keyboard and accessibility semantics
@@ -67,10 +67,10 @@
 - Consumes: existing `TestNativeViewAccessibility`, `TestArchitectureRefactorBaseline`, `TestStageBCommandBindings`, localization parity and source coverage tests.
 - Produces: an explicit evidence matrix showing every Stage E requirement is covered without fixed Code-behind-size assertions.
 
-- [ ] Map standard commands to bindings and CanExecute sources; verify localized content/automation names and editor/import default/cancel/focus semantics.
-- [ ] Confirm existing dynamic tests cover each requirement. Add only a missing behavior/boundary assertion; do not duplicate existing source checks.
-- [ ] Document the evidence matrix in `docs/ARCHITECTURE.md`.
-- [ ] Run all tests and commit only if code/test changes are required; otherwise include the documentation in Task 2 or Task 4.
+- [x] Map standard commands to bindings and CanExecute sources; verify localized content/automation names and editor/import default/cancel/focus semantics.
+- [x] Confirm existing dynamic tests cover each requirement. Add only a missing behavior/boundary assertion; do not duplicate existing source checks.
+- [x] Document the evidence matrix in `docs/ARCHITECTURE.md`.
+- [x] Run all tests and commit only if code/test changes are required; otherwise include the documentation in Task 2 or Task 4.
 
 ### Task 4: Complete two-pass Release and PEXT verification
 
