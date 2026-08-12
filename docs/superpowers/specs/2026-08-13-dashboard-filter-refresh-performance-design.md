@@ -2,7 +2,7 @@
 
 日期：2026-08-13
 
-状态：已确认，待实施
+状态：已实施并完成工程验收，待客户端验收
 
 适用分支：`refactor/architecture-preparation`
 
@@ -151,6 +151,34 @@ ViewModel。虽然部分 Geometry 已 Freeze，但 `Game`/元数据集合、资�
 5. 用本轮分段计时判断是否值得实施以及应优化哪一阶段。
 
 该后续阶段继续保留在 `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md`，不与本轮低风险性能修复混合。
+
+## 实施结果
+
+2026-08-13 已按本设计完成：
+
+- 所有筛选 setter 通过 `DashboardRefreshReason` 进入纯 `DashboardRefreshPlan`；首次局部请求在缓存
+  尚未建立时安全降级为 `DataReload`；
+- 完整分析返回 `DashboardSnapshotResult` 与可复用 `DashboardAnalysisContext`；聚合变化只调用
+  `CreateTrendProjection`，排名变化只调用 `CreateRankingProjection`；
+- 时间范围复用当前过滤后的游戏/会话，元数据维度和值只在必要时重建选项或过滤结果；只有首次
+  加载、页面 Loaded 和显式刷新读取 Playnite 游戏、库插件及 SessionRepository；
+- 游戏封面索引只在 `DataReload` 构建一次，完整快照与局部排名共同复用；
+- 主要 Dashboard 列表改为一次发布完整 `IReadOnlyList<T>`，会话“加载更多”继续保留增量
+  `ObservableCollection`；
+- 本地 Trace 只记录 reason 与 data/filter/analytics/apply/total 毫秒数，不记录游戏、会话、筛选值
+  或路径。
+
+TDD 证据包括刷新原因/计划、上下文趋势/排名复投影、局部应用隔离、主要列表原子发布及根刷新
+策略护栏。最终干净 Release 为 0 警告、0 错误，95/95 项通过；10 万会话为 618 ms，schema 4
+的 10 万会话载入为 1,165 ms。
+
+最终 DLL 为 305,664 字节，SHA-256：
+`10D9153B303979C2E897FBA71E30E3064C8D2085E0842B4E38B904808DB97AEC`；两轮确定性 PEXT 均为
+143,596 字节，SHA-256：
+`51755E6EC35275D2D3CBE065C64398BF4EB761591B59C518BD48D727070C6178`。包严格包含 9 个安全条目，
+DLL 未发现用户名、开发路径或 PDB 字符串。Release、`staging\dashboard-selective-refresh\deployed`
+和安装目录 9/9 哈希一致；部署前后 7 个用户数据文件规范化指纹均为
+`C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
 
 ## 测试设计
 

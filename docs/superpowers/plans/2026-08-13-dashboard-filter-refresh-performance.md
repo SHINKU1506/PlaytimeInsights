@@ -125,9 +125,9 @@
 - Modify: `docs/IMPLEMENTATION_STATUS.md`
 - Modify: `docs/superpowers/plans/2026-08-13-dashboard-filter-refresh-performance.md`
 
-- [ ] Confirm Playnite closed and record the seven-file normalized user-data fingerprint.
-- [ ] Clean/build plugin and test projects explicitly; run 95/95 tests and record 100k/schema timings.
-- [ ] Build deterministic PEXT into `staging/dashboard-selective-refresh/dist`; require exact nine entries, safe paths and no sensitive DLL strings.
-- [ ] Deploy the nine files to `staging/dashboard-selective-refresh/deployed` and installed plugin directory; require 9/9 hashes and unchanged user-data fingerprint.
-- [ ] Mark design implemented, record red/green evidence, refresh dependency matrix, test count, timings, hashes and client checks. Keep pure-DTO asynchronous generation/cancellation as the next phase only if range/metadata changes still produce perceptible stalls.
-- [ ] Run the full suite fresh, `git diff --check`, inspect complete diff, confirm `perf_test.ps1` hash remains `2CE6EA067F5321869C2BD8E2E49EE5A6D0E520F8B2F26E7F2822B2AB3F42B12E`, commit `docs(performance): record selective refresh optimization`, push the branch and keep it intact for client acceptance.
+- [x] Confirm Playnite closed and record the seven-file normalized user-data fingerprint.
+- [x] Clean/build plugin and test projects explicitly; run 95/95 tests and record 100k/schema timings.
+- [x] Build deterministic PEXT into `staging/dashboard-selective-refresh/dist`; require exact nine entries, safe paths and no sensitive DLL strings.
+- [x] Deploy the nine files to `staging/dashboard-selective-refresh/deployed` and installed plugin directory; require 9/9 hashes and unchanged user-data fingerprint.
+- [x] Mark design implemented, record red/green evidence, refresh dependency matrix, test count, timings, hashes and client checks. Keep pure-DTO asynchronous generation/cancellation as the next phase only if range/metadata changes still produce perceptible stalls.
+- [x] Run the full suite fresh, `git diff --check`, inspect complete diff, confirm `perf_test.ps1` hash remains `2CE6EA067F5321869C2BD8E2E49EE5A6D0E520F8B2F26E7F2822B2AB3F42B12E`, commit `docs(performance): record selective refresh optimization`, push the branch and keep it intact for client acceptance.

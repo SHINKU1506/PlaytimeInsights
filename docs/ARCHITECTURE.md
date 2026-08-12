@@ -2,7 +2,7 @@
 
 状态：阶段 E 架构基线
 
-更新日期：2026-08-12
+更新日期：2026-08-13
 
 ## Runtime composition
 
@@ -17,14 +17,20 @@ metadata filters and custom dates survive sidebar navigation. `activeDashboard` 
 currently open. A View `Loaded` event is the sole automatic refresh entry; `SidebarItem.Opened` does not run a second
 refresh.
 
-`DashboardViewModel` is the coordinator and public compatibility surface for existing XAML bindings. One refresh:
+`DashboardViewModel` is the coordinator and public compatibility surface for existing XAML bindings. A typed refresh
+plan chooses the smallest valid path:
 
-1. reads the Playnite game list and session repository once;
-2. applies the selected metadata filter;
-3. creates one DashboardSnapshot through `AnalyticsService.CreateSnapshot`;
-4. distributes that same snapshot to the child states.
+1. `DataReload` reads library names, the Playnite game list and session repository once, builds the cover index and
+   refreshes metadata options;
+2. range changes reuse the current filtered game/session input; metadata changes only refresh options or rebuild the
+   filter as required;
+3. full analysis creates one DashboardSnapshot plus one reusable `DashboardAnalysisContext`;
+4. aggregation creates only a trend projection; ranking creates only a range-ranking projection;
+5. complete major lists are published as one new `IReadOnlyList` reference, while session-detail paging remains
+   incremental.
 
-The root therefore creates one DashboardSnapshot and the child ViewModels never rescan the repository:
+The root therefore creates one DashboardSnapshot for every required full analysis, and the child ViewModels never
+rescan the repository:
 
 - `DashboardFilterViewModel`: date range, aggregation, ranking and metadata filter state;
 - `DashboardMetricsViewModel`: metric cards, comparisons and game rankings;
@@ -68,11 +74,19 @@ Playnite game start/stop
   -> SessionRepository active checkpoint / completed GameSession
   -> refresh currently open analytics pages
 
-Dashboard Loaded or explicit/filter refresh
+Dashboard Loaded or explicit refresh
   -> DashboardViewModel
-  -> one game/session input snapshot
-  -> one AnalyticsService DashboardSnapshot
+  -> DataReload: one game/session input snapshot + cover index
+  -> one AnalyticsService DashboardSnapshot + DashboardAnalysisContext
   -> Filter / Metrics / Distribution / Drilldown state
+
+Dashboard aggregation/ranking filter
+  -> reuse DashboardAnalysisContext
+  -> trend projection or range-ranking projection only
+
+Dashboard range/metadata filter
+  -> reuse cached game/session input
+  -> full DashboardSnapshot + replacement DashboardAnalysisContext
 
 Session page Loaded, explicit/filter refresh or CRUD
   -> SessionManagementViewModel

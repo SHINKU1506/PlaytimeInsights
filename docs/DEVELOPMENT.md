@@ -1,6 +1,6 @@
 # 开发与构建
 
-更新日期：2026-08-12
+更新日期：2026-08-13
 
 ## 架构重构准备
 
@@ -76,6 +76,22 @@ Drilldown 四个子 ViewModel 组合根对象。根 `DashboardViewModel` 是唯�
 用户数据规范化联合指纹部署前后保持
 `8739B76AD190E16BC9BCD752D268B6FE52C4C59D5B169D9779836ACEFE3C18EF`。后续异步、generation、
 取消和加载态方案见 `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md`，不得与当前同步原子刷新混为一体。
+
+Dashboard 筛选进一步采用选择性刷新，具体依赖表和 TDD 路线见
+`docs\superpowers\specs\2026-08-13-dashboard-filter-refresh-performance-design.md`：
+
+- 聚合只从 `DashboardAnalysisContext` 生成趋势投影；
+- 排名只从同一上下文重排区间榜单，并复用 `DataReload` 时建立的游戏封面索引；
+- 范围变化复用已过滤游戏/会话；元数据变化只按计划重建选项和过滤；
+- 只有首次进入、Loaded 或显式刷新读取数据库、库插件与 Repository；
+- 热力图、排名、趋势及高级分布等主要列表以完整 `IReadOnlyList` 一次发布；
+- `Trace` 的分段计时只包含刷新原因和毫秒数，不包含用户数据。
+
+最终干净构建 95/95 通过，10 万会话 618 ms，schema 4 载入 1,165 ms。DLL SHA-256 为
+`10D9153B303979C2E897FBA71E30E3064C8D2085E0842B4E38B904808DB97AEC`；两轮确定性 PEXT SHA-256
+均为 `51755E6EC35275D2D3CBE065C64398BF4EB761591B59C518BD48D727070C6178`。三处 9/9 发布文件一致，
+部署前后 7 个用户数据文件指纹保持
+`C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
 
 ## 环境
 
