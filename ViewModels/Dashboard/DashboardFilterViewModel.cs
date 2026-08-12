@@ -1,4 +1,5 @@
 using Playnite.SDK;
+using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using PlaytimeInsights.Models;
 using PlaytimeInsights.Services;
@@ -14,7 +15,7 @@ namespace PlaytimeInsights.ViewModels
     {
         private readonly IPlayniteAPI playniteApi;
         private readonly SessionQueryService queryService;
-        private readonly Action refreshRequested;
+        private readonly Action<DashboardRefreshReason> refreshRequested;
         private SelectionOption<DateRangePreset> selectedRangeOption;
         private SelectionOption<AggregationPeriod> selectedAggregationOption;
         private SelectionOption<RankingMetric> selectedRankingMetricOption;
@@ -28,7 +29,7 @@ namespace PlaytimeInsights.ViewModels
             IPlayniteAPI playniteApi,
             SessionQueryService queryService,
             int recentDays,
-            Action refreshRequested)
+            Action<DashboardRefreshReason> refreshRequested)
         {
             this.playniteApi = playniteApi;
             this.queryService = queryService;
@@ -97,7 +98,7 @@ namespace PlaytimeInsights.ViewModels
                 {
                     SetValue(ref selectedRangeOption, value);
                     OnPropertyChanged(nameof(CustomDateVisibility));
-                    RequestRefresh();
+                    RequestRefresh(DashboardRefreshReason.Range);
                 }
             }
         }
@@ -115,7 +116,7 @@ namespace PlaytimeInsights.ViewModels
                 if (!ReferenceEquals(selectedAggregationOption, value))
                 {
                     SetValue(ref selectedAggregationOption, value);
-                    RequestRefresh();
+                    RequestRefresh(DashboardRefreshReason.Aggregation);
                 }
             }
         }
@@ -128,7 +129,7 @@ namespace PlaytimeInsights.ViewModels
                 if (!ReferenceEquals(selectedRankingMetricOption, value))
                 {
                     SetValue(ref selectedRankingMetricOption, value);
-                    RequestRefresh();
+                    RequestRefresh(DashboardRefreshReason.Ranking);
                 }
             }
         }
@@ -142,8 +143,7 @@ namespace PlaytimeInsights.ViewModels
                 {
                     SetValue(ref selectedMetadataDimensionOption, value);
                     OnPropertyChanged(nameof(MetadataValueVisibility));
-                    RefreshMetadataValueOptions();
-                    RequestRefresh();
+                    RequestRefresh(DashboardRefreshReason.MetadataDimension);
                 }
             }
         }
@@ -156,7 +156,7 @@ namespace PlaytimeInsights.ViewModels
                 if (!ReferenceEquals(selectedMetadataValueOption, value))
                 {
                     SetValue(ref selectedMetadataValueOption, value);
-                    RequestRefresh();
+                    RequestRefresh(DashboardRefreshReason.MetadataValue);
                 }
             }
         }
@@ -176,7 +176,7 @@ namespace PlaytimeInsights.ViewModels
                     SetValue(ref customStartDate, value);
                     if (SelectedRangeOption?.Value == DateRangePreset.Custom)
                     {
-                        RequestRefresh();
+                        RequestRefresh(DashboardRefreshReason.Range);
                     }
                 }
             }
@@ -192,7 +192,7 @@ namespace PlaytimeInsights.ViewModels
                     SetValue(ref customEndDate, value);
                     if (SelectedRangeOption?.Value == DateRangePreset.Custom)
                     {
-                        RequestRefresh();
+                        RequestRefresh(DashboardRefreshReason.Range);
                     }
                 }
             }
@@ -206,6 +206,13 @@ namespace PlaytimeInsights.ViewModels
 
         public void RefreshMetadataValueOptions(
             IReadOnlyDictionary<Guid, string> libraryNames = null)
+        {
+            RefreshMetadataValueOptions(null, libraryNames);
+        }
+
+        public void RefreshMetadataValueOptions(
+            IEnumerable<Game> games,
+            IReadOnlyDictionary<Guid, string> libraryNames)
         {
             if (SelectedMetadataDimensionOption == null)
             {
@@ -232,8 +239,11 @@ namespace PlaytimeInsights.ViewModels
             if (SelectedMetadataDimensionOption.Value.HasValue)
             {
                 libraryNames = libraryNames ?? GetLibraryNames();
+                var availableGames = games ??
+                    playniteApi?.Database?.Games ??
+                    Enumerable.Empty<Game>();
                 values.AddRange(queryService.GetMetadataValues(
-                        playniteApi.Database.Games,
+                        availableGames,
                         SelectedMetadataDimensionOption.Value.Value,
                         libraryNames)
                     .Select(value => new SelectionOption<string>
@@ -271,11 +281,11 @@ namespace PlaytimeInsights.ViewModels
                     group => group.First().Name ?? string.Empty);
         }
 
-        private void RequestRefresh()
+        private void RequestRefresh(DashboardRefreshReason reason)
         {
             if (!suppressRefresh)
             {
-                refreshRequested?.Invoke();
+                refreshRequested?.Invoke(reason);
             }
         }
 

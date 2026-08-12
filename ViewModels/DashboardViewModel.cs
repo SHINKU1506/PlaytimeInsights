@@ -39,7 +39,7 @@ namespace PlaytimeInsights.ViewModels
                 playniteApi,
                 queryService,
                 settings.Settings.RecentDays,
-                Refresh);
+                reason => Refresh());
             Metrics = new DashboardMetricsViewModel(playniteApi);
             Distribution = new DashboardDistributionViewModel();
             Drilldown = new DashboardDrilldownViewModel(

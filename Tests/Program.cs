@@ -107,6 +107,8 @@ namespace PlaytimeInsights.Tests
             Run("Stage E architecture closure keeps event boundaries symmetric", TestStageEArchitectureClosure);
             Run("Trend periods publish one complete replacement", TestTrendPeriodsPublishAtomically);
             Run("Trend chart follows source lifecycle changes", TestTrendChartSourceLifecycle);
+            Run("Dashboard filters route selective refresh reasons", TestDashboardFilterRefreshReasons);
+            Run("Dashboard refresh plans isolate dependencies", TestDashboardRefreshPlans);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -2485,6 +2487,80 @@ namespace PlaytimeInsights.Tests
                 RenderTrendChart(chart);
                 Equal(3, GetPrivateListCount(chart, "renderedItems"));
             });
+        }
+
+        private static void TestDashboardFilterRefreshReasons()
+        {
+            var reasons = new List<DashboardRefreshReason>();
+            var viewModel = new DashboardFilterViewModel(
+                null,
+                new SessionQueryService(new TestGameMetadataAccessor()),
+                7,
+                reasons.Add);
+
+            viewModel.SelectedRangeOption = viewModel.RangeOptions[0];
+            viewModel.SelectedAggregationOption = viewModel.AggregationOptions[1];
+            viewModel.SelectedRankingMetricOption = viewModel.RankingMetricOptions[1];
+            viewModel.SelectedMetadataDimensionOption =
+                viewModel.MetadataDimensionOptions[1];
+            viewModel.SelectedMetadataValueOption = new SelectionOption<string>
+            {
+                Value = "Steam",
+                Label = "Steam"
+            };
+            viewModel.SelectedRangeOption = viewModel.RangeOptions[4];
+            viewModel.CustomStartDate = viewModel.CustomStartDate.AddDays(-1);
+            viewModel.CustomEndDate = viewModel.CustomEndDate.AddDays(-1);
+
+            Equal(
+                "Range|Aggregation|Ranking|MetadataDimension|" +
+                "MetadataValue|Range|Range|Range",
+                string.Join("|", reasons));
+        }
+
+        private static void TestDashboardRefreshPlans()
+        {
+            var uncached = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Aggregation,
+                false);
+            Equal(DashboardRefreshMode.FullAnalysis, uncached.Mode);
+            Equal(true, uncached.ReloadData);
+            Equal(true, uncached.RefreshMetadataOptions);
+            Equal(true, uncached.RebuildFilter);
+
+            var aggregation = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Aggregation,
+                true);
+            Equal(DashboardRefreshMode.TrendOnly, aggregation.Mode);
+            Equal(false, aggregation.ReloadData);
+            Equal(false, aggregation.RefreshMetadataOptions);
+            Equal(false, aggregation.RebuildFilter);
+
+            var ranking = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Ranking,
+                true);
+            Equal(DashboardRefreshMode.RankingOnly, ranking.Mode);
+            Equal(false, ranking.ReloadData);
+
+            var range = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Range,
+                true);
+            Equal(DashboardRefreshMode.FullAnalysis, range.Mode);
+            Equal(false, range.ReloadData);
+            Equal(false, range.RefreshMetadataOptions);
+            Equal(false, range.RebuildFilter);
+
+            var dimension = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.MetadataDimension,
+                true);
+            Equal(true, dimension.RefreshMetadataOptions);
+            Equal(true, dimension.RebuildFilter);
+
+            var value = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.MetadataValue,
+                true);
+            Equal(false, value.RefreshMetadataOptions);
+            Equal(true, value.RebuildFilter);
         }
 
         private static void RunOnSta(Action action)
