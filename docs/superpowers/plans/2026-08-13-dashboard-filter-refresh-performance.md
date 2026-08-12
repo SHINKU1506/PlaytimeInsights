@@ -33,13 +33,13 @@
 - Produces: `DashboardRefreshReason`, `DashboardRefreshMode`, `DashboardRefreshPlan.Create(DashboardRefreshReason reason, bool cacheReady)` and `Action<DashboardRefreshReason>` filter callback.
 - Consumes: no Playnite API state in the plan; the root ViewModel will consume the plan in Task 4.
 
-- [ ] Add registrations `Dashboard filters route selective refresh reasons` and `Dashboard refresh plans isolate dependencies`.
-- [ ] Write a failing real `DashboardFilterViewModel` test using `null` Playnite API and a captured `List<DashboardRefreshReason>`. Assert Range, Aggregation, Ranking, MetadataDimension, MetadataValue and Custom-date routing with literal expected sequences.
-- [ ] Write a failing table test for `DashboardRefreshPlan.Create`: uncached local reasons fall back to `DataReload`; cached Aggregation uses `TrendOnly`; cached Ranking uses `RankingOnly`; Range uses `FullAnalysis` without reload/filter; MetadataDimension refreshes options and filter; MetadataValue rebuilds only the filter.
-- [ ] Build `Tests/PlaytimeInsights.Tests.csproj` and run the suite. Expected RED: new types/callback do not exist.
-- [ ] Implement the enum/plan and change `DashboardFilterViewModel` callback to `Action<DashboardRefreshReason>`. Remove the dimension setter's direct live `RefreshMetadataValueOptions()` call. Extend that method to accept `IEnumerable<Game> games` plus library names, falling back to live games only for constructor compatibility.
-- [ ] Rebuild and run. Expected: 89/89 pass, 0 warnings/errors.
-- [ ] Commit `feat(dashboard): route selective refresh reasons`.
+- [x] Add registrations `Dashboard filters route selective refresh reasons` and `Dashboard refresh plans isolate dependencies`.
+- [x] Write a failing real `DashboardFilterViewModel` test using `null` Playnite API and a captured `List<DashboardRefreshReason>`. Assert Range, Aggregation, Ranking, MetadataDimension, MetadataValue and Custom-date routing with literal expected sequences.
+- [x] Write a failing table test for `DashboardRefreshPlan.Create`: uncached local reasons fall back to `DataReload`; cached Aggregation uses `TrendOnly`; cached Ranking uses `RankingOnly`; Range uses `FullAnalysis` without reload/filter; MetadataDimension refreshes options and filter; MetadataValue rebuilds only the filter.
+- [x] Build `Tests/PlaytimeInsights.Tests.csproj` and run the suite. Expected RED: new types/callback do not exist.
+- [x] Implement the enum/plan and change `DashboardFilterViewModel` callback to `Action<DashboardRefreshReason>`. Remove the dimension setter's direct live `RefreshMetadataValueOptions()` call. Extend that method to accept `IEnumerable<Game> games` plus library names, falling back to live games only for constructor compatibility.
+- [x] Rebuild and run. Expected: 89/89 pass, 0 warnings/errors.
+- [x] Commit `feat(dashboard): route selective refresh reasons`.
 
 ---
 
@@ -58,12 +58,12 @@
   - `DashboardSnapshotResult AnalyticsService.CreateSnapshotWithContext(IEnumerable<Game>, IEnumerable<GameSession>, AnalyticsQuery)`
 - `CreateSnapshot(...)` remains source-compatible and returns `CreateSnapshotWithContext(...).Snapshot`.
 
-- [ ] Register `Aggregation projection reuses analysis context` and `Ranking projection reuses analysis context`.
-- [ ] Write failing behavior tests: build one context from fixed games/sessions, create day/month trend projections and duration/session-count ranking projections, and assert literal labels/counts/order/seconds. Mutate neither input after context creation.
-- [ ] Run suite. Expected RED: context/projection API missing.
-- [ ] Promote the existing private range-stat record into `DashboardGameRangeStatistics` in the new context file. Refactor the existing snapshot loop once so it returns both snapshot and context; create full snapshot trend/ranking by calling the new projection methods to prevent duplicate formulas.
-- [ ] Run suite. Expected: 91/91 pass and existing analytics/performance tests remain green.
-- [ ] Commit `refactor(analytics): expose reusable dashboard projections`.
+- [x] Register `Aggregation projection reuses analysis context` and `Ranking projection reuses analysis context`.
+- [x] Write failing behavior tests: build one context from fixed games/sessions, create day/month trend projections and duration/session-count ranking projections, and assert literal labels/counts/order/seconds. Mutate neither input after context creation.
+- [x] Run suite. Expected RED: context/projection API missing.
+- [x] Promote the existing private range-stat record into `DashboardGameRangeStatistics` in the new context file. Refactor the existing snapshot loop once so it returns both snapshot and context; create full snapshot trend/ranking by calling the new projection methods to prevent duplicate formulas.
+- [x] Run suite. Expected: 91/91 pass and existing analytics/performance tests remain green.
+- [x] Commit `refactor(analytics): expose reusable dashboard projections`.
 
 ---
 

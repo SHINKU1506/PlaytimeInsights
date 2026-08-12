@@ -109,6 +109,8 @@ namespace PlaytimeInsights.Tests
             Run("Trend chart follows source lifecycle changes", TestTrendChartSourceLifecycle);
             Run("Dashboard filters route selective refresh reasons", TestDashboardFilterRefreshReasons);
             Run("Dashboard refresh plans isolate dependencies", TestDashboardRefreshPlans);
+            Run("Dashboard analysis context reprojects trend without rescan", TestDashboardTrendProjectionReuse);
+            Run("Dashboard analysis context reprojects ranking without rescan", TestDashboardRankingProjectionReuse);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -729,6 +731,70 @@ namespace PlaytimeInsights.Tests
             Equal(frequentGame, snapshot.LifetimeGameRankings[0].GameId);
             Equal(90.0, snapshot.LifetimeGameRankings[0].ProgressPercent);
             Equal(10.0, snapshot.LifetimeGameRankings[1].ProgressPercent);
+        }
+
+        private static void TestDashboardTrendProjectionReuse()
+        {
+            var gameId = Guid.NewGuid();
+            var service = new AnalyticsService();
+            var result = service.CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                new[]
+                {
+                    CreateSession(gameId, "Reusable", new DateTime(2026, 7, 27, 10, 0, 0, DateTimeKind.Utc), 60),
+                    CreateSession(gameId, "Reusable", new DateTime(2026, 8, 3, 10, 0, 0, DateTimeKind.Utc), 120)
+                },
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 7, 27),
+                    CustomEndDate = new DateTime(2026, 8, 9),
+                    AggregationPeriod = AggregationPeriod.Day,
+                    UseIsoWeekStart = true
+                });
+
+            var weekly = service.CreateTrendProjection(
+                result.Context,
+                AggregationPeriod.Week);
+
+            Equal(14, result.Snapshot.PeriodActivities.Count);
+            Equal(2, weekly.PeriodActivities.Count);
+            Equal(60UL, weekly.PeriodActivities[0].Seconds);
+            Equal(120UL, weekly.PeriodActivities[1].Seconds);
+            Equal("Reusable", weekly.PeriodActivities[0].GameSummaryText);
+            Equal(2, weekly.TrendPoints.Count);
+        }
+
+        private static void TestDashboardRankingProjectionReuse()
+        {
+            var frequentGame = Guid.NewGuid();
+            var longGame = Guid.NewGuid();
+            var service = new AnalyticsService();
+            var result = service.CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                new[]
+                {
+                    CreateSession(frequentGame, "Frequent", new DateTime(2026, 7, 27, 10, 0, 0, DateTimeKind.Utc), 30),
+                    CreateSession(frequentGame, "Frequent", new DateTime(2026, 7, 28, 10, 0, 0, DateTimeKind.Utc), 30),
+                    CreateSession(longGame, "Long", new DateTime(2026, 7, 28, 12, 0, 0, DateTimeKind.Utc), 600)
+                },
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 7, 27),
+                    CustomEndDate = new DateTime(2026, 7, 28),
+                    RankingMetric = RankingMetric.Duration
+                });
+
+            var bySessionCount = service.CreateRankingProjection(
+                result.Context,
+                RankingMetric.SessionCount,
+                10);
+
+            Equal("Long", result.Snapshot.RangeGameRankings[0].Name);
+            Equal("Frequent", bySessionCount.RangeGameRankings[0].Name);
+            Equal("2 次", bySessionCount.RangeGameRankings[0].PrimaryValueText);
+            Equal(frequentGame, bySessionCount.RangeGameRankings[0].GameId);
         }
 
         private static void TestHeatmapLayoutAndIntensity()
