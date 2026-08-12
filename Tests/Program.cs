@@ -1,15 +1,24 @@
 using Playnite.SDK;
 using PlaytimeInsights.Models;
+using PlaytimeInsights.Controls;
+using PlaytimeInsights.Presentation.Coordinators;
+using PlaytimeInsights.Presentation.Interactions;
 using PlaytimeInsights.Services;
 using PlaytimeInsights.ViewModels;
 using Newtonsoft.Json;
 using System;
+using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Xml.Linq;
 
 namespace PlaytimeInsights.Tests
@@ -77,6 +86,40 @@ namespace PlaytimeInsights.Tests
             Run("Native views use portable theme brushes and responsive overflow", TestThemeAndResponsiveLayout);
             Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
             Run("Nested dashboard scrollers hand wheel input to page boundaries", TestDashboardMouseWheelRouting);
+            Run("Architecture refactor baseline keeps boundaries documented", TestArchitectureRefactorBaseline);
+            Run("RelayCommand executes and raises state changes", TestRelayCommand);
+            Run("Generic RelayCommand validates parameters", TestGenericRelayCommand);
+            Run("Stage B commands keep low-risk bindings", TestStageBCommandBindings);
+            Run("Export errors use a non-mnemonic title", TestExportErrorTitle);
+            Run("Session coordinator cancels import file selection", TestCoordinatorCancelsImportFileSelection);
+            Run("Session coordinator cancels import preview", TestCoordinatorCancelsImportPreview);
+            Run("Session coordinator cancels delete confirmation", TestCoordinatorCancelsDeleteConfirmation);
+            Run("Session coordinator blocks invalid restore", TestCoordinatorBlocksInvalidRestore);
+            Run("Session coordinator cancels restore confirmation", TestCoordinatorCancelsRestoreConfirmation);
+            Run("Session coordinator contains export failure", TestCoordinatorContainsExportFailure);
+            Run("Session coordinator cancels editor", TestCoordinatorCancelsEditor);
+            Run("Session coordinator cancels reindex", TestCoordinatorCancelsReindex);
+            Run("Stage C composes WPF session workflows", TestStageCComposition);
+            Run("Stage D dashboard keeps one snapshot coordination boundary", TestStageDDashboardComposition);
+            Run("Dashboard filters persist across sidebar navigation", TestDashboardNavigationStateLifetime);
+            Run("Sidebar navigation uses one automatic refresh", TestSidebarNavigationUsesSingleAutomaticRefresh);
+            Run("Session count reuses the refresh snapshot", TestSessionCountUsesRefreshSnapshot);
+            Run("Stage E architecture closure keeps event boundaries symmetric", TestStageEArchitectureClosure);
+            Run("Trend periods publish one complete replacement", TestTrendPeriodsPublishAtomically);
+            Run("Trend chart follows source lifecycle changes", TestTrendChartSourceLifecycle);
+            Run("Dashboard filters route selective refresh reasons", TestDashboardFilterRefreshReasons);
+            Run("Dashboard refresh plans isolate dependencies", TestDashboardRefreshPlans);
+            Run("Dashboard analysis context reprojects trend without rescan", TestDashboardTrendProjectionReuse);
+            Run("Dashboard analysis context reprojects ranking without rescan", TestDashboardRankingProjectionReuse);
+            Run("Trend projection leaves unrelated dashboard state intact", TestDashboardTrendProjectionApplyBoundary);
+            Run("Ranking projection leaves unrelated dashboard state intact", TestDashboardRankingProjectionApplyBoundary);
+            Run("Dashboard major lists publish atomically", TestDashboardMajorListsPublishAtomically);
+            Run("Dashboard refresh policy keeps local changes off data reload", TestDashboardRefreshRootPolicy);
+            Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
+            Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
+            Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
+            Run("Session coordinator completes remaining workflows", TestCoordinatorCompletesRemainingWorkflows);
+            Run("Session coordinator contains import failure", TestCoordinatorContainsImportFailure);
             Run("Release metadata and public README stay current", TestReleaseMetadataAndReadme);
             Run("Localization keys and format placeholders stay source-complete", TestLocalizationSourceCoverage);
             Run("Release 0.1 through 0.9 settings keep compatible defaults", TestLegacySettingsMatrix);
@@ -692,6 +735,70 @@ namespace PlaytimeInsights.Tests
             Equal(frequentGame, snapshot.LifetimeGameRankings[0].GameId);
             Equal(90.0, snapshot.LifetimeGameRankings[0].ProgressPercent);
             Equal(10.0, snapshot.LifetimeGameRankings[1].ProgressPercent);
+        }
+
+        private static void TestDashboardTrendProjectionReuse()
+        {
+            var gameId = Guid.NewGuid();
+            var service = new AnalyticsService();
+            var result = service.CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                new[]
+                {
+                    CreateSession(gameId, "Reusable", new DateTime(2026, 7, 27, 10, 0, 0, DateTimeKind.Utc), 60),
+                    CreateSession(gameId, "Reusable", new DateTime(2026, 8, 3, 10, 0, 0, DateTimeKind.Utc), 120)
+                },
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 7, 27),
+                    CustomEndDate = new DateTime(2026, 8, 9),
+                    AggregationPeriod = AggregationPeriod.Day,
+                    UseIsoWeekStart = true
+                });
+
+            var weekly = service.CreateTrendProjection(
+                result.Context,
+                AggregationPeriod.Week);
+
+            Equal(14, result.Snapshot.PeriodActivities.Count);
+            Equal(2, weekly.PeriodActivities.Count);
+            Equal(60UL, weekly.PeriodActivities[0].Seconds);
+            Equal(120UL, weekly.PeriodActivities[1].Seconds);
+            Equal("Reusable", weekly.PeriodActivities[0].GameSummaryText);
+            Equal(2, weekly.TrendPoints.Count);
+        }
+
+        private static void TestDashboardRankingProjectionReuse()
+        {
+            var frequentGame = Guid.NewGuid();
+            var longGame = Guid.NewGuid();
+            var service = new AnalyticsService();
+            var result = service.CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                new[]
+                {
+                    CreateSession(frequentGame, "Frequent", new DateTime(2026, 7, 27, 10, 0, 0, DateTimeKind.Utc), 30),
+                    CreateSession(frequentGame, "Frequent", new DateTime(2026, 7, 28, 10, 0, 0, DateTimeKind.Utc), 30),
+                    CreateSession(longGame, "Long", new DateTime(2026, 7, 28, 12, 0, 0, DateTimeKind.Utc), 600)
+                },
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 7, 27),
+                    CustomEndDate = new DateTime(2026, 7, 28),
+                    RankingMetric = RankingMetric.Duration
+                });
+
+            var bySessionCount = service.CreateRankingProjection(
+                result.Context,
+                RankingMetric.SessionCount,
+                10);
+
+            Equal("Long", result.Snapshot.RangeGameRankings[0].Name);
+            Equal("Frequent", bySessionCount.RangeGameRankings[0].Name);
+            Equal("2 次", bySessionCount.RangeGameRankings[0].PrimaryValueText);
+            Equal(frequentGame, bySessionCount.RangeGameRankings[0].GameId);
         }
 
         private static void TestHeatmapLayoutAndIntensity()
@@ -1902,10 +2009,19 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Views",
                 "SessionImportPreviewWindow.xaml"));
-            var dashboardViewModel = File.ReadAllText(Path.Combine(
-                sourceRoot,
-                "ViewModels",
-                "DashboardViewModel.cs"));
+            var dashboardViewModel = string.Join(
+                Environment.NewLine,
+                new[]
+                {
+                    File.ReadAllText(Path.Combine(
+                        sourceRoot,
+                        "ViewModels",
+                        "DashboardViewModel.cs"))
+                }.Concat(Directory
+                    .GetFiles(
+                        Path.Combine(sourceRoot, "ViewModels", "Dashboard"),
+                        "*.cs")
+                    .Select(File.ReadAllText)));
             var coverConverter = File.ReadAllText(Path.Combine(
                 sourceRoot,
                 "Converters",
@@ -1931,7 +2047,7 @@ namespace PlaytimeInsights.Tests
             Equal(false, string.Join(string.Empty, xamlFiles.Select(File.ReadAllText))
                 .Contains("WindowBackgroundBrush"));
             Equal(true, dashboard.Contains(
-                "Click=\"WeekdayDistribution_Click\""));
+                "DataContext.SelectWeekdayCommand"));
             Equal(true, dashboard.Contains(
                 "AutomationProperties.Name=\"{Binding AutomationName}\""));
             Equal(true, dashboard.Contains(
@@ -2104,10 +2220,726 @@ namespace PlaytimeInsights.Tests
             Equal(true, dashboardViewModel.Contains(
                 "GetFullFilePath(game.CoverImage)"));
             Equal(true, dashboardViewModel.Contains(
-                "ApplySessionDetailCoverImages(details, activeFilteredGames)"));
+                "ApplyCoverImages(details, activeGames)"));
             Equal(true, coverConverter.Contains(
                 "CacheOption = BitmapCacheOption.OnLoad"));
             Equal(true, coverConverter.Contains("DecodePixelWidth = 96"));
+        }
+
+        private static void TestStageDDashboardComposition()
+        {
+            var sourceRoot = FindSourceRoot();
+            var rootPath = Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs");
+            var dashboardDirectory = Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "Dashboard");
+            var root = File.ReadAllText(rootPath);
+            var childFiles = new[]
+            {
+                "DashboardFilterViewModel.cs",
+                "DashboardMetricsViewModel.cs",
+                "DashboardDistributionViewModel.cs",
+                "DashboardDrilldownViewModel.cs"
+            };
+
+            foreach (var childFile in childFiles)
+            {
+                Equal(true, File.Exists(Path.Combine(dashboardDirectory, childFile)));
+            }
+
+            Equal(1, Regex.Matches(
+                root,
+                @"analyticsService\.CreateSnapshotWithContext\(",
+                RegexOptions.CultureInvariant).Count);
+            Equal(true, root.Contains("Metrics.Apply(result.Snapshot, gamesById)"));
+            Equal(true, root.Contains("Distribution.Apply(result.Snapshot)"));
+            Equal(true, root.Contains(
+                "Drilldown.ResetContext(filteredGames, filteredSessions)"));
+            Equal(true, root.Contains(
+                "public DashboardFilterViewModel Filter { get; }"));
+            Equal(true, root.Contains(
+                "public DashboardMetricsViewModel Metrics { get; }"));
+            Equal(true, root.Contains(
+                "public DashboardDistributionViewModel Distribution { get; }"));
+            Equal(true, root.Contains(
+                "public DashboardDrilldownViewModel Drilldown { get; }"));
+
+            var childSource = string.Join(
+                Environment.NewLine,
+                childFiles.Select(file => File.ReadAllText(
+                    Path.Combine(dashboardDirectory, file))));
+            Equal(false, childSource.Contains("SessionRepository"));
+            Equal(false, childSource.Contains("CreateSnapshot("));
+            Equal(false, childSource.Contains("sessionRepository.GetAll"));
+        }
+
+        private static void TestDashboardNavigationStateLifetime()
+        {
+            var sourceRoot = FindSourceRoot();
+            var plugin = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.cs"));
+
+            Equal(true, plugin.Contains(
+                "private DashboardViewModel cachedDashboard;"));
+            Equal(true, plugin.Contains(
+                "if (cachedDashboard == null)"));
+            Equal(true, plugin.Contains(
+                "activeDashboard = cachedDashboard;"));
+            Equal(true, plugin.Contains(
+                "Closed = () => activeDashboard = null"));
+            Equal(false, plugin.Contains(
+                "Closed = () => cachedDashboard = null"));
+            Equal(1, Regex.Matches(
+                plugin,
+                @"new DashboardViewModel\(",
+                RegexOptions.CultureInvariant).Count);
+        }
+
+        private static void TestDashboardRefreshRootPolicy()
+        {
+            var sourceRoot = FindSourceRoot();
+            var source = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+            var trendBlock = ExtractSourceBlock(
+                source,
+                "private DashboardRefreshTiming ApplyTrendRefresh()",
+                "private DashboardRefreshTiming ApplyRankingRefresh()");
+            var rankingBlock = ExtractSourceBlock(
+                source,
+                "private DashboardRefreshTiming ApplyRankingRefresh()",
+                "private DashboardRefreshTiming ApplyFullAnalysis()");
+
+            Equal(true, source.Contains("reason => Refresh(reason)"));
+            Equal(true, source.Contains(
+                "Refresh(DashboardRefreshReason.DataReload)"));
+            Equal(true, source.Contains(
+                "DashboardRefreshPlan.Create(reason, cacheReady)"));
+            Equal(1, Regex.Matches(
+                source,
+                @"Filter\.GetLibraryNames\(\)",
+                RegexOptions.CultureInvariant).Count);
+            Equal(1, Regex.Matches(
+                source,
+                @"Database\.Games\.ToList\(\)",
+                RegexOptions.CultureInvariant).Count);
+            Equal(1, Regex.Matches(
+                source,
+                @"sessionRepository\.GetAll\(\)",
+                RegexOptions.CultureInvariant).Count);
+            Equal(true, trendBlock.Contains("CreateTrendProjection("));
+            Equal(true, trendBlock.Contains("Distribution.ApplyTrend("));
+            Equal(true, trendBlock.Contains("Metrics.ApplyPeriodTitle("));
+            Equal(false, trendBlock.Contains("GetLibraryNames"));
+            Equal(false, trendBlock.Contains("sessionRepository"));
+            Equal(false, trendBlock.Contains("CreateSnapshot"));
+            Equal(true, rankingBlock.Contains("CreateRankingProjection("));
+            Equal(true, rankingBlock.Contains(
+                "Metrics.ApplyRangeRanking(projection, gamesById)"));
+            Equal(false, rankingBlock.Contains("allGames"));
+            Equal(false, rankingBlock.Contains("GetLibraryNames"));
+            Equal(false, rankingBlock.Contains("sessionRepository"));
+            Equal(false, rankingBlock.Contains("CreateSnapshot"));
+            Equal(true, source.Contains(
+                "PlaytimeInsights Dashboard refresh reason={0} " +
+                "data={1}ms filter={2}ms analytics={3}ms apply={4}ms total={5}ms"));
+            Equal(true, source.Contains(
+                "gamesById = loadedGames.GroupBy(game => game.Id)"));
+        }
+
+        private static void TestSidebarNavigationUsesSingleAutomaticRefresh()
+        {
+            var sourceRoot = FindSourceRoot();
+            var plugin = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.cs"));
+            var dashboardView = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+            var sessionView = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml.cs"));
+            var dashboardOpened = ExtractSidebarOpenedBlock(
+                plugin,
+                "icon-dashboard.png");
+            var sessionsOpened = ExtractSidebarOpenedBlock(
+                plugin,
+                "icon-sessions.png");
+
+            Equal(false, dashboardOpened.Contains("activeDashboard.Refresh()"));
+            Equal(false, sessionsOpened.Contains(
+                "activeSessionManagement.Refresh()"));
+            Equal(true, dashboardView.Contains(
+                "Loaded += PlaytimeInsightsDashboardView_Loaded"));
+            Equal(true, dashboardView.Contains("command.Execute(null)"));
+            Equal(true, sessionView.Contains(
+                "Loaded += SessionManagementView_Loaded"));
+            Equal(true, sessionView.Contains("ViewModel?.Refresh()"));
+            Equal(true, dashboardOpened.Contains(
+                "activeDashboard = cachedDashboard"));
+            Equal(true, plugin.Contains(
+                "Closed = () => activeDashboard = null"));
+        }
+
+        private static void TestSessionCountUsesRefreshSnapshot()
+        {
+            var sourceRoot = FindSourceRoot();
+            var source = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "SessionManagementViewModel.cs"));
+            var countTextBlock = ExtractSourceBlock(
+                source,
+                "public string CountText",
+                "public Visibility LoadMoreVisibility");
+            var refreshBlock = ExtractSourceBlock(
+                source,
+                "public void Refresh()",
+                "public void LoadMore()");
+
+            Equal(false, countTextBlock.Contains("repository.GetAll()"));
+            Equal(true, countTextBlock.Contains("activeSessionCount"));
+            Equal(true, Regex.IsMatch(
+                refreshBlock,
+                @"activeSessionCount\s*=\s*allSessions\.Count\s*\(" +
+                @"\s*session\s*=>\s*!session\.IsDeleted\s*\)",
+                RegexOptions.CultureInvariant));
+            Equal(1, Regex.Matches(
+                refreshBlock,
+                @"repository\.GetAllIncludingDeleted\(\)",
+                RegexOptions.CultureInvariant).Count);
+        }
+
+        private static void TestStageEArchitectureClosure()
+        {
+            var sourceRoot = FindSourceRoot();
+            var viewNames = new[]
+            {
+                "PlaytimeInsightsDashboardView",
+                "SessionManagementView",
+                "SessionEditorWindow",
+                "SessionImportPreviewWindow"
+            };
+            var eventPattern = new Regex(
+                "(?:Click|PreviewMouseWheel|PeriodSelected|" +
+                "MouseLeftButtonUp)=\"([A-Za-z_][A-Za-z0-9_]*)\"",
+                RegexOptions.CultureInvariant);
+            var loadedPattern = new Regex(
+                "Loaded \\+= ([A-Za-z_][A-Za-z0-9_]*);",
+                RegexOptions.CultureInvariant);
+            var handlerPattern = new Regex(
+                @"private\s+(?:static\s+)?[A-Za-z0-9_<>?]+\s+" +
+                @"([A-Za-z_][A-Za-z0-9_]*_(?:Click|PreviewMouseWheel|" +
+                @"PeriodSelected|MouseLeftButtonUp|Loaded))\s*\(",
+                RegexOptions.CultureInvariant);
+
+            foreach (var viewName in viewNames)
+            {
+                var xaml = File.ReadAllText(Path.Combine(
+                    sourceRoot,
+                    "Views",
+                    viewName + ".xaml"));
+                var code = File.ReadAllText(Path.Combine(
+                    sourceRoot,
+                    "Views",
+                    viewName + ".xaml.cs"));
+                var eventSources = new HashSet<string>(
+                    eventPattern.Matches(xaml)
+                        .Cast<Match>()
+                        .Select(match => match.Groups[1].Value));
+                foreach (Match match in loadedPattern.Matches(code))
+                {
+                    eventSources.Add(match.Groups[1].Value);
+                }
+
+                var declarations = new HashSet<string>(
+                    handlerPattern.Matches(code)
+                        .Cast<Match>()
+                        .Select(match => match.Groups[1].Value));
+                Equal(
+                    string.Join("|", eventSources.OrderBy(value => value)),
+                    string.Join("|", declarations.OrderBy(value => value)));
+            }
+
+            var architecturePath = Path.Combine(
+                sourceRoot,
+                "docs",
+                "ARCHITECTURE.md");
+            Equal(true, File.Exists(architecturePath));
+            var architecture = File.ReadAllText(architecturePath);
+            foreach (var boundary in new[]
+            {
+                "DashboardFilterViewModel",
+                "DashboardMetricsViewModel",
+                "DashboardDistributionViewModel",
+                "DashboardDrilldownViewModel",
+                "SessionManagementCoordinator",
+                "ISessionManagementInteraction",
+                "WpfSessionManagementInteraction",
+                "one DashboardSnapshot"
+            })
+            {
+                Equal(true, architecture.Contains(boundary));
+            }
+        }
+
+        private static void TestTrendPeriodsPublishAtomically()
+        {
+            var viewModel = new DashboardDistributionViewModel();
+            viewModel.Apply(CreateDistributionSnapshot(
+                new PeriodActivityViewModel { Label = "old", Seconds = 10 }));
+            var oldPeriods = viewModel.PeriodActivities;
+            var notifications = 0;
+            viewModel.PropertyChanged += (sender, args) =>
+            {
+                if (args.PropertyName == nameof(viewModel.PeriodActivities))
+                {
+                    notifications++;
+                }
+            };
+
+            viewModel.Apply(CreateDistributionSnapshot(
+                new PeriodActivityViewModel { Label = "new-a", Seconds = 20 },
+                new PeriodActivityViewModel { Label = "new-b", Seconds = 30 }));
+
+            Equal(false, ReferenceEquals(oldPeriods, viewModel.PeriodActivities));
+            Equal(1, notifications);
+            Equal(2, viewModel.PeriodActivities.Count);
+            Equal("new-a", viewModel.PeriodActivities[0].Label);
+            Equal("new-b", viewModel.PeriodActivities[1].Label);
+        }
+
+        private static void TestDashboardTrendProjectionApplyBoundary()
+        {
+            var viewModel = new DashboardDistributionViewModel();
+            viewModel.Apply(CreateAtomicDistributionSnapshot("initial"));
+            var heatmapCells = viewModel.HeatmapCells;
+            var weekdays = viewModel.WeekdayDistribution;
+            var notifications = new List<string>();
+            viewModel.PropertyChanged += (sender, args) =>
+                notifications.Add(args.PropertyName);
+
+            viewModel.ApplyTrend(new DashboardTrendProjection
+            {
+                PeriodActivities = new List<PeriodActivityViewModel>
+                {
+                    new PeriodActivityViewModel { Label = "projected", Seconds = 42 }
+                },
+                TrendChartWidth = 720,
+                TrendLinePoints = new System.Windows.Media.PointCollection(),
+                TrendLineGeometry = System.Windows.Media.Geometry.Empty,
+                TrendAreaGeometry = System.Windows.Media.Geometry.Empty,
+                TrendPoints = new List<TrendPointViewModel>()
+            });
+
+            Equal("projected", viewModel.PeriodActivities[0].Label);
+            Equal(true, ReferenceEquals(heatmapCells, viewModel.HeatmapCells));
+            Equal(true, ReferenceEquals(weekdays, viewModel.WeekdayDistribution));
+            Equal(false, notifications.Contains(nameof(viewModel.HeatmapCells)));
+            Equal(false, notifications.Contains(nameof(viewModel.WeekdayDistribution)));
+        }
+
+        private static void TestDashboardRankingProjectionApplyBoundary()
+        {
+            var metrics = new DashboardMetricsViewModel(null);
+            var snapshot = CreateAtomicDistributionSnapshot("metrics");
+            snapshot.RangeRankingTitleText = "duration";
+            snapshot.StatusText = "unchanged status";
+            snapshot.RangeGameRankings = new List<GameRankingViewModel>
+            {
+                new GameRankingViewModel { Name = "old range" }
+            };
+            snapshot.LifetimeGameRankings = new List<GameRankingViewModel>
+            {
+                new GameRankingViewModel { Name = "lifetime" }
+            };
+            metrics.Apply(snapshot, new Playnite.SDK.Models.Game[0]);
+            var lifetimeRankings = metrics.LifetimeGameRankings;
+            var notifications = new List<string>();
+            metrics.PropertyChanged += (sender, args) =>
+                notifications.Add(args.PropertyName);
+
+            metrics.ApplyRangeRanking(
+                new DashboardRankingProjection
+                {
+                    RangeRankingTitleText = "session count",
+                    RangeGameRankings = new List<GameRankingViewModel>
+                    {
+                        new GameRankingViewModel { Name = "new range" }
+                    }
+                },
+                new Playnite.SDK.Models.Game[0]);
+
+            Equal("session count", metrics.RangeRankingTitleText);
+            Equal("new range", metrics.RangeGameRankings[0].Name);
+            Equal("unchanged status", metrics.StatusText);
+            Equal(true, ReferenceEquals(lifetimeRankings, metrics.LifetimeGameRankings));
+            Equal(false, notifications.Contains(nameof(metrics.LifetimeGameRankings)));
+        }
+
+        private static void TestDashboardMajorListsPublishAtomically()
+        {
+            var viewModel = new DashboardDistributionViewModel();
+            viewModel.Apply(CreateAtomicDistributionSnapshot("old"));
+            var oldHeatmap = viewModel.HeatmapCells;
+            var oldTrend = viewModel.TrendPoints;
+            var oldWeekdays = viewModel.WeekdayDistribution;
+            var oldHours = viewModel.HourDistribution;
+            var notifications = new Dictionary<string, int>();
+            viewModel.PropertyChanged += (sender, args) =>
+            {
+                int count;
+                notifications.TryGetValue(args.PropertyName, out count);
+                notifications[args.PropertyName] = count + 1;
+            };
+
+            viewModel.Apply(CreateAtomicDistributionSnapshot("new"));
+
+            Equal(false, ReferenceEquals(oldHeatmap, viewModel.HeatmapCells));
+            Equal(false, ReferenceEquals(oldTrend, viewModel.TrendPoints));
+            Equal(false, ReferenceEquals(oldWeekdays, viewModel.WeekdayDistribution));
+            Equal(false, ReferenceEquals(oldHours, viewModel.HourDistribution));
+            Equal(1, notifications[nameof(viewModel.HeatmapCells)]);
+            Equal(1, notifications[nameof(viewModel.TrendPoints)]);
+            Equal(1, notifications[nameof(viewModel.WeekdayDistribution)]);
+            Equal(1, notifications[nameof(viewModel.HourDistribution)]);
+
+            var unfilteredHours = viewModel.HourDistribution;
+            viewModel.SelectWeekday(viewModel.WeekdayDistribution[0]);
+            Equal(true, viewModel.WeekdayDistribution[0].IsSelected);
+            Equal(false, ReferenceEquals(unfilteredHours, viewModel.HourDistribution));
+            Equal(24, viewModel.HourDistribution.Count);
+            var filteredHours = viewModel.HourDistribution;
+            viewModel.SelectWeekday(viewModel.WeekdayDistribution[0]);
+            Equal(false, viewModel.WeekdayDistribution[0].IsSelected);
+            Equal(false, ReferenceEquals(filteredHours, viewModel.HourDistribution));
+        }
+
+        private static DashboardSnapshot CreateAtomicDistributionSnapshot(string suffix)
+        {
+            var weekdays = Enumerable.Range(0, 7)
+                .Select(index => new DistributionBarViewModel
+                {
+                    Label = suffix + "-day-" + index,
+                    Seconds = (ulong)(index + 1)
+                })
+                .ToList();
+            var hours = Enumerable.Range(0, 24)
+                .Select(index => new DistributionBarViewModel
+                {
+                    Label = index.ToString("00") + ":00",
+                    Seconds = (ulong)(index + 1)
+                })
+                .ToList();
+            var cells = Enumerable.Range(0, 7)
+                .SelectMany(day => Enumerable.Range(0, 24).Select(hour =>
+                    new WeekHourCellViewModel
+                    {
+                        DayLabel = suffix + "-day-" + day,
+                        HourLabel = hour.ToString("00") + ":00",
+                        Seconds = (ulong)(day + hour + 1)
+                    }))
+                .ToList();
+            return new DashboardSnapshot
+            {
+                PeriodActivities = new List<PeriodActivityViewModel>
+                {
+                    new PeriodActivityViewModel { Label = suffix, Seconds = 1 }
+                },
+                HeatmapCells = new List<HeatmapCellViewModel>
+                {
+                    new HeatmapCellViewModel { TooltipText = suffix }
+                },
+                HeatmapWeekdayLabels = new List<string> { suffix },
+                HeatmapColumnCount = 1,
+                TrendLinePoints = new System.Windows.Media.PointCollection(),
+                TrendLineGeometry = System.Windows.Media.Geometry.Empty,
+                TrendAreaGeometry = System.Windows.Media.Geometry.Empty,
+                TrendPoints = new List<TrendPointViewModel>
+                {
+                    new TrendPointViewModel { TooltipText = suffix }
+                },
+                RangeGameRankings = new List<GameRankingViewModel>(),
+                LifetimeGameRankings = new List<GameRankingViewModel>(),
+                Advanced = new AdvancedAnalyticsSnapshot
+                {
+                    WeekdayDistribution = weekdays,
+                    HourDistribution = hours,
+                    WeekHourCells = cells,
+                    WeekdayLabels = new List<string> { suffix },
+                    HourLabels = new List<string> { suffix },
+                    AnomalyVisibility = System.Windows.Visibility.Collapsed,
+                    Anomalies = new List<AnomalySessionViewModel>
+                    {
+                        new AnomalySessionViewModel { GameName = suffix }
+                    }
+                }
+            };
+        }
+
+        private static DashboardSnapshot CreateDistributionSnapshot(
+            params PeriodActivityViewModel[] periods)
+        {
+            return new DashboardSnapshot
+            {
+                PeriodActivities = (periods ??
+                    new PeriodActivityViewModel[0]).ToList(),
+                HeatmapCells = new List<HeatmapCellViewModel>(),
+                HeatmapWeekdayLabels = new List<string>(),
+                HeatmapColumnCount = 1,
+                TrendLinePoints = new System.Windows.Media.PointCollection(),
+                TrendLineGeometry = System.Windows.Media.Geometry.Empty,
+                TrendAreaGeometry = System.Windows.Media.Geometry.Empty,
+                TrendPoints = new List<TrendPointViewModel>(),
+                Advanced = new AdvancedAnalyticsSnapshot
+                {
+                    WeekdayDistribution = new List<DistributionBarViewModel>(),
+                    HourDistribution = new List<DistributionBarViewModel>(),
+                    WeekHourCells = new List<WeekHourCellViewModel>(),
+                    WeekdayLabels = new List<string>(),
+                    HourLabels = new List<string>(),
+                    AnomalyVisibility = System.Windows.Visibility.Collapsed,
+                    Anomalies = new List<AnomalySessionViewModel>()
+                }
+            };
+        }
+
+        private static void TestTrendChartSourceLifecycle()
+        {
+            RunOnSta(() =>
+            {
+                var oldSource = new ObservableCollection<PeriodActivityViewModel>
+                {
+                    new PeriodActivityViewModel
+                    {
+                        Label = "old",
+                        DurationText = "10 秒",
+                        Seconds = 10
+                    }
+                };
+                var chart = new AdaptiveTrendChart
+                {
+                    ItemsSource = oldSource,
+                    Width = 640,
+                    Height = 230
+                };
+                RenderTrendChart(chart);
+                Equal(1, GetPrivateListCount(chart, "renderedItems"));
+
+                SetPrivateField(chart, "hoverIndex", 0);
+                var currentSource =
+                    new ObservableCollection<PeriodActivityViewModel>
+                    {
+                        new PeriodActivityViewModel
+                        {
+                            Label = "new-a",
+                            DurationText = "20 秒",
+                            Seconds = 20
+                        },
+                        new PeriodActivityViewModel
+                        {
+                            Label = "new-b",
+                            DurationText = "30 秒",
+                            Seconds = 30
+                        }
+                    };
+                chart.ItemsSource = currentSource;
+
+                Equal(0, GetPrivateListCount(chart, "renderedItems"));
+                Equal(0, GetPrivateListCount(chart, "renderedPoints"));
+                Equal(-1, GetPrivateField<int>(chart, "hoverIndex"));
+
+                RenderTrendChart(chart);
+                Equal(2, GetPrivateListCount(chart, "renderedItems"));
+                oldSource.Add(new PeriodActivityViewModel
+                {
+                    Label = "detached-old",
+                    DurationText = "40 秒",
+                    Seconds = 40
+                });
+                Equal(2, GetPrivateListCount(chart, "renderedItems"));
+
+                currentSource.Add(new PeriodActivityViewModel
+                {
+                    Label = "new-c",
+                    DurationText = "50 秒",
+                    Seconds = 50
+                });
+                Equal(0, GetPrivateListCount(chart, "renderedItems"));
+                Equal(0, GetPrivateListCount(chart, "renderedPoints"));
+                RenderTrendChart(chart);
+                Equal(3, GetPrivateListCount(chart, "renderedItems"));
+            });
+        }
+
+        private static void TestDashboardFilterRefreshReasons()
+        {
+            var reasons = new List<DashboardRefreshReason>();
+            var viewModel = new DashboardFilterViewModel(
+                null,
+                new SessionQueryService(new TestGameMetadataAccessor()),
+                7,
+                reasons.Add);
+
+            viewModel.SelectedRangeOption = viewModel.RangeOptions[0];
+            viewModel.SelectedAggregationOption = viewModel.AggregationOptions[1];
+            viewModel.SelectedRankingMetricOption = viewModel.RankingMetricOptions[1];
+            viewModel.SelectedMetadataDimensionOption =
+                viewModel.MetadataDimensionOptions[1];
+            viewModel.SelectedMetadataValueOption = new SelectionOption<string>
+            {
+                Value = "Steam",
+                Label = "Steam"
+            };
+            viewModel.SelectedRangeOption = viewModel.RangeOptions[4];
+            viewModel.CustomStartDate = viewModel.CustomStartDate.AddDays(-1);
+            viewModel.CustomEndDate = viewModel.CustomEndDate.AddDays(-1);
+
+            Equal(
+                "Range|Aggregation|Ranking|MetadataDimension|" +
+                "MetadataValue|Range|Range|Range",
+                string.Join("|", reasons));
+        }
+
+        private static void TestDashboardRefreshPlans()
+        {
+            var uncached = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Aggregation,
+                false);
+            Equal(DashboardRefreshMode.FullAnalysis, uncached.Mode);
+            Equal(true, uncached.ReloadData);
+            Equal(true, uncached.RefreshMetadataOptions);
+            Equal(true, uncached.RebuildFilter);
+
+            var aggregation = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Aggregation,
+                true);
+            Equal(DashboardRefreshMode.TrendOnly, aggregation.Mode);
+            Equal(false, aggregation.ReloadData);
+            Equal(false, aggregation.RefreshMetadataOptions);
+            Equal(false, aggregation.RebuildFilter);
+
+            var ranking = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Ranking,
+                true);
+            Equal(DashboardRefreshMode.RankingOnly, ranking.Mode);
+            Equal(false, ranking.ReloadData);
+
+            var range = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Range,
+                true);
+            Equal(DashboardRefreshMode.FullAnalysis, range.Mode);
+            Equal(false, range.ReloadData);
+            Equal(false, range.RefreshMetadataOptions);
+            Equal(false, range.RebuildFilter);
+
+            var dimension = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.MetadataDimension,
+                true);
+            Equal(true, dimension.RefreshMetadataOptions);
+            Equal(true, dimension.RebuildFilter);
+
+            var value = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.MetadataValue,
+                true);
+            Equal(false, value.RefreshMetadataOptions);
+            Equal(true, value.RebuildFilter);
+        }
+
+        private static void RunOnSta(Action action)
+        {
+            Exception error = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    error = ex;
+                }
+            })
+            {
+                IsBackground = true
+            };
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            if (!thread.Join(TimeSpan.FromSeconds(30)))
+            {
+                throw new TimeoutException("STA chart test timed out.");
+            }
+
+            if (error != null)
+            {
+                throw new InvalidOperationException(
+                    "STA chart test failed.",
+                    error);
+            }
+        }
+
+        private static void RenderTrendChart(AdaptiveTrendChart chart)
+        {
+            chart.Measure(new Size(640, 230));
+            chart.Arrange(new Rect(0, 0, 640, 230));
+            chart.UpdateLayout();
+            var bitmap = new RenderTargetBitmap(
+                640,
+                230,
+                96,
+                96,
+                PixelFormats.Pbgra32);
+            bitmap.Render(chart);
+        }
+
+        private static int GetPrivateListCount(
+            AdaptiveTrendChart chart,
+            string fieldName)
+        {
+            var value = GetPrivateField<object>(chart, fieldName);
+            var count = value.GetType().GetProperty("Count");
+            return (int)count.GetValue(value, null);
+        }
+
+        private static T GetPrivateField<T>(
+            AdaptiveTrendChart chart,
+            string fieldName)
+        {
+            var field = typeof(AdaptiveTrendChart).GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null)
+            {
+                throw new InvalidOperationException(
+                    "Missing chart field: " + fieldName);
+            }
+
+            return (T)field.GetValue(chart);
+        }
+
+        private static void SetPrivateField(
+            AdaptiveTrendChart chart,
+            string fieldName,
+            object value)
+        {
+            var field = typeof(AdaptiveTrendChart).GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null)
+            {
+                throw new InvalidOperationException(
+                    "Missing chart field: " + fieldName);
+            }
+
+            field.SetValue(chart, value);
         }
 
         private static void TestSessionManagementVisualHierarchy()
@@ -2184,7 +3016,6 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Views",
                 "PlaytimeInsightsDashboardView.xaml.cs"));
-
             Equal(true, dashboard.Contains(
                 "x:Name=\"DashboardScrollViewer\""));
             Equal(
@@ -2205,6 +3036,735 @@ namespace PlaytimeInsights.Tests
                 "DashboardScrollViewer.RaiseEvent(forwardedEvent)"));
             Equal(true, dashboardCode.Contains(
                 "FindVisualChild<ScrollViewer>"));
+        }
+
+        private static void TestArchitectureRefactorBaseline()
+        {
+            var sourceRoot = FindSourceRoot();
+            var baseline = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "docs",
+                "ARCHITECTURE_REFACTOR_BASELINE.md"));
+            var sessionXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml"));
+            var dashboardXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var editorXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionEditorWindow.xaml"));
+            var importXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionImportPreviewWindow.xaml"));
+            var sessionCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml.cs"));
+            var dashboardCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+            var interactionContract = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Presentation",
+                "Interactions",
+                "ISessionManagementInteraction.cs"));
+            var coordinator = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Presentation",
+                "Coordinators",
+                "SessionManagementCoordinator.cs"));
+
+            var eventPattern = new Regex(
+                "(?:Click|PreviewMouseWheel|PeriodSelected|" +
+                "MouseLeftButtonUp)=\"([A-Za-z_][A-Za-z0-9_]*)\"");
+            foreach (var xaml in new[]
+            {
+                sessionXaml,
+                dashboardXaml,
+                editorXaml,
+                importXaml
+            })
+            {
+                foreach (Match match in eventPattern.Matches(xaml))
+                {
+                    Equal(true, baseline.Contains(
+                        "`" + match.Groups[1].Value + "`"));
+                }
+            }
+
+            var loadedPattern = new Regex(
+                "Loaded \\+= ([A-Za-z_][A-Za-z0-9_]*);");
+            foreach (var code in new[] { sessionCode, dashboardCode })
+            {
+                foreach (Match match in loadedPattern.Matches(code))
+                {
+                    Equal(true, baseline.Contains(
+                        "`" + match.Groups[1].Value + "`"));
+                }
+            }
+
+            var forbiddenViewModelTokens = new[]
+            {
+                "MessageBox",
+                "OpenFileDialog",
+                "SaveFileDialog",
+                "SessionEditorWindow",
+                "SessionImportPreviewWindow",
+                "Window.GetWindow",
+                "System.Windows.Controls"
+            };
+            foreach (var viewModelFile in new[]
+            {
+                "SessionManagementViewModel.cs",
+                "DashboardViewModel.cs",
+                "SessionEditorViewModel.cs"
+            })
+            {
+                var viewModel = File.ReadAllText(Path.Combine(
+                    sourceRoot,
+                    "ViewModels",
+                    viewModelFile));
+                foreach (var token in forbiddenViewModelTokens)
+                {
+                    Equal(false, viewModel.Contains(token));
+                }
+            }
+
+            foreach (var token in new[]
+            {
+                "System.Windows",
+                "MessageBox",
+                "MessageBoxResult",
+                "OpenFileDialog",
+                "SaveFileDialog",
+                "SessionEditorWindow",
+                "SessionImportPreviewWindow"
+            })
+            {
+                Equal(false, interactionContract.Contains(token));
+                Equal(false, coordinator.Contains(token));
+            }
+            Equal(true, interactionContract.Contains(
+                "IReadOnlyList<string> SelectImportFiles()"));
+            Equal(true, interactionContract.Contains(
+                "bool ConfirmRestore(SessionRestorePreview preview)"));
+            Equal(true, interactionContract.Contains(
+                "GameSession EditSession(SessionEditorViewModel editor)"));
+            Equal(true, coordinator.Contains(
+                "public sealed class SessionManagementCoordinator"));
+
+            var project = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.csproj"));
+            foreach (var dependency in new[]
+            {
+                "CommunityToolkit.Mvvm",
+                "Microsoft.Xaml.Behaviors",
+                "Prism",
+                "ReactiveUI"
+            })
+            {
+                Equal(false, project.Contains(dependency));
+            }
+
+            foreach (var binding in new[]
+            {
+                "IsEnabled=\"{Binding CanEdit}\"",
+                "IsEnabled=\"{Binding CanDelete}\"",
+                "IsEnabled=\"{Binding HasFilteredSessions}\"",
+                "Visibility=\"{Binding LoadMoreVisibility}\""
+            })
+            {
+                Equal(true, sessionXaml.Contains(binding));
+            }
+            Equal(true, importXaml.Contains(
+                "IsEnabled=\"{Binding CanImport}\""));
+            Equal(true, sessionXaml.Contains(
+                "Command=\"{Binding RestoreSelectedCommand}\""));
+            Equal(true, dashboardXaml.Contains(
+                "Visibility=\"{Binding LoadMoreVisibility}\""));
+
+            Equal(true, editorXaml.Contains(
+                "FocusManager.FocusedElement=\"{Binding ElementName=GameSelector}\""));
+            Equal(true, editorXaml.Contains(
+                "KeyboardNavigation.TabNavigation=\"Cycle\""));
+            Equal(true, editorXaml.Contains("IsCancel=\"True\""));
+            Equal(true, editorXaml.Contains("IsDefault=\"True\""));
+            Equal(true, importXaml.Contains(
+                "KeyboardNavigation.TabNavigation=\"Cycle\""));
+            Equal(true, importXaml.Contains("IsCancel=\"True\""));
+            Equal(true, importXaml.Contains("IsDefault=\"True\""));
+
+            foreach (var scenario in new[]
+            {
+                "取消导入文件选择",
+                "导入预览后取消",
+                "删除确认取消",
+                "无效备份恢复",
+                "恢复确认取消",
+                "导出写入失败",
+                "编辑或补录窗口取消",
+                "重建索引确认取消"
+            })
+            {
+                Equal(true, baseline.Contains(scenario));
+            }
+        }
+
+        private static void TestRelayCommand()
+        {
+            var enabled = false;
+            var executeCount = 0;
+            var changedCount = 0;
+            var command = new global::PlaytimeInsights.ViewModels.RelayCommand(
+                () => executeCount++,
+                () => enabled);
+            command.CanExecuteChanged += (sender, args) => changedCount++;
+
+            Equal(false, command.CanExecute(null));
+            enabled = true;
+            command.RaiseCanExecuteChanged();
+            Equal(1, changedCount);
+            Equal(true, command.CanExecute(null));
+            command.Execute(null);
+            Equal(1, executeCount);
+        }
+
+        private static void TestGenericRelayCommand()
+        {
+            string captured = null;
+            var changedCount = 0;
+            var command =
+                new global::PlaytimeInsights.ViewModels.RelayCommand<string>(
+                value => captured = value,
+                value => !string.IsNullOrWhiteSpace(value));
+            command.CanExecuteChanged += (sender, args) => changedCount++;
+
+            Equal(false, command.CanExecute(null));
+            Equal(false, command.CanExecute(42));
+            Equal(true, command.CanExecute("weekday"));
+            command.Execute("weekday");
+            Equal("weekday", captured);
+            command.RaiseCanExecuteChanged();
+            Equal(1, changedCount);
+
+            var threw = false;
+            try
+            {
+                command.Execute(42);
+            }
+            catch (ArgumentException)
+            {
+                threw = true;
+            }
+
+            Equal(true, threw);
+            Equal(
+                false,
+                new global::PlaytimeInsights.ViewModels.RelayCommand<int>(
+                    value => { })
+                    .CanExecute(null));
+        }
+
+        private static void TestStageBCommandBindings()
+        {
+            var sourceRoot = FindSourceRoot();
+            var sessionXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml"));
+            var sessionCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml.cs"));
+            var sessionViewModel = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "SessionManagementViewModel.cs"));
+            var dashboardXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var dashboardCode = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+            var dashboardViewModel = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+
+            foreach (var command in new[]
+            {
+                "Command=\"{Binding RefreshCommand}\"",
+                "Command=\"{Binding RestoreSelectedCommand}\"",
+                "Command=\"{Binding LoadMoreCommand}\""
+            })
+            {
+                Equal(true, sessionXaml.Contains(command));
+            }
+            Equal(false, sessionXaml.Contains("Click=\"RefreshButton_Click\""));
+            Equal(false, sessionXaml.Contains("Click=\"LoadMoreButton_Click\""));
+            Equal(false, sessionXaml.Contains("Click=\"RestoreSessionButton_Click\""));
+            Equal(false, sessionCode.Contains("RefreshButton_Click"));
+            Equal(false, sessionCode.Contains("LoadMoreButton_Click"));
+            Equal(false, sessionCode.Contains("RestoreSessionButton_Click"));
+            Equal(true, sessionViewModel.Contains(
+                "public RelayCommand RestoreSelectedCommand"));
+            Equal(true, sessionViewModel.Contains(
+                "!refreshGuard.IsActive && CanRestore"));
+            Equal(true, sessionViewModel.Contains(
+                "!refreshGuard.IsActive && pager.HasMore"));
+
+            Equal(true, dashboardXaml.Contains(
+                "Command=\"{Binding RefreshCommand}\""));
+            Equal(true, dashboardXaml.Contains(
+                "DataContext.SelectWeekdayCommand"));
+            Equal(true, dashboardXaml.Contains(
+                "CommandParameter=\"{Binding}\""));
+            Equal(true, dashboardXaml.Contains(
+                "Command=\"{Binding LoadMoreSessionDetailsCommand}\""));
+            Equal(false, dashboardXaml.Contains(
+                "Click=\"WeekdayDistribution_Click\""));
+            Equal(false, dashboardCode.Contains("WeekdayDistribution_Click"));
+            Equal(true, dashboardCode.Contains("SelectPeriodCommand"));
+            Equal(true, dashboardCode.Contains("SelectHeatmapDateCommand"));
+            Equal(true, dashboardViewModel.Contains(
+                "private readonly RefreshReentrancyGuard refreshGuard"));
+            Equal(true, dashboardViewModel.Contains(
+                "public RelayCommand<DistributionBarViewModel> SelectWeekdayCommand"));
+            Equal(true, dashboardViewModel.Contains(
+                "public RelayCommand<HeatmapCellViewModel> SelectHeatmapDateCommand"));
+            Equal(true, dashboardViewModel.Contains(
+                "public RelayCommand<PeriodActivityViewModel> SelectPeriodCommand"));
+        }
+
+        private static void TestExportErrorTitle()
+        {
+            var sourceRoot = FindSourceRoot();
+            var coordinator = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Presentation",
+                "Coordinators",
+                "SessionManagementCoordinator.cs"));
+            var english = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Localization",
+                "en_US.xaml"));
+            var chinese = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Localization",
+                "zh_CN.xaml"));
+
+            Equal(true, coordinator.Contains(
+                "LOCPlaytimeInsightsExportFailedTitle"));
+            Equal(false, coordinator.Contains(
+                "LOCPlaytimeInsightsExportCsvButton"));
+            Equal(false, coordinator.Contains(
+                "LOCPlaytimeInsightsExportJsonButton"));
+            Equal(true, english.Contains(
+                "x:Key=\"LOCPlaytimeInsightsExportFailedTitle\">Export failed<"));
+            Equal(true, chinese.Contains(
+                "x:Key=\"LOCPlaytimeInsightsExportFailedTitle\">导出失败<"));
+        }
+
+        private static void TestCoordinatorCancelsImportFileSelection()
+        {
+            var operations = new FakeSessionManagementOperations();
+            var interaction = new FakeSessionManagementInteraction();
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.ImportSessions());
+            Equal(0, operations.PreviewImportCalls);
+            Equal(0, operations.CommitImportCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCancelsImportPreview()
+        {
+            var operations = new FakeSessionManagementOperations();
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ImportFiles = new[] { "sessions.csv" },
+                ConfirmImportResult = false
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.ImportSessions());
+            Equal(1, operations.PreviewImportCalls);
+            Equal(1, interaction.ConfirmImportCalls);
+            Equal(0, operations.CommitImportCalls);
+            Equal(0, operations.MutationCalls);
+        }
+
+        private static void TestCoordinatorCancelsDeleteConfirmation()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                CanDelete = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ConfirmDeleteResult = false
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.DeleteSelectedSession());
+            Equal(1, interaction.ConfirmDeleteCalls);
+            Equal(0, operations.DeleteCalls);
+            Equal(0, operations.MutationCalls);
+        }
+
+        private static void TestCoordinatorBlocksInvalidRestore()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                RestorePreview = new SessionRestorePreview
+                {
+                    IsValid = false,
+                    Error = "Invalid backup"
+                }
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                RestorePath = "invalid.json"
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.RestoreBackup());
+            Equal(1, operations.PreviewRestoreCalls);
+            Equal(0, interaction.ConfirmRestoreCalls);
+            Equal(0, operations.RestoreCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(1, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCancelsRestoreConfirmation()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                RestorePreview = new SessionRestorePreview
+                {
+                    IsValid = true,
+                    SessionCount = 4,
+                    SchemaVersion = GameSession.CurrentSchemaVersion
+                }
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                RestorePath = "backup.json",
+                ConfirmRestoreResult = false
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.RestoreBackup());
+            Equal(1, operations.PreviewRestoreCalls);
+            Equal(1, interaction.ConfirmRestoreCalls);
+            Equal(0, operations.RestoreCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorContainsExportFailure()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                ThrowOnExportCsv = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ExportPath = "sessions.csv"
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.ExportCsv());
+            Equal(1, operations.ExportCsvCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(1, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCancelsEditor()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                CanEdit = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                EditorResult = null
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.EditSelectedSession());
+            Equal(1, operations.CreateEditorCalls);
+            Equal(1, interaction.EditSessionCalls);
+            Equal(0, operations.UpdateCalls);
+            Equal(0, operations.MutationCalls);
+        }
+
+        private static void TestCoordinatorCancelsReindex()
+        {
+            var operations = new FakeSessionManagementOperations();
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ConfirmReindexResult = false
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.Reindex());
+            Equal(1, interaction.ConfirmReindexCalls);
+            Equal(0, operations.ReindexCalls);
+            Equal(0, operations.MutationCalls);
+        }
+
+        private static void TestStageCComposition()
+        {
+            var sourceRoot = FindSourceRoot();
+            var gitignore = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                ".gitignore"));
+            var plugin = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.cs"));
+            var view = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml.cs"));
+            var interaction = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Presentation",
+                "Interactions",
+                "WpfSessionManagementInteraction.cs"));
+
+            Equal(true, gitignore.Contains(".claude/"));
+            Equal(true, plugin.Contains(
+                "new WpfSessionManagementInteraction("));
+            Equal(true, plugin.Contains(
+                "new SessionManagementCoordinator("));
+            Equal(true, plugin.Contains(
+                "new SessionManagementView(coordinator)"));
+            Equal(true, view.Contains(
+                "private readonly SessionManagementCoordinator coordinator"));
+            foreach (var call in new[]
+            {
+                "coordinator.AddSession()",
+                "coordinator.EditSelectedSession()",
+                "coordinator.DeleteSelectedSession()",
+                "coordinator.ExportCsv()",
+                "coordinator.ExportJson()",
+                "coordinator.ImportSessions()",
+                "coordinator.CreateBackup()",
+                "coordinator.RestoreBackup()",
+                "coordinator.Reindex()",
+                "coordinator.SaveDiagnostics()"
+            })
+            {
+                Equal(true, view.Contains(call));
+            }
+
+            foreach (var forbidden in new[]
+            {
+                "OpenFileDialog",
+                "SaveFileDialog",
+                "MessageBox.Show",
+                "SessionEditorWindow",
+                "SessionImportPreviewWindow",
+                "ShowDataError",
+                "private static void Export"
+            })
+            {
+                Equal(false, view.Contains(forbidden));
+            }
+
+            foreach (var required in new[]
+            {
+                "class WpfSessionManagementInteraction",
+                "new OpenFileDialog",
+                "new SaveFileDialog",
+                "new SessionEditorWindow",
+                "new SessionImportPreviewWindow",
+                "Owner = ownerProvider()",
+                "LOCPlaytimeInsightsDeleteConfirmation",
+                "LOCPlaytimeInsightsRestoreConfirmationFormat",
+                "LOCPlaytimeInsightsReindexConfirmation",
+                "LOCPlaytimeInsightsSessionFileFilter",
+                "LOCPlaytimeInsightsBackupFileFilter",
+                "LOCPlaytimeInsightsErrorFormat"
+            })
+            {
+                Equal(true, interaction.Contains(required));
+            }
+        }
+
+        private static void TestCoordinatorCompletesImport()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                ImportPreview = new SessionImportPreview
+                {
+                    Candidates = new List<GameSession>
+                    {
+                        new GameSession { Id = Guid.NewGuid() }
+                    }
+                }
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ImportFiles = new[] { "sessions.csv" },
+                ConfirmImportResult = true
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(true, coordinator.ImportSessions());
+            Equal(1, operations.PreviewImportCalls);
+            Equal(1, interaction.ConfirmImportCalls);
+            Equal(1, operations.CommitImportCalls);
+            Equal(1, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCompletesRestore()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                RestorePreview = new SessionRestorePreview
+                {
+                    IsValid = true,
+                    SessionCount = 3,
+                    SchemaVersion = GameSession.CurrentSchemaVersion
+                }
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                RestorePath = "backup.json",
+                ConfirmRestoreResult = true
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(true, coordinator.RestoreBackup());
+            Equal(1, operations.PreviewRestoreCalls);
+            Equal(1, interaction.ConfirmRestoreCalls);
+            Equal(1, operations.RestoreCalls);
+            Equal(1, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCompletesEditAndReindex()
+        {
+            var edited = new GameSession
+            {
+                Id = Guid.NewGuid(),
+                GameId = Guid.NewGuid(),
+                GameName = "Edited"
+            };
+            var operations = new FakeSessionManagementOperations
+            {
+                CanEdit = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                EditorResult = edited,
+                ConfirmReindexResult = true
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(true, coordinator.EditSelectedSession());
+            Equal(true, coordinator.Reindex());
+            Equal(1, operations.UpdateCalls);
+            Equal(1, operations.ReindexCalls);
+            Equal(2, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorContainsImportFailure()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                ThrowOnPreviewImport = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ImportFiles = new[] { "sessions.csv" }
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.ImportSessions());
+            Equal(1, operations.PreviewImportCalls);
+            Equal(0, operations.CommitImportCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(1, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCompletesRemainingWorkflows()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                CanDelete = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ExportPath = "sessions.csv",
+                BackupPath = "backup.json",
+                DiagnosticsPath = "diagnostics.txt",
+                ConfirmDeleteResult = true,
+                EditorResult = new GameSession
+                {
+                    Id = Guid.NewGuid(),
+                    GameId = Guid.NewGuid(),
+                    GameName = "Added"
+                }
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(true, coordinator.ExportCsv());
+            interaction.ExportPath = "sessions.json";
+            Equal(true, coordinator.ExportJson());
+            Equal(true, coordinator.CreateBackup());
+            Equal(true, coordinator.AddSession());
+            Equal(true, coordinator.DeleteSelectedSession());
+            Equal(true, coordinator.SaveDiagnostics());
+
+            Equal(1, operations.ExportCsvCalls);
+            Equal(1, operations.ExportJsonCalls);
+            Equal(1, operations.CreateBackupCalls);
+            Equal(1, operations.AddCalls);
+            Equal(1, operations.DeleteCalls);
+            Equal(1, operations.SaveDiagnosticsCalls);
+            Equal(2, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
         }
 
         private static void TestReleaseMetadataAndReadme()
@@ -2476,12 +4036,316 @@ namespace PlaytimeInsights.Tests
                 "Could not locate the PlaytimeInsights source root.");
         }
 
+        private static string ExtractSidebarOpenedBlock(
+            string source,
+            string iconName)
+        {
+            var iconIndex = source.IndexOf(iconName, StringComparison.Ordinal);
+            if (iconIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    "Could not locate sidebar icon " + iconName + ".");
+            }
+
+            var openedIndex = source.IndexOf(
+                "Opened = () =>",
+                iconIndex,
+                StringComparison.Ordinal);
+            var closedIndex = source.IndexOf(
+                "Closed =",
+                openedIndex,
+                StringComparison.Ordinal);
+            if (openedIndex < 0 || closedIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    "Could not locate sidebar lifecycle block for " +
+                    iconName + ".");
+            }
+
+            return source.Substring(openedIndex, closedIndex - openedIndex);
+        }
+
+        private static string ExtractSourceBlock(
+            string source,
+            string startMarker,
+            string endMarker)
+        {
+            var startIndex = source.IndexOf(
+                startMarker,
+                StringComparison.Ordinal);
+            var endIndex = source.IndexOf(
+                endMarker,
+                startIndex,
+                StringComparison.Ordinal);
+            if (startIndex < 0 || endIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    "Could not extract source block between " +
+                    startMarker + " and " + endMarker + ".");
+            }
+
+            return source.Substring(startIndex, endIndex - startIndex);
+        }
+
         private static void Equal<T>(T expected, T actual)
         {
             if (!Equals(expected, actual))
             {
                 throw new InvalidOperationException(
                     string.Format("Expected {0}, actual {1}.", expected, actual));
+            }
+        }
+
+        private sealed class FakeSessionManagementOperations :
+            ISessionManagementOperations
+        {
+            public bool CanEdit { get; set; }
+
+            public bool CanDelete { get; set; }
+
+            public bool ThrowOnExportCsv { get; set; }
+
+            public bool ThrowOnPreviewImport { get; set; }
+
+            public int ExportCsvCalls { get; private set; }
+
+            public int ExportJsonCalls { get; private set; }
+
+            public int SaveDiagnosticsCalls { get; private set; }
+
+            public int CreateBackupCalls { get; private set; }
+
+            public int AddCalls { get; private set; }
+
+            public int PreviewImportCalls { get; private set; }
+
+            public int CommitImportCalls { get; private set; }
+
+            public int PreviewRestoreCalls { get; private set; }
+
+            public int RestoreCalls { get; private set; }
+
+            public int CreateEditorCalls { get; private set; }
+
+            public int UpdateCalls { get; private set; }
+
+            public int DeleteCalls { get; private set; }
+
+            public int ReindexCalls { get; private set; }
+
+            public int MutationCalls { get; private set; }
+
+            public GameSession SelectedSession { get; set; } = new GameSession
+            {
+                Id = Guid.NewGuid(),
+                GameId = Guid.NewGuid(),
+                GameName = "Test Game"
+            };
+
+            public SessionImportPreview ImportPreview { get; set; } =
+                new SessionImportPreview();
+
+            public SessionRestorePreview RestorePreview { get; set; } =
+                new SessionRestorePreview { IsValid = true };
+
+            public int ExportCsv(string path)
+            {
+                ExportCsvCalls++;
+                if (ThrowOnExportCsv)
+                {
+                    throw new IOException("Export failed.");
+                }
+
+                return 0;
+            }
+
+            public int ExportJson(string path)
+            {
+                ExportJsonCalls++;
+                return 0;
+            }
+
+            public void SaveDiagnostics(string path)
+            {
+                SaveDiagnosticsCalls++;
+            }
+
+            public GameSession GetSelectedSession()
+            {
+                return SelectedSession;
+            }
+
+            public SessionEditorViewModel CreateEditor(
+                GameSession existing = null)
+            {
+                CreateEditorCalls++;
+                return new SessionEditorViewModel(
+                    Enumerable.Empty<Playnite.SDK.Models.Game>(),
+                    existing);
+            }
+
+            public bool AddSession(GameSession session)
+            {
+                AddCalls++;
+                MutationCalls++;
+                return true;
+            }
+
+            public bool UpdateSelectedSession(GameSession session)
+            {
+                UpdateCalls++;
+                MutationCalls++;
+                return true;
+            }
+
+            public bool DeleteSelectedSession()
+            {
+                DeleteCalls++;
+                MutationCalls++;
+                return true;
+            }
+
+            public SessionImportPreview PreviewImport(
+                IEnumerable<string> paths)
+            {
+                PreviewImportCalls++;
+                if (ThrowOnPreviewImport)
+                {
+                    throw new InvalidOperationException("Import preview failed.");
+                }
+
+                return ImportPreview;
+            }
+
+            public SessionImportCommitResult CommitImport(
+                SessionImportPreview preview)
+            {
+                CommitImportCalls++;
+                MutationCalls++;
+                return new SessionImportCommitResult();
+            }
+
+            public string CreateBackup(string path)
+            {
+                CreateBackupCalls++;
+                return path;
+            }
+
+            public SessionRestorePreview PreviewRestore(string path)
+            {
+                PreviewRestoreCalls++;
+                return RestorePreview;
+            }
+
+            public SessionRestoreResult RestoreBackup(string path)
+            {
+                RestoreCalls++;
+                MutationCalls++;
+                return new SessionRestoreResult();
+            }
+
+            public SessionReindexResult Reindex()
+            {
+                ReindexCalls++;
+                MutationCalls++;
+                return new SessionReindexResult();
+            }
+        }
+
+        private sealed class FakeSessionManagementInteraction :
+            ISessionManagementInteraction
+        {
+            public IReadOnlyList<string> ImportFiles { get; set; } =
+                new string[0];
+
+            public string ExportPath { get; set; }
+
+            public string BackupPath { get; set; }
+
+            public string RestorePath { get; set; }
+
+            public string DiagnosticsPath { get; set; }
+
+            public bool ConfirmDeleteResult { get; set; }
+
+            public bool ConfirmRestoreResult { get; set; }
+
+            public bool ConfirmReindexResult { get; set; }
+
+            public bool ConfirmImportResult { get; set; }
+
+            public GameSession EditorResult { get; set; }
+
+            public int ConfirmDeleteCalls { get; private set; }
+
+            public int ConfirmRestoreCalls { get; private set; }
+
+            public int ConfirmReindexCalls { get; private set; }
+
+            public int ConfirmImportCalls { get; private set; }
+
+            public int EditSessionCalls { get; private set; }
+
+            public int ErrorCount { get; private set; }
+
+            public IReadOnlyList<string> SelectImportFiles()
+            {
+                return ImportFiles;
+            }
+
+            public string SelectExportPath(string extension)
+            {
+                return ExportPath;
+            }
+
+            public string SelectBackupPath()
+            {
+                return BackupPath;
+            }
+
+            public string SelectRestorePath()
+            {
+                return RestorePath;
+            }
+
+            public string SelectDiagnosticsPath()
+            {
+                return DiagnosticsPath;
+            }
+
+            public bool ConfirmDelete(string gameName)
+            {
+                ConfirmDeleteCalls++;
+                return ConfirmDeleteResult;
+            }
+
+            public bool ConfirmRestore(SessionRestorePreview preview)
+            {
+                ConfirmRestoreCalls++;
+                return ConfirmRestoreResult;
+            }
+
+            public bool ConfirmReindex()
+            {
+                ConfirmReindexCalls++;
+                return ConfirmReindexResult;
+            }
+
+            public bool ConfirmImport(SessionImportPreview preview)
+            {
+                ConfirmImportCalls++;
+                return ConfirmImportResult;
+            }
+
+            public GameSession EditSession(SessionEditorViewModel editor)
+            {
+                EditSessionCalls++;
+                return EditorResult;
+            }
+
+            public void ShowError(string title, Exception exception)
+            {
+                ErrorCount++;
             }
         }
 

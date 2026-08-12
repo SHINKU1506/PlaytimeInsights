@@ -1,246 +1,18 @@
 using Playnite.SDK;
 using Playnite.SDK.Models;
-using Playnite.SDK.Plugins;
 using PlaytimeInsights.Models;
 using PlaytimeInsights.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 
 namespace PlaytimeInsights.ViewModels
 {
-    public sealed class SelectionOption<T>
-    {
-        public T Value { get; set; }
-
-        public string Label { get; set; }
-    }
-
-    public sealed class PeriodActivityViewModel
-    {
-        public DateTime PeriodStart { get; set; }
-
-        public DateTime PeriodEnd { get; set; }
-
-        public string Label { get; set; }
-
-        public string DurationText { get; set; }
-
-        public string HoverDurationText { get; set; }
-
-        public string TooltipText { get; set; }
-
-        public string GameSummaryText { get; set; }
-
-        public ulong Seconds { get; set; }
-
-        public double BarHeight { get; set; }
-
-    }
-
-    public sealed class HeatmapCellViewModel
-    {
-        public DateTime Date { get; set; }
-
-        public ulong Seconds { get; set; }
-
-        public double HeatOpacity { get; set; }
-
-        public Visibility CellVisibility { get; set; }
-
-        public string TooltipText { get; set; }
-    }
-
-    public sealed class TrendPointViewModel
-    {
-        public PeriodActivityViewModel Period { get; set; }
-
-        public double CanvasLeft { get; set; }
-
-        public double CanvasTop { get; set; }
-
-        public string TooltipText { get; set; }
-    }
-
-    public sealed class SessionDetailViewModel
-    {
-        public Guid GameId { get; set; }
-
-        public string GameName { get; set; }
-
-        public string CoverImagePath { get; set; }
-
-        public string StartedText { get; set; }
-
-        public string DurationText { get; set; }
-
-        public string SourceText { get; set; }
-    }
-
-    public sealed class GameRankingViewModel
-    {
-        public Guid GameId { get; set; }
-
-        public int Position { get; set; }
-
-        public string Name { get; set; }
-
-        public string CoverImagePath { get; set; }
-
-        public string PrimaryValueText { get; set; }
-
-        public string DetailText { get; set; }
-
-        public double ProgressPercent { get; set; }
-
-        public string ProgressTooltipText { get; set; }
-    }
-
-    public sealed class DistributionBarViewModel : ObservableObject
-    {
-        private bool isSelected;
-
-        public string Label { get; set; }
-
-        public ulong Seconds { get; set; }
-
-        public string DurationText { get; set; }
-
-        public string TooltipText { get; set; }
-
-        public double BarHeight { get; set; }
-
-        public string AutomationName { get; set; }
-
-        public bool IsSelected
-        {
-            get => isSelected;
-            set => SetValue(ref isSelected, value);
-        }
-    }
-
-    public sealed class WeekHourCellViewModel
-    {
-        public string DayLabel { get; set; }
-
-        public string HourLabel { get; set; }
-
-        public ulong Seconds { get; set; }
-
-        public double HeatOpacity { get; set; }
-
-        public string TooltipText { get; set; }
-    }
-
-    public sealed class ComparisonMetricViewModel
-    {
-        public string Title { get; set; }
-
-        public string CurrentText { get; set; }
-
-        public string PreviousText { get; set; }
-
-        public string DeltaText { get; set; }
-
-        public string TagText { get; set; }
-
-        public string TrendKind { get; set; }
-
-        public string TooltipText { get; set; }
-    }
-
-    public sealed class AnomalySessionViewModel
-    {
-        public string GameName { get; set; }
-
-        public string StartedText { get; set; }
-
-        public string DurationText { get; set; }
-
-        public string Reason { get; set; }
-    }
-
-    public sealed class AdvancedAnalyticsSnapshot
-    {
-        public IList<DistributionBarViewModel> WeekdayDistribution { get; set; }
-
-        public IList<DistributionBarViewModel> HourDistribution { get; set; }
-
-        public IList<WeekHourCellViewModel> WeekHourCells { get; set; }
-
-        public IList<string> WeekdayLabels { get; set; }
-
-        public IList<string> HourLabels { get; set; }
-
-        public ComparisonMetricViewModel PreviousPeriodComparison { get; set; }
-
-        public ComparisonMetricViewModel YearOverYearComparison { get; set; }
-
-        public string LongestStreakText { get; set; }
-
-        public string CurrentStreakText { get; set; }
-
-        public string CurrentStreakDateText { get; set; }
-
-        public string AnomalyCountText { get; set; }
-
-        public Visibility AnomalyVisibility { get; set; }
-
-        public IList<AnomalySessionViewModel> Anomalies { get; set; }
-    }
-
-    public sealed class DashboardSnapshot
-    {
-        public string LifetimeDurationText { get; set; }
-
-        public string TrackedDurationText { get; set; }
-
-        public string RangeDurationText { get; set; }
-
-        public string SessionCountText { get; set; }
-
-        public string ActiveDaysText { get; set; }
-
-        public string AverageSessionText { get; set; }
-
-        public string LongestSessionText { get; set; }
-
-        public string RangeText { get; set; }
-
-        public string PeriodTitleText { get; set; }
-
-        public string RangeRankingTitleText { get; set; }
-
-        public string StatusText { get; set; }
-
-        public IList<PeriodActivityViewModel> PeriodActivities { get; set; }
-
-        public IList<HeatmapCellViewModel> HeatmapCells { get; set; }
-
-        public IList<string> HeatmapWeekdayLabels { get; set; }
-
-        public int HeatmapColumnCount { get; set; }
-
-        public PointCollection TrendLinePoints { get; set; }
-
-        public Geometry TrendLineGeometry { get; set; }
-
-        public Geometry TrendAreaGeometry { get; set; }
-
-        public IList<TrendPointViewModel> TrendPoints { get; set; }
-
-        public double TrendChartWidth { get; set; }
-
-        public IList<GameRankingViewModel> RangeGameRankings { get; set; }
-
-        public IList<GameRankingViewModel> LifetimeGameRankings { get; set; }
-
-        public AdvancedAnalyticsSnapshot Advanced { get; set; }
-    }
-
     public sealed class DashboardViewModel : ObservableObject
     {
         private readonly IPlayniteAPI playniteApi;
@@ -248,50 +20,18 @@ namespace PlaytimeInsights.ViewModels
         private readonly AnalyticsService analyticsService;
         private readonly SessionQueryService queryService;
         private readonly PlaytimeInsightsSettingsViewModel settings;
-        private readonly SessionDetailPager sessionDetailPager = new SessionDetailPager(100);
-        private SelectionOption<DateRangePreset> selectedRangeOption;
-        private SelectionOption<AggregationPeriod> selectedAggregationOption;
-        private SelectionOption<RankingMetric> selectedRankingMetricOption;
-        private SelectionOption<MetadataFilterDimension?> selectedMetadataDimensionOption;
-        private SelectionOption<string> selectedMetadataValueOption;
-        private bool suppressFilterRefresh;
-        private IList<Game> activeFilteredGames = new List<Game>();
-        private IList<GameSession> activeFilteredSessions = new List<GameSession>();
-        private DateTime customStartDate = DateTime.Today.AddDays(-29);
-        private DateTime customEndDate = DateTime.Today;
-        private string lifetimeDurationText;
-        private string trackedDurationText;
-        private string rangeDurationText;
-        private string sessionCountText;
-        private string activeDaysText;
-        private string averageSessionText;
-        private string longestSessionText;
-        private string rangeText;
-        private string periodTitleText;
-        private string rangeRankingTitleText;
-        private string statusText;
-        private string selectedDetailTitle = LocalizationService.Get(
-            "LOCPlaytimeInsightsDetailsPrompt",
-            "点击柱形、折线点或热力格查看会话");
-        private int heatmapColumnCount = 1;
-        private double trendChartWidth = 640;
-        private PointCollection trendLinePoints = new PointCollection();
-        private Geometry trendLineGeometry = Geometry.Empty;
-        private Geometry trendAreaGeometry = Geometry.Empty;
-        private ComparisonMetricViewModel previousPeriodComparison;
-        private ComparisonMetricViewModel yearOverYearComparison;
-        private string longestStreakText;
-        private string currentStreakText;
-        private string currentStreakDateText;
-        private string anomalyCountText;
-        private Visibility anomalyVisibility = Visibility.Collapsed;
-        private Visibility sessionDetailVisibility = Visibility.Collapsed;
-        private int? selectedWeekdayIndex;
-        private IList<DistributionBarViewModel> allHourDistribution =
-            new List<DistributionBarViewModel>();
-        private string hourDistributionTitle = LocalizationService.Get(
-            "LOCPlaytimeInsightsHourDistributionAll",
-            "24 小时分布 · 全部星期");
+        private readonly RefreshReentrancyGuard refreshGuard =
+            new RefreshReentrancyGuard();
+        private IReadOnlyDictionary<Guid, string> libraryNames =
+            new Dictionary<Guid, string>();
+        private IList<Game> allGames = new List<Game>();
+        private IReadOnlyDictionary<Guid, Game> gamesById =
+            new Dictionary<Guid, Game>();
+        private IList<GameSession> allSessions = new List<GameSession>();
+        private IList<Game> filteredGames = new List<Game>();
+        private IList<GameSession> filteredSessions = new List<GameSession>();
+        private DashboardAnalysisContext analysisContext;
+        private bool dataCacheReady;
 
         public DashboardViewModel(
             IPlayniteAPI playniteApi,
@@ -305,790 +45,447 @@ namespace PlaytimeInsights.ViewModels
             this.analyticsService = analyticsService;
             this.queryService = queryService;
             this.settings = settings;
-            customStartDate = DateTime.Today.AddDays(
-                -(Math.Max(1, Math.Min(366, settings.Settings.RecentDays)) - 1));
 
-            RangeOptions = new ObservableCollection<SelectionOption<DateRangePreset>>
-            {
-                new SelectionOption<DateRangePreset> { Value = DateRangePreset.Today, Label = LocalizationService.Get("LOCPlaytimeInsightsToday", "今天") },
-                new SelectionOption<DateRangePreset> { Value = DateRangePreset.ThisWeek, Label = LocalizationService.Get("LOCPlaytimeInsightsThisWeek", "本周") },
-                new SelectionOption<DateRangePreset> { Value = DateRangePreset.ThisMonth, Label = LocalizationService.Get("LOCPlaytimeInsightsThisMonth", "本月") },
-                new SelectionOption<DateRangePreset> { Value = DateRangePreset.ThisYear, Label = LocalizationService.Get("LOCPlaytimeInsightsThisYear", "本年") },
-                new SelectionOption<DateRangePreset> { Value = DateRangePreset.Custom, Label = LocalizationService.Get("LOCPlaytimeInsightsCustom", "自定义") }
-            };
-            AggregationOptions = new ObservableCollection<SelectionOption<AggregationPeriod>>
-            {
-                new SelectionOption<AggregationPeriod> { Value = AggregationPeriod.Auto, Label = LocalizationService.Get("LOCPlaytimeInsightsAutoRecommended", "自动（推荐）") },
-                new SelectionOption<AggregationPeriod> { Value = AggregationPeriod.Day, Label = LocalizationService.Get("LOCPlaytimeInsightsDay", "日") },
-                new SelectionOption<AggregationPeriod> { Value = AggregationPeriod.Week, Label = LocalizationService.Get("LOCPlaytimeInsightsWeek", "周") },
-                new SelectionOption<AggregationPeriod> { Value = AggregationPeriod.Month, Label = LocalizationService.Get("LOCPlaytimeInsightsMonth", "月") },
-                new SelectionOption<AggregationPeriod> { Value = AggregationPeriod.Year, Label = LocalizationService.Get("LOCPlaytimeInsightsYear", "年") }
-            };
-            RankingMetricOptions = new ObservableCollection<SelectionOption<RankingMetric>>
-            {
-                new SelectionOption<RankingMetric> { Value = RankingMetric.Duration, Label = LocalizationService.Get("LOCPlaytimeInsightsDuration", "游玩时长") },
-                new SelectionOption<RankingMetric> { Value = RankingMetric.SessionCount, Label = LocalizationService.Get("LOCPlaytimeInsightsSessionCount", "会话次数") },
-                new SelectionOption<RankingMetric> { Value = RankingMetric.ActiveDays, Label = LocalizationService.Get("LOCPlaytimeInsightsActiveDays", "活跃天数") },
-                new SelectionOption<RankingMetric> { Value = RankingMetric.AverageSession, Label = LocalizationService.Get("LOCPlaytimeInsightsAverageSessionOption", "平均会话") },
-                new SelectionOption<RankingMetric> { Value = RankingMetric.LongestSession, Label = LocalizationService.Get("LOCPlaytimeInsightsLongestSessionOption", "最长会话") }
-            };
-            MetadataDimensionOptions =
-                new ObservableCollection<SelectionOption<MetadataFilterDimension?>>
-                {
-                    new SelectionOption<MetadataFilterDimension?>
-                    {
-                        Value = null,
-                        Label = LocalizationService.Get(
-                            "LOCPlaytimeInsightsNoFilter",
-                            "不筛选")
-                    },
-                    new SelectionOption<MetadataFilterDimension?>
-                    {
-                        Value = MetadataFilterDimension.Library,
-                        Label = LocalizationService.Get(
-                            "LOCPlaytimeInsightsLibrary",
-                            "库来源")
-                    },
-                    new SelectionOption<MetadataFilterDimension?>
-                    {
-                        Value = MetadataFilterDimension.Developer,
-                        Label = LocalizationService.Get(
-                            "LOCPlaytimeInsightsDeveloper",
-                            "开发者")
-                    },
-                    new SelectionOption<MetadataFilterDimension?>
-                    {
-                        Value = MetadataFilterDimension.Genre,
-                        Label = LocalizationService.Get(
-                            "LOCPlaytimeInsightsGenre",
-                            "类型")
-                    },
-                    new SelectionOption<MetadataFilterDimension?>
-                    {
-                        Value = MetadataFilterDimension.Tag,
-                        Label = LocalizationService.Get(
-                            "LOCPlaytimeInsightsTag",
-                            "标签")
-                    },
-                    new SelectionOption<MetadataFilterDimension?>
-                    {
-                        Value = MetadataFilterDimension.InstallationStatus,
-                        Label = LocalizationService.Get(
-                            "LOCPlaytimeInsightsInstallationStatus",
-                            "安装状态")
-                    }
-                };
-            MetadataValueOptions =
-                new ObservableCollection<SelectionOption<string>>();
+            Filter = new DashboardFilterViewModel(
+                playniteApi,
+                queryService,
+                settings.Settings.RecentDays,
+                reason => Refresh(reason));
+            Metrics = new DashboardMetricsViewModel(playniteApi);
+            Distribution = new DashboardDistributionViewModel();
+            Drilldown = new DashboardDrilldownViewModel(
+                playniteApi,
+                analyticsService);
+            Filter.PropertyChanged += ForwardPropertyChanged;
+            Metrics.PropertyChanged += ForwardPropertyChanged;
+            Distribution.PropertyChanged += ForwardPropertyChanged;
+            Drilldown.PropertyChanged += DrilldownPropertyChanged;
 
-            selectedRangeOption = RangeOptions[2];
-            selectedAggregationOption = AggregationOptions[0];
-            selectedRankingMetricOption = RankingMetricOptions[0];
-            selectedMetadataDimensionOption = MetadataDimensionOptions[0];
-            PeriodActivities = new ObservableCollection<PeriodActivityViewModel>();
-            HeatmapCells = new ObservableCollection<HeatmapCellViewModel>();
-            HeatmapWeekdayLabels = new ObservableCollection<string>();
-            TrendPoints = new ObservableCollection<TrendPointViewModel>();
-            RangeGameRankings = new ObservableCollection<GameRankingViewModel>();
-            LifetimeGameRankings = new ObservableCollection<GameRankingViewModel>();
-            WeekdayDistribution =
-                new ObservableCollection<DistributionBarViewModel>();
-            HourDistribution =
-                new ObservableCollection<DistributionBarViewModel>();
-            WeekHourCells =
-                new ObservableCollection<WeekHourCellViewModel>();
-            AdvancedWeekdayLabels = new ObservableCollection<string>();
-            AdvancedHourLabels = new ObservableCollection<string>();
-            Anomalies = new ObservableCollection<AnomalySessionViewModel>();
-            SessionDetails = sessionDetailPager.VisibleItems;
-            RefreshMetadataValueOptions();
+            RefreshCommand = new RelayCommand(Refresh, CanRefresh);
+            LoadMoreSessionDetailsCommand = new RelayCommand(
+                LoadMoreSessionDetails,
+                () => !refreshGuard.IsActive && Drilldown.HasMore);
+            SelectWeekdayCommand = new RelayCommand<DistributionBarViewModel>(
+                SelectWeekdayDistribution,
+                CanSelectWeekday);
+            SelectHeatmapDateCommand = new RelayCommand<HeatmapCellViewModel>(
+                SelectHeatmapDate,
+                cell => !refreshGuard.IsActive &&
+                    cell != null &&
+                    cell.CellVisibility == Visibility.Visible);
+            SelectPeriodCommand = new RelayCommand<PeriodActivityViewModel>(
+                SelectPeriod,
+                period => !refreshGuard.IsActive && period != null);
         }
 
-        public ObservableCollection<SelectionOption<DateRangePreset>> RangeOptions { get; }
+        public DashboardFilterViewModel Filter { get; }
 
-        public ObservableCollection<SelectionOption<AggregationPeriod>> AggregationOptions { get; }
+        public DashboardMetricsViewModel Metrics { get; }
 
-        public ObservableCollection<SelectionOption<RankingMetric>> RankingMetricOptions { get; }
+        public DashboardDistributionViewModel Distribution { get; }
 
-        public ObservableCollection<SelectionOption<MetadataFilterDimension?>>
-            MetadataDimensionOptions { get; }
+        public DashboardDrilldownViewModel Drilldown { get; }
 
-        public ObservableCollection<SelectionOption<string>> MetadataValueOptions { get; }
+        public ObservableCollection<SelectionOption<DateRangePreset>> RangeOptions => Filter.RangeOptions;
+
+        public ObservableCollection<SelectionOption<AggregationPeriod>> AggregationOptions => Filter.AggregationOptions;
+
+        public ObservableCollection<SelectionOption<RankingMetric>> RankingMetricOptions => Filter.RankingMetricOptions;
+
+        public ObservableCollection<SelectionOption<MetadataFilterDimension?>> MetadataDimensionOptions => Filter.MetadataDimensionOptions;
+
+        public ObservableCollection<SelectionOption<string>> MetadataValueOptions => Filter.MetadataValueOptions;
 
         public SelectionOption<DateRangePreset> SelectedRangeOption
         {
-            get => selectedRangeOption;
-            set
-            {
-                if (!ReferenceEquals(selectedRangeOption, value))
-                {
-                    SetValue(ref selectedRangeOption, value);
-                    OnPropertyChanged(nameof(CustomDateVisibility));
-                    Refresh();
-                }
-            }
+            get => Filter.SelectedRangeOption;
+            set => Filter.SelectedRangeOption = value;
         }
 
-        public Visibility CustomDateVisibility =>
-            SelectedRangeOption?.Value == DateRangePreset.Custom
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+        public Visibility CustomDateVisibility => Filter.CustomDateVisibility;
 
         public SelectionOption<AggregationPeriod> SelectedAggregationOption
         {
-            get => selectedAggregationOption;
-            set
-            {
-                if (!ReferenceEquals(selectedAggregationOption, value))
-                {
-                    SetValue(ref selectedAggregationOption, value);
-                    Refresh();
-                }
-            }
+            get => Filter.SelectedAggregationOption;
+            set => Filter.SelectedAggregationOption = value;
         }
 
         public SelectionOption<RankingMetric> SelectedRankingMetricOption
         {
-            get => selectedRankingMetricOption;
-            set
-            {
-                if (!ReferenceEquals(selectedRankingMetricOption, value))
-                {
-                    SetValue(ref selectedRankingMetricOption, value);
-                    Refresh();
-                }
-            }
+            get => Filter.SelectedRankingMetricOption;
+            set => Filter.SelectedRankingMetricOption = value;
         }
 
-        public SelectionOption<MetadataFilterDimension?>
-            SelectedMetadataDimensionOption
+        public SelectionOption<MetadataFilterDimension?> SelectedMetadataDimensionOption
         {
-            get => selectedMetadataDimensionOption;
-            set
-            {
-                if (!ReferenceEquals(selectedMetadataDimensionOption, value))
-                {
-                    SetValue(ref selectedMetadataDimensionOption, value);
-                    OnPropertyChanged(nameof(MetadataValueVisibility));
-                    RefreshMetadataValueOptions();
-                    if (!suppressFilterRefresh)
-                    {
-                        Refresh();
-                    }
-                }
-            }
+            get => Filter.SelectedMetadataDimensionOption;
+            set => Filter.SelectedMetadataDimensionOption = value;
         }
 
         public SelectionOption<string> SelectedMetadataValueOption
         {
-            get => selectedMetadataValueOption;
-            set
-            {
-                if (!ReferenceEquals(selectedMetadataValueOption, value))
-                {
-                    SetValue(ref selectedMetadataValueOption, value);
-                    if (!suppressFilterRefresh)
-                    {
-                        Refresh();
-                    }
-                }
-            }
+            get => Filter.SelectedMetadataValueOption;
+            set => Filter.SelectedMetadataValueOption = value;
         }
 
-        public Visibility MetadataValueVisibility =>
-            SelectedMetadataDimensionOption?.Value.HasValue == true
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+        public Visibility MetadataValueVisibility => Filter.MetadataValueVisibility;
 
         public DateTime CustomStartDate
         {
-            get => customStartDate;
-            set
-            {
-                if (customStartDate != value)
-                {
-                    SetValue(ref customStartDate, value);
-                    if (SelectedRangeOption?.Value == DateRangePreset.Custom)
-                    {
-                        Refresh();
-                    }
-                }
-            }
+            get => Filter.CustomStartDate;
+            set => Filter.CustomStartDate = value;
         }
 
         public DateTime CustomEndDate
         {
-            get => customEndDate;
-            set
-            {
-                if (customEndDate != value)
-                {
-                    SetValue(ref customEndDate, value);
-                    if (SelectedRangeOption?.Value == DateRangePreset.Custom)
-                    {
-                        Refresh();
-                    }
-                }
-            }
+            get => Filter.CustomEndDate;
+            set => Filter.CustomEndDate = value;
         }
 
-        public string LifetimeDurationText
-        {
-            get => lifetimeDurationText;
-            private set => SetValue(ref lifetimeDurationText, value);
-        }
+        public string LifetimeDurationText => Metrics.LifetimeDurationText;
 
-        public string TrackedDurationText
-        {
-            get => trackedDurationText;
-            private set
-            {
-                SetValue(ref trackedDurationText, value);
-                OnPropertyChanged(nameof(TrackedDurationSummaryText));
-            }
-        }
+        public string TrackedDurationText => Metrics.TrackedDurationText;
 
-        public string TrackedDurationSummaryText =>
-            LocalizationService.Format(
-                "LOCPlaytimeInsightsTrackedDurationFormat",
-                "插件已记录：{0}",
-                TrackedDurationText);
+        public string TrackedDurationSummaryText => Metrics.TrackedDurationSummaryText;
 
-        public string RangeDurationText
-        {
-            get => rangeDurationText;
-            private set => SetValue(ref rangeDurationText, value);
-        }
+        public string RangeDurationText => Metrics.RangeDurationText;
 
-        public string SessionCountText
-        {
-            get => sessionCountText;
-            private set => SetValue(ref sessionCountText, value);
-        }
+        public string SessionCountText => Metrics.SessionCountText;
 
-        public string ActiveDaysText
-        {
-            get => activeDaysText;
-            private set => SetValue(ref activeDaysText, value);
-        }
+        public string ActiveDaysText => Metrics.ActiveDaysText;
 
-        public string AverageSessionText
-        {
-            get => averageSessionText;
-            private set => SetValue(ref averageSessionText, value);
-        }
+        public string AverageSessionText => Metrics.AverageSessionText;
 
-        public string LongestSessionText
-        {
-            get => longestSessionText;
-            private set => SetValue(ref longestSessionText, value);
-        }
+        public string LongestSessionText => Metrics.LongestSessionText;
 
-        public string RangeText
-        {
-            get => rangeText;
-            private set => SetValue(ref rangeText, value);
-        }
+        public string RangeText => Metrics.RangeText;
 
-        public string PeriodTitleText
-        {
-            get => periodTitleText;
-            private set => SetValue(ref periodTitleText, value);
-        }
+        public string PeriodTitleText => Metrics.PeriodTitleText;
 
-        public string RangeRankingTitleText
-        {
-            get => rangeRankingTitleText;
-            private set => SetValue(ref rangeRankingTitleText, value);
-        }
+        public string RangeRankingTitleText => Metrics.RangeRankingTitleText;
 
-        public string StatusText
-        {
-            get => statusText;
-            private set => SetValue(ref statusText, value);
-        }
+        public string StatusText => Metrics.StatusText;
 
-        public string SelectedDetailTitle
-        {
-            get => selectedDetailTitle;
-            private set => SetValue(ref selectedDetailTitle, value);
-        }
+        public string SelectedDetailTitle => Drilldown.SelectedDetailTitle;
 
-        public int HeatmapColumnCount
-        {
-            get => heatmapColumnCount;
-            private set => SetValue(ref heatmapColumnCount, value);
-        }
+        public int HeatmapColumnCount => Distribution.HeatmapColumnCount;
 
-        public double TrendChartWidth
-        {
-            get => trendChartWidth;
-            private set => SetValue(ref trendChartWidth, value);
-        }
+        public double TrendChartWidth => Distribution.TrendChartWidth;
 
-        public PointCollection TrendLinePoints
-        {
-            get => trendLinePoints;
-            private set => SetValue(ref trendLinePoints, value);
-        }
+        public PointCollection TrendLinePoints => Distribution.TrendLinePoints;
 
-        public Geometry TrendLineGeometry
-        {
-            get => trendLineGeometry;
-            private set => SetValue(ref trendLineGeometry, value);
-        }
+        public Geometry TrendLineGeometry => Distribution.TrendLineGeometry;
 
-        public Geometry TrendAreaGeometry
-        {
-            get => trendAreaGeometry;
-            private set => SetValue(ref trendAreaGeometry, value);
-        }
+        public Geometry TrendAreaGeometry => Distribution.TrendAreaGeometry;
 
-        public ComparisonMetricViewModel PreviousPeriodComparison
-        {
-            get => previousPeriodComparison;
-            private set => SetValue(ref previousPeriodComparison, value);
-        }
+        public ComparisonMetricViewModel PreviousPeriodComparison => Metrics.PreviousPeriodComparison;
 
-        public ComparisonMetricViewModel YearOverYearComparison
-        {
-            get => yearOverYearComparison;
-            private set => SetValue(ref yearOverYearComparison, value);
-        }
+        public ComparisonMetricViewModel YearOverYearComparison => Metrics.YearOverYearComparison;
 
-        public string LongestStreakText
-        {
-            get => longestStreakText;
-            private set => SetValue(ref longestStreakText, value);
-        }
+        public string LongestStreakText => Metrics.LongestStreakText;
 
-        public string CurrentStreakText
-        {
-            get => currentStreakText;
-            private set => SetValue(ref currentStreakText, value);
-        }
+        public string CurrentStreakText => Metrics.CurrentStreakText;
 
-        public string CurrentStreakDateText
-        {
-            get => currentStreakDateText;
-            private set => SetValue(ref currentStreakDateText, value);
-        }
+        public string CurrentStreakDateText => Metrics.CurrentStreakDateText;
 
-        public string AnomalyCountText
-        {
-            get => anomalyCountText;
-            private set => SetValue(ref anomalyCountText, value);
-        }
+        public string AnomalyCountText => Metrics.AnomalyCountText;
 
-        public Visibility AnomalyVisibility
-        {
-            get => anomalyVisibility;
-            private set => SetValue(ref anomalyVisibility, value);
-        }
+        public Visibility AnomalyVisibility => Distribution.AnomalyVisibility;
 
-        public Visibility SessionDetailVisibility
-        {
-            get => sessionDetailVisibility;
-            private set => SetValue(ref sessionDetailVisibility, value);
-        }
+        public Visibility SessionDetailVisibility => Drilldown.SessionDetailVisibility;
 
-        public string HourDistributionTitle
-        {
-            get => hourDistributionTitle;
-            private set => SetValue(ref hourDistributionTitle, value);
-        }
+        public string HourDistributionTitle => Distribution.HourDistributionTitle;
 
-        public ObservableCollection<PeriodActivityViewModel> PeriodActivities { get; }
+        public IReadOnlyList<PeriodActivityViewModel> PeriodActivities =>
+            Distribution.PeriodActivities;
 
-        public ObservableCollection<HeatmapCellViewModel> HeatmapCells { get; }
+        public IReadOnlyList<HeatmapCellViewModel> HeatmapCells => Distribution.HeatmapCells;
 
-        public ObservableCollection<string> HeatmapWeekdayLabels { get; }
+        public IReadOnlyList<string> HeatmapWeekdayLabels => Distribution.HeatmapWeekdayLabels;
 
-        public ObservableCollection<TrendPointViewModel> TrendPoints { get; }
+        public IReadOnlyList<TrendPointViewModel> TrendPoints => Distribution.TrendPoints;
 
-        public ObservableCollection<GameRankingViewModel> RangeGameRankings { get; }
+        public IReadOnlyList<GameRankingViewModel> RangeGameRankings => Metrics.RangeGameRankings;
 
-        public ObservableCollection<GameRankingViewModel> LifetimeGameRankings { get; }
+        public IReadOnlyList<GameRankingViewModel> LifetimeGameRankings => Metrics.LifetimeGameRankings;
 
-        public ObservableCollection<DistributionBarViewModel>
-            WeekdayDistribution { get; }
+        public IReadOnlyList<DistributionBarViewModel> WeekdayDistribution => Distribution.WeekdayDistribution;
 
-        public ObservableCollection<DistributionBarViewModel>
-            HourDistribution { get; }
+        public IReadOnlyList<DistributionBarViewModel> HourDistribution => Distribution.HourDistribution;
 
-        public ObservableCollection<WeekHourCellViewModel> WeekHourCells { get; }
+        public IReadOnlyList<WeekHourCellViewModel> WeekHourCells => Distribution.WeekHourCells;
 
-        public ObservableCollection<string> AdvancedWeekdayLabels { get; }
+        public IReadOnlyList<string> AdvancedWeekdayLabels => Distribution.AdvancedWeekdayLabels;
 
-        public ObservableCollection<string> AdvancedHourLabels { get; }
+        public IReadOnlyList<string> AdvancedHourLabels => Distribution.AdvancedHourLabels;
 
-        public ObservableCollection<AnomalySessionViewModel> Anomalies { get; }
+        public IReadOnlyList<AnomalySessionViewModel> Anomalies => Distribution.Anomalies;
 
-        public ObservableCollection<SessionDetailViewModel> SessionDetails { get; }
+        public ObservableCollection<SessionDetailViewModel> SessionDetails => Drilldown.SessionDetails;
 
-        public string SessionDetailCountText =>
-            sessionDetailPager.TotalCount == 0
-                ? LocalizationService.Get(
-                    "LOCPlaytimeInsightsNoSessionsDisplayed",
-                    "未显示会话")
-                : LocalizationService.Format(
-                    "LOCPlaytimeInsightsDisplayedSessionsFormat",
-                    "已显示 {0:N0} / {1:N0}",
-                    sessionDetailPager.VisibleCount,
-                    sessionDetailPager.TotalCount);
+        public RelayCommand RefreshCommand { get; }
 
-        public Visibility LoadMoreVisibility =>
-            sessionDetailPager.HasMore ? Visibility.Visible : Visibility.Collapsed;
+        public RelayCommand LoadMoreSessionDetailsCommand { get; }
+
+        public RelayCommand<DistributionBarViewModel> SelectWeekdayCommand { get; }
+
+        public RelayCommand<HeatmapCellViewModel> SelectHeatmapDateCommand { get; }
+
+        public RelayCommand<PeriodActivityViewModel> SelectPeriodCommand { get; }
+
+        public string SessionDetailCountText => Drilldown.SessionDetailCountText;
+
+        public Visibility LoadMoreVisibility => Drilldown.LoadMoreVisibility;
 
         public void Refresh()
         {
-            if (SelectedRangeOption == null ||
-                SelectedAggregationOption == null ||
-                SelectedRankingMetricOption == null ||
-                SelectedMetadataDimensionOption == null)
+            Refresh(DashboardRefreshReason.DataReload);
+        }
+
+        private void Refresh(DashboardRefreshReason reason)
+        {
+            if (!refreshGuard.TryEnter())
             {
                 return;
             }
 
-            var libraryNames = GetLibraryNames();
-            RefreshMetadataValueOptions(libraryNames);
-            var allGames = playniteApi.Database.Games.ToList();
-            var allSessions = sessionRepository.GetAll();
-            var selectedDimension = SelectedMetadataDimensionOption.Value;
-            var selectedValue = SelectedMetadataValueOption?.Value;
+            RaiseCommandStates();
+            try
+            {
+                RefreshCore(reason);
+            }
+            finally
+            {
+                refreshGuard.Exit();
+                RaiseCommandStates();
+            }
+        }
+
+        public void SelectWeekdayDistribution(DistributionBarViewModel bar)
+        {
+            Distribution.SelectWeekday(bar);
+        }
+
+        public void SelectPeriod(PeriodActivityViewModel period)
+        {
+            Drilldown.SelectPeriod(period);
+        }
+
+        public void SelectHeatmapDate(HeatmapCellViewModel cell)
+        {
+            Drilldown.SelectHeatmapDate(cell);
+        }
+
+        public void LoadMoreSessionDetails()
+        {
+            Drilldown.LoadMore();
+        }
+
+        private void RefreshCore(DashboardRefreshReason reason)
+        {
+            if (!Filter.IsComplete)
+            {
+                return;
+            }
+
+            var total = Stopwatch.StartNew();
+            long dataMilliseconds = 0;
+            long filterMilliseconds = 0;
+            var cacheReady = dataCacheReady && analysisContext != null;
+            var plan = DashboardRefreshPlan.Create(reason, cacheReady);
+
+            var phase = Stopwatch.StartNew();
+            if (plan.ReloadData)
+            {
+                LoadData();
+            }
+            if (plan.RefreshMetadataOptions)
+            {
+                Filter.RefreshMetadataValueOptions(allGames, libraryNames);
+            }
+            dataMilliseconds = phase.ElapsedMilliseconds;
+
+            phase.Restart();
+            if (plan.RebuildFilter)
+            {
+                RebuildFilteredData();
+            }
+            filterMilliseconds = phase.ElapsedMilliseconds;
+
+            DashboardRefreshTiming timing;
+            switch (plan.Mode)
+            {
+                case DashboardRefreshMode.TrendOnly:
+                    timing = ApplyTrendRefresh();
+                    break;
+                case DashboardRefreshMode.RankingOnly:
+                    timing = ApplyRankingRefresh();
+                    break;
+                case DashboardRefreshMode.FullAnalysis:
+                default:
+                    timing = ApplyFullAnalysis();
+                    break;
+            }
+
+            total.Stop();
+            Trace.WriteLine(string.Format(
+                "PlaytimeInsights Dashboard refresh reason={0} data={1}ms filter={2}ms analytics={3}ms apply={4}ms total={5}ms",
+                plan.Reason,
+                dataMilliseconds,
+                filterMilliseconds,
+                timing.AnalyticsMilliseconds,
+                timing.ApplyMilliseconds,
+                total.ElapsedMilliseconds));
+        }
+
+        private void LoadData()
+        {
+            dataCacheReady = false;
+            analysisContext = null;
+            var loadedLibraryNames = Filter.GetLibraryNames();
+            var loadedGames = playniteApi.Database.Games.ToList();
+            var loadedSessions = sessionRepository.GetAll().ToList();
+            libraryNames = loadedLibraryNames;
+            allGames = loadedGames;
+            gamesById = loadedGames.GroupBy(game => game.Id)
+                .ToDictionary(group => group.Key, group => group.First());
+            allSessions = loadedSessions;
+            dataCacheReady = true;
+        }
+
+        private void RebuildFilteredData()
+        {
+            var selectedDimension = Filter.SelectedMetadataDimensionOption.Value;
+            var selectedValue = Filter.SelectedMetadataValueOption?.Value;
             if (selectedDimension.HasValue &&
                 !string.IsNullOrWhiteSpace(selectedValue))
             {
-                activeFilteredGames = queryService.FilterGames(
+                filteredGames = queryService.FilterGames(
                     allGames,
                     selectedDimension.Value,
                     selectedValue,
                     libraryNames);
-                var gameIds = new HashSet<Guid>(
-                    activeFilteredGames.Select(game => game.Id));
-                activeFilteredSessions = allSessions
+                var gameIds = new HashSet<Guid>(filteredGames.Select(game => game.Id));
+                filteredSessions = allSessions
                     .Where(session => gameIds.Contains(session.GameId))
                     .ToList();
             }
             else
             {
-                activeFilteredGames = allGames;
-                activeFilteredSessions = allSessions.ToList();
-            }
-
-            var snapshot = analyticsService.CreateSnapshot(
-                activeFilteredGames,
-                activeFilteredSessions,
-                new AnalyticsQuery
-                {
-                    RangePreset = SelectedRangeOption.Value,
-                    AggregationPeriod = SelectedAggregationOption.Value,
-                    RankingMetric = SelectedRankingMetricOption.Value,
-                    CustomStartDate = CustomStartDate,
-                    CustomEndDate = CustomEndDate,
-                    UseIsoWeekStart = settings.Settings.UseIsoWeekStart,
-                    TopGames = settings.Settings.TopGames
-                });
-            ApplyRankingCoverImages(snapshot.RangeGameRankings, allGames);
-            ApplyRankingCoverImages(snapshot.LifetimeGameRankings, allGames);
-
-            LifetimeDurationText = snapshot.LifetimeDurationText;
-            TrackedDurationText = snapshot.TrackedDurationText;
-            RangeDurationText = snapshot.RangeDurationText;
-            SessionCountText = snapshot.SessionCountText;
-            ActiveDaysText = snapshot.ActiveDaysText;
-            AverageSessionText = snapshot.AverageSessionText;
-            LongestSessionText = snapshot.LongestSessionText;
-            RangeText = snapshot.RangeText;
-            PeriodTitleText = snapshot.PeriodTitleText;
-            RangeRankingTitleText = snapshot.RangeRankingTitleText;
-            StatusText = snapshot.StatusText;
-            HeatmapColumnCount = snapshot.HeatmapColumnCount;
-            TrendChartWidth = snapshot.TrendChartWidth;
-            TrendLinePoints = snapshot.TrendLinePoints;
-            TrendLineGeometry = snapshot.TrendLineGeometry;
-            TrendAreaGeometry = snapshot.TrendAreaGeometry;
-            PreviousPeriodComparison = snapshot.Advanced.PreviousPeriodComparison;
-            YearOverYearComparison = snapshot.Advanced.YearOverYearComparison;
-            LongestStreakText = snapshot.Advanced.LongestStreakText;
-            CurrentStreakText = snapshot.Advanced.CurrentStreakText;
-            CurrentStreakDateText = snapshot.Advanced.CurrentStreakDateText;
-            AnomalyCountText = snapshot.Advanced.AnomalyCountText;
-            AnomalyVisibility = snapshot.Advanced.AnomalyVisibility;
-
-            Replace(PeriodActivities, snapshot.PeriodActivities);
-            Replace(HeatmapCells, snapshot.HeatmapCells);
-            Replace(HeatmapWeekdayLabels, snapshot.HeatmapWeekdayLabels);
-            Replace(TrendPoints, snapshot.TrendPoints);
-            Replace(RangeGameRankings, snapshot.RangeGameRankings);
-            Replace(LifetimeGameRankings, snapshot.LifetimeGameRankings);
-            selectedWeekdayIndex = null;
-            foreach (var bar in snapshot.Advanced.WeekdayDistribution)
-            {
-                bar.IsSelected = false;
-                bar.AutomationName = LocalizationService.Format(
-                    "LOCPlaytimeInsightsWeekdayFilterAutomationFormat",
-                    "按 {0} 筛选 24 小时分布；再次选择可恢复全部星期",
-                    bar.Label);
-            }
-            allHourDistribution = snapshot.Advanced.HourDistribution.ToList();
-            Replace(
-                WeekdayDistribution,
-                snapshot.Advanced.WeekdayDistribution);
-            Replace(HourDistribution, allHourDistribution);
-            Replace(WeekHourCells, snapshot.Advanced.WeekHourCells);
-            Replace(
-                AdvancedWeekdayLabels,
-                snapshot.Advanced.WeekdayLabels);
-            Replace(AdvancedHourLabels, snapshot.Advanced.HourLabels);
-            Replace(Anomalies, snapshot.Advanced.Anomalies);
-            sessionDetailPager.Reset(null);
-            NotifySessionDetailPagingChanged();
-            SessionDetailVisibility = Visibility.Collapsed;
-            SelectedDetailTitle = LocalizationService.Get(
-                "LOCPlaytimeInsightsDetailsPrompt",
-                "点击柱形、折线点或热力格查看会话");
-            HourDistributionTitle = LocalizationService.Get(
-                "LOCPlaytimeInsightsHourDistributionAll",
-                "24 小时分布 · 全部星期");
-        }
-
-        public void SelectWeekdayDistribution(DistributionBarViewModel bar)
-        {
-            var index = WeekdayDistribution.IndexOf(bar);
-            if (index < 0)
-            {
-                return;
-            }
-
-            selectedWeekdayIndex =
-                selectedWeekdayIndex == index ? (int?)null : index;
-            for (var day = 0; day < WeekdayDistribution.Count; day++)
-            {
-                WeekdayDistribution[day].IsSelected =
-                    selectedWeekdayIndex == day;
-            }
-
-            if (!selectedWeekdayIndex.HasValue)
-            {
-                Replace(HourDistribution, allHourDistribution);
-                HourDistributionTitle = LocalizationService.Get(
-                    "LOCPlaytimeInsightsHourDistributionAll",
-                    "24 小时分布 · 全部星期");
-                return;
-            }
-
-            var selectedBar = WeekdayDistribution[selectedWeekdayIndex.Value];
-            Replace(
-                HourDistribution,
-                AdvancedAnalyticsService.CreateHourDistributionForWeekday(
-                    WeekHourCells,
-                    selectedWeekdayIndex.Value));
-            HourDistributionTitle = LocalizationService.Format(
-                "LOCPlaytimeInsightsHourDistributionSelectedFormat",
-                "24 小时分布 · {0}",
-                selectedBar.Label);
-        }
-
-        public void SelectPeriod(PeriodActivityViewModel period)
-        {
-            if (period == null)
-            {
-                return;
-            }
-
-            LoadSessionDetails(
-                period.PeriodStart,
-                period.PeriodEnd,
-                period.Label + " · " + period.DurationText);
-        }
-
-        public void SelectHeatmapDate(HeatmapCellViewModel cell)
-        {
-            if (cell == null || cell.CellVisibility != Visibility.Visible)
-            {
-                return;
-            }
-
-            LoadSessionDetails(
-                cell.Date,
-                cell.Date,
-                cell.Date.ToString("yyyy/M/d") + " · " +
-                    AnalyticsService.FormatDurationPrecise(cell.Seconds));
-        }
-
-        private void LoadSessionDetails(DateTime startDate, DateTime endDate, string title)
-        {
-            var details = analyticsService.CreateSessionDetails(
-                activeFilteredGames,
-                activeFilteredSessions,
-                startDate,
-                endDate);
-            ApplySessionDetailCoverImages(details, activeFilteredGames);
-            sessionDetailPager.Reset(details);
-            NotifySessionDetailPagingChanged();
-            SessionDetailVisibility = Visibility.Visible;
-            SelectedDetailTitle = details.Count == 0
-                ? LocalizationService.Format(
-                    "LOCPlaytimeInsightsNoPreciseDetailFormat",
-                    "{0} · 没有精确会话",
-                    title)
-                : LocalizationService.Format(
-                    "LOCPlaytimeInsightsDetailSessionCountFormat",
-                    "{0} · {1:N0} 条会话",
-                    title,
-                    details.Count);
-        }
-
-        private void ApplyRankingCoverImages(
-            IEnumerable<GameRankingViewModel> rankings,
-            IEnumerable<Game> games)
-        {
-            var gamesById = (games ?? Enumerable.Empty<Game>())
-                .GroupBy(game => game.Id)
-                .ToDictionary(group => group.Key, group => group.First());
-
-            foreach (var ranking in rankings ?? Enumerable.Empty<GameRankingViewModel>())
-            {
-                Game game;
-                if (!gamesById.TryGetValue(ranking.GameId, out game) ||
-                    string.IsNullOrWhiteSpace(game.CoverImage))
-                {
-                    ranking.CoverImagePath = null;
-                    continue;
-                }
-
-                try
-                {
-                    ranking.CoverImagePath =
-                        playniteApi.Database.GetFullFilePath(game.CoverImage);
-                }
-                catch
-                {
-                    ranking.CoverImagePath = null;
-                }
+                filteredGames = allGames;
+                filteredSessions = allSessions.ToList();
             }
         }
 
-        private void ApplySessionDetailCoverImages(
-            IEnumerable<SessionDetailViewModel> details,
-            IEnumerable<Game> games)
+        private DashboardRefreshTiming ApplyTrendRefresh()
         {
-            var gamesById = (games ?? Enumerable.Empty<Game>())
-                .GroupBy(game => game.Id)
-                .ToDictionary(group => group.Key, group => group.First());
-
-            foreach (var detail in details ?? Enumerable.Empty<SessionDetailViewModel>())
-            {
-                Game game;
-                if (!gamesById.TryGetValue(detail.GameId, out game) ||
-                    string.IsNullOrWhiteSpace(game.CoverImage))
-                {
-                    detail.CoverImagePath = null;
-                    continue;
-                }
-
-                try
-                {
-                    detail.CoverImagePath =
-                        playniteApi.Database.GetFullFilePath(game.CoverImage);
-                }
-                catch
-                {
-                    detail.CoverImagePath = null;
-                }
-            }
+            var phase = Stopwatch.StartNew();
+            var projection = analyticsService.CreateTrendProjection(
+                analysisContext,
+                Filter.SelectedAggregationOption.Value);
+            var analyticsMilliseconds = phase.ElapsedMilliseconds;
+            phase.Restart();
+            Metrics.ApplyPeriodTitle(projection);
+            Distribution.ApplyTrend(projection);
+            Drilldown.ResetSelection();
+            return new DashboardRefreshTiming(
+                analyticsMilliseconds,
+                phase.ElapsedMilliseconds);
         }
 
-        public void LoadMoreSessionDetails()
+        private DashboardRefreshTiming ApplyRankingRefresh()
         {
-            if (sessionDetailPager.AppendNextPage() > 0)
-            {
-                NotifySessionDetailPagingChanged();
-            }
+            var phase = Stopwatch.StartNew();
+            var projection = analyticsService.CreateRankingProjection(
+                analysisContext,
+                Filter.SelectedRankingMetricOption.Value,
+                settings.Settings.TopGames);
+            var analyticsMilliseconds = phase.ElapsedMilliseconds;
+            phase.Restart();
+            Metrics.ApplyRangeRanking(projection, gamesById);
+            return new DashboardRefreshTiming(
+                analyticsMilliseconds,
+                phase.ElapsedMilliseconds);
         }
 
-        private void NotifySessionDetailPagingChanged()
+        private DashboardRefreshTiming ApplyFullAnalysis()
         {
-            OnPropertyChanged(nameof(SessionDetailCountText));
-            OnPropertyChanged(nameof(LoadMoreVisibility));
+            var phase = Stopwatch.StartNew();
+            var result = analyticsService.CreateSnapshotWithContext(
+                filteredGames,
+                filteredSessions,
+                CreateAnalyticsQuery());
+            analysisContext = result.Context;
+            var analyticsMilliseconds = phase.ElapsedMilliseconds;
+            phase.Restart();
+            Metrics.Apply(result.Snapshot, gamesById);
+            Distribution.Apply(result.Snapshot);
+            Drilldown.ResetContext(filteredGames, filteredSessions);
+            return new DashboardRefreshTiming(
+                analyticsMilliseconds,
+                phase.ElapsedMilliseconds);
         }
 
-        private void RefreshMetadataValueOptions(
-            IReadOnlyDictionary<Guid, string> libraryNames = null)
+        private AnalyticsQuery CreateAnalyticsQuery()
         {
-            if (SelectedMetadataDimensionOption == null)
+            return new AnalyticsQuery
             {
-                return;
-            }
-
-            var previousValue = SelectedMetadataValueOption?.Value ??
-                string.Empty;
-            var values = new List<SelectionOption<string>>
-            {
-                new SelectionOption<string>
-                {
-                    Value = string.Empty,
-                    Label = SelectedMetadataDimensionOption.Value.HasValue
-                        ? LocalizationService.Format(
-                            "LOCPlaytimeInsightsAllFormat",
-                            "全部{0}",
-                            SessionQueryService.GetDimensionLabel(
-                                SelectedMetadataDimensionOption.Value.Value))
-                        : LocalizationService.Get(
-                            "LOCPlaytimeInsightsAllGames",
-                            "全部游戏")
-                }
+                RangePreset = Filter.SelectedRangeOption.Value,
+                AggregationPeriod = Filter.SelectedAggregationOption.Value,
+                RankingMetric = Filter.SelectedRankingMetricOption.Value,
+                CustomStartDate = Filter.CustomStartDate,
+                CustomEndDate = Filter.CustomEndDate,
+                UseIsoWeekStart = settings.Settings.UseIsoWeekStart,
+                TopGames = settings.Settings.TopGames
             };
-            if (SelectedMetadataDimensionOption.Value.HasValue)
-            {
-                libraryNames = libraryNames ?? GetLibraryNames();
-                values.AddRange(queryService.GetMetadataValues(
-                        playniteApi.Database.Games,
-                        SelectedMetadataDimensionOption.Value.Value,
-                        libraryNames)
-                    .Select(value => new SelectionOption<string>
-                    {
-                        Value = value,
-                        Label = value
-                    }));
-            }
+        }
 
-            var selected = values.FirstOrDefault(option =>
-                    string.Equals(
-                        option.Value,
-                        previousValue,
-                        StringComparison.CurrentCultureIgnoreCase)) ??
-                values[0];
-            suppressFilterRefresh = true;
-            try
+        private bool CanRefresh()
+        {
+            return !refreshGuard.IsActive && Filter.IsComplete;
+        }
+
+        private bool CanSelectWeekday(DistributionBarViewModel bar)
+        {
+            return !refreshGuard.IsActive && Distribution.ContainsWeekday(bar);
+        }
+
+        private void RaiseCommandStates()
+        {
+            RefreshCommand?.RaiseCanExecuteChanged();
+            LoadMoreSessionDetailsCommand?.RaiseCanExecuteChanged();
+            SelectWeekdayCommand?.RaiseCanExecuteChanged();
+            SelectHeatmapDateCommand?.RaiseCanExecuteChanged();
+            SelectPeriodCommand?.RaiseCanExecuteChanged();
+        }
+
+        private void ForwardPropertyChanged(object sender, PropertyChangedEventArgs args)
+        {
+            OnPropertyChanged(args.PropertyName);
+        }
+
+        private void DrilldownPropertyChanged(object sender, PropertyChangedEventArgs args)
+        {
+            OnPropertyChanged(args.PropertyName);
+            if (args.PropertyName == nameof(DashboardDrilldownViewModel.HasMore))
             {
-                Replace(MetadataValueOptions, values);
-                SelectedMetadataValueOption = selected;
-            }
-            finally
-            {
-                suppressFilterRefresh = false;
+                LoadMoreSessionDetailsCommand?.RaiseCanExecuteChanged();
             }
         }
 
-        private IReadOnlyDictionary<Guid, string> GetLibraryNames()
+        private sealed class DashboardRefreshTiming
         {
-            return playniteApi.Addons.Plugins
-                .OfType<LibraryPlugin>()
-                .GroupBy(plugin => plugin.Id)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.First().Name ?? string.Empty);
-        }
-
-        private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> values)
-        {
-            target.Clear();
-            foreach (var value in values)
+            public DashboardRefreshTiming(
+                long analyticsMilliseconds,
+                long applyMilliseconds)
             {
-                target.Add(value);
+                AnalyticsMilliseconds = analyticsMilliseconds;
+                ApplyMilliseconds = applyMilliseconds;
             }
+
+            public long AnalyticsMilliseconds { get; }
+
+            public long ApplyMilliseconds { get; }
         }
     }
 }

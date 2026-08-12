@@ -74,13 +74,20 @@ namespace PlaytimeInsights.Services
             IEnumerable<GameSession> sessions,
             AnalyticsQuery query)
         {
+            return CreateSnapshotWithContext(games, sessions, query).Snapshot;
+        }
+
+        public DashboardSnapshotResult CreateSnapshotWithContext(
+            IEnumerable<Game> games,
+            IEnumerable<GameSession> sessions,
+            AnalyticsQuery query)
+        {
             var gameList = games == null ? new List<Game>() : games.ToList();
             var sessionList = sessions == null ? new List<GameSession>() : sessions.ToList();
             query = query ?? new AnalyticsQuery();
             var topGames = Math.Max(1, Math.Min(50, query.TopGames));
             var range = ResolveDateRange(query, DateTime.Today);
             var firstDayOfWeek = GetFirstDayOfWeek(query.UseIsoWeekStart);
-            var effectiveAggregationPeriod = ResolveAggregationPeriod(query, range);
 
             var lifetimeSeconds = gameList.Aggregate<Game, ulong>(0, (current, game) =>
                 current + game.Playtime);
@@ -155,29 +162,41 @@ namespace PlaytimeInsights.Services
                 }
             }
 
-            var periodActivities = CreatePeriodActivities(
-                dailySeconds,
-                range,
-                effectiveAggregationPeriod,
-                firstDayOfWeek);
-            ApplyPeriodGameSummaries(periodActivities, dailyGameNames);
+            var context = new DashboardAnalysisContext
+            {
+                RangePreset = query.RangePreset,
+                Range = new AnalyticsDateRange
+                {
+                    StartDate = range.StartDate,
+                    EndDate = range.EndDate,
+                    Label = range.Label
+                },
+                FirstDayOfWeek = firstDayOfWeek,
+                DailySeconds = new Dictionary<DateTime, ulong>(dailySeconds),
+                DailyGameNames = dailyGameNames.ToDictionary(
+                    item => item.Key,
+                    item => (IList<string>)item.Value
+                        .OrderBy(name => name, StringComparer.CurrentCulture)
+                        .ToList()),
+                GameStatistics = gameStats.Values.Select(stats =>
+                    new DashboardGameRangeStatistics
+                    {
+                        GameId = stats.GameId,
+                        Name = stats.Name,
+                        Seconds = stats.Seconds,
+                        SessionCount = stats.SessionCount,
+                        ActiveDates = stats.ActiveDates.OrderBy(date => date).ToList(),
+                        LongestSessionSeconds = stats.LongestSessionSeconds
+                    }).ToList()
+            };
+            var trend = CreateTrendProjection(context, query.AggregationPeriod);
             int heatmapColumnCount;
             var heatmapCells = CreateHeatmapCells(
                 dailySeconds,
                 range,
                 firstDayOfWeek,
                 out heatmapColumnCount);
-            double trendChartWidth;
-            PointCollection trendLinePoints;
-            Geometry trendLineGeometry;
-            Geometry trendAreaGeometry;
-            var trendPoints = CreateTrendPoints(
-                periodActivities,
-                out trendChartWidth,
-                out trendLinePoints,
-                out trendLineGeometry,
-                out trendAreaGeometry);
-            var rangeRankings = CreateRangeRankings(gameStats.Values, query.RankingMetric, topGames);
+            var ranking = CreateRankingProjection(context, query.RankingMetric, topGames);
             var lifetimeRankings = CreateLifetimeRankings(gameList, topGames);
             var activeDays = dailySeconds.Count(item => item.Value > 0);
             var averageSessionSeconds = rangeSessionCount == 0
@@ -190,7 +209,7 @@ namespace PlaytimeInsights.Services
                 firstDayOfWeek,
                 dailySeconds);
 
-            return new DashboardSnapshot
+            var snapshot = new DashboardSnapshot
             {
                 LifetimeDurationText = FormatDuration(lifetimeSeconds),
                 TrackedDurationText = FormatDurationPrecise(trackedSeconds),
@@ -203,19 +222,8 @@ namespace PlaytimeInsights.Services
                     "LOCPlaytimeInsightsPreciseRangeFormat",
                     "{0} · 精确会话",
                     range.Label),
-                PeriodTitleText = LocalizationService.Format(
-                    "LOCPlaytimeInsightsAggregationTitleFormat",
-                    "{0}聚合{1}",
-                    GetAggregationLabel(effectiveAggregationPeriod),
-                    query.AggregationPeriod == AggregationPeriod.Auto
-                        ? LocalizationService.Get(
-                            "LOCPlaytimeInsightsAutomaticSuffix",
-                            " · 自动")
-                        : string.Empty),
-                RangeRankingTitleText = LocalizationService.Format(
-                    "LOCPlaytimeInsightsRangeRankingTitleFormat",
-                    "区间游戏排名 · {0}",
-                    GetRankingMetricLabel(query.RankingMetric)),
+                PeriodTitleText = trend.PeriodTitleText,
+                RangeRankingTitleText = ranking.RangeRankingTitleText,
                 StatusText = rangeSessionCount == 0
                     ? LocalizationService.Get(
                         "LOCPlaytimeInsightsNoRangeSessions",
@@ -226,19 +234,103 @@ namespace PlaytimeInsights.Services
                         gameStats.Count,
                         rangeSessionCount,
                         DateTime.Now),
-                PeriodActivities = periodActivities,
+                PeriodActivities = trend.PeriodActivities,
                 HeatmapCells = heatmapCells,
                 HeatmapWeekdayLabels = WeekdayLabelService.CreateLabels(
                     firstDayOfWeek),
                 HeatmapColumnCount = heatmapColumnCount,
+                TrendChartWidth = trend.TrendChartWidth,
+                TrendLinePoints = trend.TrendLinePoints,
+                TrendLineGeometry = trend.TrendLineGeometry,
+                TrendAreaGeometry = trend.TrendAreaGeometry,
+                TrendPoints = trend.TrendPoints,
+                RangeGameRankings = ranking.RangeGameRankings,
+                LifetimeGameRankings = lifetimeRankings,
+                Advanced = advanced
+            };
+
+            return new DashboardSnapshotResult
+            {
+                Snapshot = snapshot,
+                Context = context
+            };
+        }
+
+        public DashboardTrendProjection CreateTrendProjection(
+            DashboardAnalysisContext context,
+            AggregationPeriod aggregationPeriod)
+        {
+            if (context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
+
+            var query = new AnalyticsQuery
+            {
+                RangePreset = context.RangePreset,
+                AggregationPeriod = aggregationPeriod
+            };
+            var effectiveAggregationPeriod = ResolveAggregationPeriod(
+                query,
+                context.Range);
+            var periodActivities = CreatePeriodActivities(
+                context.DailySeconds,
+                context.Range,
+                effectiveAggregationPeriod,
+                context.FirstDayOfWeek);
+            ApplyPeriodGameSummaries(periodActivities, context.DailyGameNames);
+            double trendChartWidth;
+            PointCollection trendLinePoints;
+            Geometry trendLineGeometry;
+            Geometry trendAreaGeometry;
+            var trendPoints = CreateTrendPoints(
+                periodActivities,
+                out trendChartWidth,
+                out trendLinePoints,
+                out trendLineGeometry,
+                out trendAreaGeometry);
+
+            return new DashboardTrendProjection
+            {
+                PeriodTitleText = LocalizationService.Format(
+                    "LOCPlaytimeInsightsAggregationTitleFormat",
+                    "{0}聚合{1}",
+                    GetAggregationLabel(effectiveAggregationPeriod),
+                    aggregationPeriod == AggregationPeriod.Auto
+                        ? LocalizationService.Get(
+                            "LOCPlaytimeInsightsAutomaticSuffix",
+                            " · 自动")
+                        : string.Empty),
+                PeriodActivities = periodActivities,
                 TrendChartWidth = trendChartWidth,
                 TrendLinePoints = trendLinePoints,
                 TrendLineGeometry = trendLineGeometry,
                 TrendAreaGeometry = trendAreaGeometry,
-                TrendPoints = trendPoints,
-                RangeGameRankings = rangeRankings,
-                LifetimeGameRankings = lifetimeRankings,
-                Advanced = advanced
+                TrendPoints = trendPoints
+            };
+        }
+
+        public DashboardRankingProjection CreateRankingProjection(
+            DashboardAnalysisContext context,
+            RankingMetric rankingMetric,
+            int topGames)
+        {
+            if (context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
+
+            topGames = Math.Max(1, Math.Min(50, topGames));
+            return new DashboardRankingProjection
+            {
+                RangeRankingTitleText = LocalizationService.Format(
+                    "LOCPlaytimeInsightsRangeRankingTitleFormat",
+                    "区间游戏排名 · {0}",
+                    GetRankingMetricLabel(rankingMetric)),
+                RangeGameRankings = CreateRangeRankings(
+                    context.GameStatistics,
+                    rankingMetric,
+                    topGames)
             };
         }
 
@@ -576,7 +668,7 @@ namespace PlaytimeInsights.Services
 
         private static void ApplyPeriodGameSummaries(
             IList<PeriodActivityViewModel> periods,
-            IDictionary<DateTime, HashSet<string>> dailyGameNames)
+            IDictionary<DateTime, IList<string>> dailyGameNames)
         {
             foreach (var period in periods)
             {
@@ -585,7 +677,7 @@ namespace PlaytimeInsights.Services
                     date <= period.PeriodEnd.Date;
                     date = date.AddDays(1))
                 {
-                    HashSet<string> dailyNames;
+                    IList<string> dailyNames;
                     if (dailyGameNames.TryGetValue(date, out dailyNames))
                     {
                         names.UnionWith(dailyNames);
@@ -812,12 +904,12 @@ namespace PlaytimeInsights.Services
         }
 
         private static IList<GameRankingViewModel> CreateRangeRankings(
-            IEnumerable<MutableGameRangeStats> stats,
+            IEnumerable<DashboardGameRangeStatistics> stats,
             RankingMetric metric,
             int topGames)
         {
             var allStats = stats.ToList();
-            var totalDuration = allStats.Aggregate<MutableGameRangeStats, decimal>(
+            var totalDuration = allStats.Aggregate<DashboardGameRangeStatistics, decimal>(
                 0,
                 (current, item) => current + item.Seconds);
             var ranked = allStats
@@ -895,7 +987,9 @@ namespace PlaytimeInsights.Services
             }).ToList();
         }
 
-        private static ulong GetRankingScore(MutableGameRangeStats stats, RankingMetric metric)
+        private static ulong GetRankingScore(
+            DashboardGameRangeStatistics stats,
+            RankingMetric metric)
         {
             switch (metric)
             {
@@ -913,7 +1007,9 @@ namespace PlaytimeInsights.Services
             }
         }
 
-        private static string FormatRankingValue(MutableGameRangeStats stats, RankingMetric metric)
+        private static string FormatRankingValue(
+            DashboardGameRangeStatistics stats,
+            RankingMetric metric)
         {
             switch (metric)
             {

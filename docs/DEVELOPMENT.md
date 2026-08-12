@@ -1,6 +1,97 @@
 # 开发与构建
 
-更新日期：2026-07-29
+更新日期：2026-08-13
+
+## 架构重构准备
+
+架构重构在 `refactor/architecture-preparation` 分支独立进行，不与视觉计划混合。执行依据：
+
+- `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md`：阶段、边界和完成定义；
+- `docs\ARCHITECTURE_REFACTOR_BASELINE.md`：当前事件、启用条件、键盘焦点和副作用基线。
+
+准备分支新增第 62 项回归 `Architecture refactor baseline keeps boundaries documented`。该测试会
+动态扫描 XAML 事件并核对职责矩阵，同时阻止 ViewModel 引入具体对话框/Window 类型或外部 MVVM
+框架。阶段 A 新增 8 项 Coordinator 假交互测试，阶段 B 新增 4 项命令回归，阶段 C 新增 6 项
+WPF 接线及成功/失败路径回归；阶段 D/E 又覆盖 Dashboard 组合、导航生命周期、刷新快照与事件
+对称性；聚合趋势图修复新增原子发布与真实 STA/WPF 数据源生命周期回归，当前共 87 项。应显式
+构建测试项目，避免 `--no-build` 运行旧二进制：
+
+```powershell
+dotnet build PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite"
+dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release `
+  -p:PlayniteInstallDir="D:\software\Playnite"
+dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release `
+  --no-build
+```
+
+阶段 B 验证产物部署到 `staging\architecture-stage-b` 和本机插件目录；两处 9 个发布文件均与
+Release 输出一致。该开发 DLL SHA-256 为
+`654CEDAE3753E205507828C0A5634D4D5234CAD26CD7F60C93392408EC77B5B0`，部署未改变用户数据指纹。
+
+阶段 C 中 `PlaytimeInsights.cs` 负责组装 `SessionManagementViewModel`、
+`WpfSessionManagementInteraction`、`SessionManagementCoordinator` 和 View。会话页 Code-behind
+只保留生命周期、ContextMenu 与 Coordinator 转发；所有文件对话框、Owner、确认、编辑/预览窗口
+和错误弹窗集中在 Presentation/Interactions。
+
+阶段 C 验证产物已部署到 `staging\architecture-stage-c` 和本机插件目录；9/9 发布文件一致。
+开发 DLL SHA-256 为 `2CA2F983EC130F965A86B77D63A2CD352617182DE8E8382586E65608A2A607BE`，
+部署前后用户数据指纹不变。
+
+阶段 D 将 Dashboard 条目类型迁入 `ViewModels\Dashboard`，并以 Filter、Metrics、Distribution、
+Drilldown 四个子 ViewModel 组合根对象。根 `DashboardViewModel` 是唯一的全量游戏/会话读取者，
+只创建一次 `DashboardSnapshot` 后分发；子对象不得持有 `SessionRepository` 或自行调用
+`AnalyticsService.CreateSnapshot`。对应静态护栏会在回归中持续检查该边界。
+
+阶段 D 验证产物已部署到 `staging\architecture-stage-d` 和本机插件目录；Release、staging、
+安装目录三处 9/9 发布文件一致。开发 DLL 为 294,400 字节，SHA-256 为
+`0156F2C0F11D5310BF4B79B26958BDAD010F4433A40C46A704DFA3AA2713764D`；部署前后用户数据均为
+7 个文件，联合指纹保持
+`C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
+
+侧边栏性能修复规定 View `Loaded` 是页面进入时唯一的自动刷新入口，`SidebarItem.Opened` 只负责
+组装或复用 ViewModel 和 View。不要同时在两处调用 `Refresh()`，否则会在 UI 线程重复枚举游戏库、
+克隆会话、重建筛选与可观察集合。`SessionManagementViewModel.CountText` 必须只投影最近一次刷新
+快照中的 `activeSessionCount`，不得在属性 getter 中调用 Repository。
+
+本次性能修复验证产物已部署到 `staging\architecture-stage-d` 和本机插件目录；三处 9/9 文件
+逐项一致。DLL 为 294,400 字节，SHA-256 为
+`7A763012974D25685A512CDB4A10A7ACE32FF31C08B09DF2A583F20DFA807ADE`；部署前后 7 个用户数据
+文件联合指纹保持 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
+
+阶段 E 最终架构见 `docs\ARCHITECTURE.md`。事件双向审计未发现孤立处理器，现有 View 代码均有
+真实事件源和明确职责。两轮独立干净构建 85/85 项回归均通过；DLL SHA-256 均为
+`7A763012974D25685A512CDB4A10A7ACE32FF31C08B09DF2A583F20DFA807ADE`。确定性 PEXT 两轮均为
+139,177 字节，SHA-256 均为
+`3DDF721B41078D694984D044C71797A38A801098D1359B6F824EDED1926F9126`，仅含 9 个预期条目。
+第二轮 Release 已部署至 `staging\architecture-stage-e\deployed` 和本机插件目录；部署前后用户
+数据联合指纹保持 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
+
+聚合趋势图的 `PeriodActivities` 必须以完整新 `IReadOnlyList` 一次发布，不得恢复为对同一集合执行
+`Clear + Add`。`AdaptiveTrendChart` 负责管理 `INotifyCollectionChanged` 数据源生命周期：换源时
+通过 `CollectionChangedEventManager` 退订旧源、订阅新源，任何源变更都要清除 Hover、渲染项目
+与命中点缓存并调用 `InvalidateVisual()`；生产代码不得用 `UpdateLayout()` 或同步 Dispatcher 强制
+绘制。最终干净构建 87/87 通过，10 万会话 557 ms，schema 4 载入 1,066 ms。DLL SHA-256 为
+`B142B20DAF2EA1F6B968A3F96557CA4CD7B393A8DA1EF161E424B4468816F18C`，确定性 PEXT SHA-256 为
+`E74F9B5774DBFF44BE168CB136D72650EF77549BEBCBCCFFAAFB22799DF6CA05`；三处 9/9 发布文件一致，
+用户数据规范化联合指纹部署前后保持
+`8739B76AD190E16BC9BCD752D268B6FE52C4C59D5B169D9779836ACEFE3C18EF`。后续异步、generation、
+取消和加载态方案见 `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md`，不得与当前同步原子刷新混为一体。
+
+Dashboard 筛选进一步采用选择性刷新，具体依赖表和 TDD 路线见
+`docs\superpowers\specs\2026-08-13-dashboard-filter-refresh-performance-design.md`：
+
+- 聚合只从 `DashboardAnalysisContext` 生成趋势投影；
+- 排名只从同一上下文重排区间榜单，并复用 `DataReload` 时建立的游戏封面索引；
+- 范围变化复用已过滤游戏/会话；元数据变化只按计划重建选项和过滤；
+- 只有首次进入、Loaded 或显式刷新读取数据库、库插件与 Repository；
+- 热力图、排名、趋势及高级分布等主要列表以完整 `IReadOnlyList` 一次发布；
+- `Trace` 的分段计时只包含刷新原因和毫秒数，不包含用户数据。
+
+最终干净构建 95/95 通过，10 万会话 618 ms，schema 4 载入 1,165 ms。DLL SHA-256 为
+`10D9153B303979C2E897FBA71E30E3064C8D2085E0842B4E38B904808DB97AEC`；两轮确定性 PEXT SHA-256
+均为 `51755E6EC35275D2D3CBE065C64398BF4EB761591B59C518BD48D727070C6178`。三处 9/9 发布文件一致，
+部署前后 7 个用户数据文件指纹保持
+`C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
 
 ## 环境
 
@@ -79,10 +170,15 @@ Playnite 插件 DLL 不能热重载。每次更新 DLL 后必须完全退出并�
 ## 打包
 
 ```powershell
-D:\software\Playnite\Toolbox.exe pack `
-  .\bin\Release\net462 `
-  .\dist
+.\scripts\Pack-Deterministic.ps1 `
+  -SourceDirectory .\bin\Release\net462 `
+  -OutputDirectory .\dist `
+  -ToolboxPath D:\software\Playnite\Toolbox.exe
 ```
+
+该脚本先验证 Release 目录严格包含 9 个预期文件，再在一次性临时副本中统一文件时间戳并调用
+Toolbox。Toolbox 直接打包会把 DLL 的构建时间写入 ZIP 元数据：即使两轮 DLL 和包内所有文件内容
+完全一致，PEXT 外层 SHA-256 仍会变化。确定性入口不修改原 Release 文件，只消除这一元数据差异。
 
 当前 0.9.8 包名：
 

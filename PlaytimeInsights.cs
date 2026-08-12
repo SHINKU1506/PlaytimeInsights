@@ -3,6 +3,8 @@ using Playnite.SDK.Events;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using PlaytimeInsights.Models;
+using PlaytimeInsights.Presentation.Coordinators;
+using PlaytimeInsights.Presentation.Interactions;
 using PlaytimeInsights.Services;
 using PlaytimeInsights.ViewModels;
 using PlaytimeInsights.Views;
@@ -26,6 +28,7 @@ namespace PlaytimeInsights
         private readonly SessionExportService sessionExportService;
         private readonly SessionImportService sessionImportService;
         private readonly SessionDiagnosticsService sessionDiagnosticsService;
+        private DashboardViewModel cachedDashboard;
         private DashboardViewModel activeDashboard;
         private SessionManagementViewModel activeSessionManagement;
         private Timer checkpointTimer;
@@ -184,13 +187,17 @@ namespace PlaytimeInsights
                 Icon = Path.Combine(installationDirectory, "icon-dashboard.png"),
                 Opened = () =>
                 {
-                    activeDashboard = new DashboardViewModel(
-                        PlayniteApi,
-                        sessionRepository,
-                        analyticsService,
-                        sessionQueryService,
-                        settings);
-                    activeDashboard.Refresh();
+                    if (cachedDashboard == null)
+                    {
+                        cachedDashboard = new DashboardViewModel(
+                            PlayniteApi,
+                            sessionRepository,
+                            analyticsService,
+                            sessionQueryService,
+                            settings);
+                    }
+
+                    activeDashboard = cachedDashboard;
 
                     return new PlaytimeInsightsDashboardView
                     {
@@ -217,12 +224,18 @@ namespace PlaytimeInsights
                         sessionImportService,
                         sessionDiagnosticsService,
                         RefreshOpenAnalytics);
-                    activeSessionManagement.Refresh();
 
-                    return new SessionManagementView
+                    SessionManagementView view = null;
+                    var interaction = new WpfSessionManagementInteraction(
+                        () => System.Windows.Window.GetWindow(view));
+                    var coordinator = new SessionManagementCoordinator(
+                        activeSessionManagement,
+                        interaction);
+                    view = new SessionManagementView(coordinator)
                     {
                         DataContext = activeSessionManagement
                     };
+                    return view;
                 },
                 Closed = () => activeSessionManagement = null
             };

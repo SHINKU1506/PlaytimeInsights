@@ -550,6 +550,30 @@ Playnite 插件程序集版本冲突。
 - `docs\VISUAL_UX_OPTIMIZATION_PLAN.md`：响应式指标卡、空状态、文本层级和局部微交互；
 - `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md`：命令基础设施、会话工作流协调器和 ViewModel 拆分。
 
+2026-08-11 已创建 `refactor/architecture-preparation` 分支并完成架构阶段 0：事件职责、按钮状态、
+键盘焦点和取消/失败副作用基线已落盘，新增第 62 项架构边界护栏；随后按计划执行阶段 A，且
+本分支不混入视觉优化。
+
+同日阶段 A 已完成：强类型交互/操作接口和未接线 Coordinator 已落盘，新增 8 项假交互回归，
+总计 70/70 通过；当时的下一步为阶段 B 低风险 RelayCommand 迁移，Coordinator 正式接线留在
+阶段 C。
+
+2026-08-12 阶段 B 已完成：RelayCommand 基础设施和低风险命令绑定落盘，主看板补刷新重入保护，
+导出错误标题不再复用带访问键的按钮标签；中英资源各 272 键，74/74 回归通过。下一步进入
+阶段 C 的 WPF 交互实现和 Coordinator 正式接线。
+
+同日阶段 C 已完成：真实 WPF Interaction 与 Coordinator 正式接线，会话 View 移除具体文件/
+窗口/MessageBox 编排；`.claude/` 加入忽略规则，80/80 回归通过。下一步进入阶段 D 的条目类型
+机械移动与大型 ViewModel 拆分。
+
+同日阶段 D 已完成：Dashboard 条目类型先机械迁移，再按 Filter、Metrics、Distribution、
+Drilldown 组合拆分；根对象继续只生成一次一致快照，子对象不重复扫描会话。根文件缩减到 354 行，
+81/81 回归与性能预算通过。下一步进入阶段 E 清理和最终架构验证。
+
+同日阶段 E 工程验收完成：事件双向审计确认没有孤立处理器，最终架构、View 边界和测试证据已
+落盘；当前 85/85 回归通过。两轮独立干净构建的 DLL 与确定性 PEXT 哈希分别一致，包内严格为
+9 个预期文件，部署未改变用户数据。阶段 E 现只待客户端复验。
+
 ### 1.1+
 
 - 年度回顾；

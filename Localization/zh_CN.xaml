@@ -225,6 +225,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsErrorFormat">{0}：{1}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsNoErrorsToSave">当前没有需要保存的错误。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSaveErrorsFailedFormat">保存错误报告失败：{0}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsExportFailedTitle">导出失败</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsExportFailedFormat">导出失败：{0}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSundayShort">周日</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsMondayShort">周一</sys:String>

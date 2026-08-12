@@ -1,8 +1,154 @@
 # Playtime Insights 实现状态
 
-最后更新：2026-08-11
+最后更新：2026-08-13
 
-当前阶段：0.9.8 已正式发布，Add-on Database PR 等待上游审核
+当前阶段：0.9.8 已正式发布；架构重构 A–E 与 Dashboard 选择性刷新客户端验收通过
+
+## 架构重构准备分支
+
+- 2026-08-13 用户完成客户端验收：连续切换聚合、排名、时间范围和元数据筛选未发现本轮选择性
+  刷新回归，趋势/热力图/排名下钻、星期联动、封面和显式刷新行为通过；
+- 当前架构 PR 的范围至此冻结，只接受审查所需修正和验收记录，不再混入新的性能实现；
+- 后续仍有两个可感知性能方向：首次切入插件主页面时的完整 `DataReload` 卡顿，以及切换时间范围
+  时的完整分析卡顿。两者共享“完整刷新”路径，应在当前 PR 合并后从最新 `main` 新建
+  `perf/dashboard-full-refresh-pipeline` 分支统一设计和测量，并分别保留独立验收场景；
+- 后续性能分支优先使用现有 data/filter/analytics/apply/total Trace 确认瓶颈，再决定纯 DTO 后台分析、
+  generation、取消过期请求和轻量加载状态的实施范围，不预先把所有阶段一律异步化。
+
+- 任意筛选变化的轻微卡顿已定位为同一 UI 线程入口无条件执行数据读取、完整统计、封面解析及
+  多个列表逐项发布；当前 18 条会话不是主要耗时证据；
+- 新增强类型刷新原因和刷新计划：聚合/排名分别只重算趋势/排名投影，范围与元数据变化复用缓存，
+  只有 `DataReload` 读取 Playnite 数据库、LibraryPlugin 和 SessionRepository；
+- `AnalyticsService` 现在一次生成完整快照和 `DashboardAnalysisContext`，局部投影不重新拆分会话、
+  生成热力图或高级统计；游戏封面索引也只在数据加载时建立一次；
+- 主要 Dashboard 列表已改为完整 `IReadOnlyList` 一次发布，避免 `Clear + Add` 引发 WPF 重复布局；
+  会话下钻的真实增量分页不变；
+- 新增 8 项性能回归，当前共 95/95 项；最终干净 Release 0 警告/0 错误，10 万会话 618 ms，
+  schema 4 载入 1,165 ms；
+- DLL 为 305,664 字节，SHA-256：
+  `10D9153B303979C2E897FBA71E30E3064C8D2085E0842B4E38B904808DB97AEC`；确定性 PEXT 为
+  143,596 字节，SHA-256：
+  `51755E6EC35275D2D3CBE065C64398BF4EB761591B59C518BD48D727070C6178`；
+- Release、`staging\dashboard-selective-refresh\deployed` 与安装目录 9/9 哈希一致，包内仅有 9 个
+  安全条目且 DLL 无敏感路径；部署前后 7 个用户数据文件指纹保持
+  `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`；
+- 本轮客户端验收已完成；后续客户端性能基线改为插件主页面首次进入与时间范围切换两条完整刷新
+  路径，不再重复打开已经通过的聚合/排名局部刷新范围。
+
+- 分支：`refactor/architecture-preparation`；
+- 完整事件、按钮、键盘、焦点与副作用基线已落盘到
+  `docs\ARCHITECTURE_REFACTOR_BASELINE.md`；
+- `docs\ARCHITECTURE_OPTIMIZATION_PLAN.md` 已增加阶段 0 完成状态和下一步准入条件；
+- 新增第 62 项静态架构护栏：动态扫描四个 XAML 的事件处理器，要求全部进入职责矩阵；
+- 护栏禁止 ViewModel 引入 MessageBox、文件对话框、具体 Window 类型和外部 MVVM/Behavior
+  框架，并锁定现有 CanExecute 来源、分页可见性和两个对话框的键盘语义；
+- 阶段 0 只建立文档与测试护栏；阶段 A 仅新增接口、未接线 Coordinator 和 ViewModel 接口声明，
+  不修改业务执行逻辑、会话数据或客户端行为；
+- 已新增强类型 `ISessionManagementInteraction`、`ISessionManagementOperations` 和尚未接线的
+  `SessionManagementCoordinator`；
+- 8 项假交互测试覆盖文件选择取消、预览取消、删除拒绝、无效恢复、恢复拒绝、导出失败、编辑
+  取消和重建拒绝；
+- 阶段 B 新增非泛型/泛型 RelayCommand，无第三方依赖；会话页刷新/分页/恢复和主看板刷新/分页/
+  星期筛选已改为命令，趋势与热力图 Code-behind 只保留参数适配；
+- 会话页和主看板刷新期间均禁用相关命令，并在选中、分页和刷新状态变化时主动刷新 CanExecute；
+- 导出异常统一使用无访问键的 `LOCPlaytimeInsightsExportFailedTitle`，不会再显示“导出 CSV(_C)”；
+- 中英资源各 272 个键；Release 构建 0 警告/0 错误，当前 74/74 回归通过；
+- 阶段 B Release 已在 Playnite 关闭时部署到 `staging\architecture-stage-b` 和插件安装目录，
+  两处与 Release 输出 9/9 文件一致；DLL 大小 290,816 字节，SHA-256 为
+  `654CEDAE3753E205507828C0A5634D4D5234CAD26CD7F60C93392408EC77B5B0`；
+- 部署前后用户数据均为 7 个文件，联合指纹保持
+  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`；
+- 阶段 C 新增 `WpfSessionManagementInteraction` 并由插件根组装；会话页 10 个多步骤处理器现只做
+  Coordinator 转发，文件选择、Owner、确认、窗口和错误呈现已移出 View；
+- `.claude/` 已加入根 `.gitignore`；
+- 新增 6 项阶段 C 接线、完整成功路径和异常路径回归；Release 构建 0 警告/0 错误，当前
+  80/80 回归通过；
+- 阶段 C Release 已在 Playnite 关闭时部署到 `staging\architecture-stage-c` 和插件安装目录，
+  两处与 Release 输出 9/9 文件一致；DLL 大小 290,816 字节，SHA-256 为
+  `2CA2F983EC130F965A86B77D63A2CD352617182DE8E8382586E65608A2A607BE`；
+- 部署前后 7 个用户数据文件联合指纹保持
+  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`；
+- 阶段 D 首个机械提交已将 Dashboard 条目、选择项和快照类型移入 `ViewModels\Dashboard`，类名、
+  命名空间、XAML 绑定和客户端行为保持不变；
+- 根 `DashboardViewModel` 已组合 Filter、Metrics、Distribution、Drilldown 四个子 ViewModel，
+  文件由约 1094 行缩减到 354 行，既有根级属性作为兼容转发层保留；
+- 根对象仍是唯一全量读取会话并创建 `DashboardSnapshot` 的位置，子状态不持有 Repository、
+  不重复调用 `CreateSnapshot`；
+- 新增 1 项阶段 D 组合边界护栏，当前 81/81 回归通过；Release 构建 0 警告/0 错误；
+- 干净构建的 10 万会话分析为 510 ms，相对机械搬迁验证的 521 ms 未退化，符合 10% 预算；
+- 阶段 D Release 已部署到 `staging\architecture-stage-d` 和本机插件目录；Release、staging、
+  安装目录均为 9 个文件且逐项 SHA-256 一致；
+- 阶段 D DLL 为 294,400 字节，SHA-256：
+  `0156F2C0F11D5310BF4B79B26958BDAD010F4433A40C46A704DFA3AA2713764D`；
+- 部署前后用户数据均为 7 个文件，联合指纹保持
+  `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`；
+- Playnite 保持关闭；客户端验收应重点检查筛选联动、指标/排名、星期切换、趋势/热力图下钻、
+  封面缩略图和“加载更多”分页；
+- 阶段 D 客户端复审发现主页面每次侧边栏重入都会重建 ViewModel，导致“本年”等筛选恢复为
+  默认“本月”；现改为在插件实例生命周期内缓存 Dashboard ViewModel，页面重入时复用筛选状态
+  并刷新数据；Playnite 退出后缓存自然释放，下次启动仍使用默认值；
+- 页面关闭仍清除 `activeDashboard`，因此隐藏期间不会刷新已关闭的 UI；星期选择、下钻和分页会在
+  重入刷新时按原逻辑重置。新增运行期导航状态回归，当前共 82/82 项通过；Release 构建
+  0 警告/0 错误；
+- 修复版已部署到 `staging\architecture-stage-d` 和本机插件目录，三处 9/9 文件一致；DLL 为
+  295,424 字节，SHA-256：
+  `A91685ADF8AF60C35E9D81053F5CE34C2EA3FA19F45809F50984FE037556CCA7`；部署前后 7 个用户数据
+  文件联合指纹保持 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`；
+- 侧边栏卡顿复审确认两个页面在 `Opened` 与 `Loaded` 中各刷新一次，每次进入实际执行两轮同步
+  全量扫描；“ViewModel 文件行数”和当前 18 条/约 14 KB 会话数据不是本机主要瓶颈证据；
+- 已移除两个 `Opened` 刷新，保留 `Loaded` 为唯一自动入口；显式刷新、筛选变更、会话 CRUD、
+  游戏停止后的刷新与 Dashboard 运行期筛选缓存均保持；
+- 会话 `CountText` 已改用本轮 `GetAllIncludingDeleted()` 结果计算的活动会话总数，WPF 读取绑定
+  属性时不再触发额外的仓库克隆和排序；
+- 两项性能回归均按 TDD 先失败再通过；干净 Release 构建 0 警告/0 错误，当前 84/84 项通过，
+  10 万会话分析为 483 ms；未缓存会话 ViewModel 或游戏列表，未引入异步和数据库事件订阅；
+- 性能修复 Release 已部署到 `staging\architecture-stage-d` 和本机插件目录，Release、staging、
+  安装目录均为 9 个文件且逐项 SHA-256 一致；DLL 为 294,400 字节，SHA-256：
+  `7A763012974D25685A512CDB4A10A7ACE32FF31C08B09DF2A583F20DFA807ADE`；
+- 部署前后用户数据均为 7 个文件，联合指纹保持
+  `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`；Playnite 保持关闭；
+- 客户端应验收两个页面首次进入和来回切换、显式刷新、Dashboard 筛选保留、会话计数/筛选/分页
+  以及完全重启后的默认“本月”；
+- 阶段 E 对四个 View 完成事件源/处理器双向审计，未发现孤立处理器，生产删除数为 0；保留的
+  Loaded、自定义事件、滚轮、ContextMenu、Coordinator 转发和窗口内部事件均补充职责注释；
+- 新增 `docs\ARCHITECTURE.md` 和第 85 项阶段 E 护栏；护栏动态拒绝孤立事件/方法，不以
+  Code-behind 行数为完成标准；命令本地化、AutomationProperties、CanExecute、默认/取消按钮、
+  循环 Tab 和初始焦点继续由既有自动化覆盖；
+- 两轮独立干净 Release 构建均为 0 警告/0 错误、85/85 回归通过；10 万会话分别为 567 ms 和
+  561 ms，均在发布预算内；
+- 原始 Toolbox PEXT 的条目内容完全一致但外层哈希受 DLL ZIP 时间戳影响；新增
+  `scripts\Pack-Deterministic.ps1`，严格验证 9 文件并在临时副本中统一时间戳，不修改 Release；
+- 两轮确定性 PEXT 均为 139,177 字节，SHA-256：
+  `3DDF721B41078D694984D044C71797A38A801098D1359B6F824EDED1926F9126`；DLL 均为 294,400 字节，
+  SHA-256：`7A763012974D25685A512CDB4A10A7ACE32FF31C08B09DF2A583F20DFA807ADE`；
+- 两个包均仅含 9 个预期条目，逐项内容与 Release 相同，不含 PDB、绝对路径或额外文件；
+- 第二轮 Release 已部署到 `staging\architecture-stage-e\deployed` 和插件安装目录，三处 9/9
+  文件一致；部署前后 7 个用户数据文件联合指纹保持
+  `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`；
+- Playnite 保持关闭；下一步为客户端复验 Dashboard/会话导航、显式刷新、筛选保留、图表下钻、
+  滚轮、Advanced Options、编辑/导入窗口键盘行为及会话 CRUD/导入导出。
+- 聚合粒度切换后的旧图残留已定位为自绘 `AdaptiveTrendChart` 没有监听同一
+  `ObservableCollection` 的内容变化：依赖属性引用不变时 `AffectsRender` 不会触发，旧的
+  `renderedItems`、`renderedPoints` 和 Hover 索引会一直保留到后续鼠标、布局或视口事件；
+- 修复按 TDD 分两步完成：第一项回归先因两次 `Apply` 返回同一集合引用失败，随后
+  `DashboardDistributionViewModel` 改为一次发布完整的新
+  `IReadOnlyList<PeriodActivityViewModel>`；第二项真实 STA/WPF 回归先因换源后缓存仍为 1 失败，
+  随后控件通过 `CollectionChangedEventManager` 弱订阅新源、退订旧源，并统一重置 Hover 与
+  渲染缓存后调用 `InvalidateVisual()`；
+- 最终双 clean Release 构建 0 警告/0 错误，87/87 回归通过；10 万会话分析为 557 ms，schema 4
+  JSON 载入为 1,066 ms，均在既有发布预算内；
+- 最终 DLL 为 294,912 字节，SHA-256：
+  `B142B20DAF2EA1F6B968A3F96557CA4CD7B393A8DA1EF161E424B4468816F18C`；确定性 PEXT 为
+  139,530 字节，SHA-256：
+  `E74F9B5774DBFF44BE168CB136D72650EF77549BEBCBCCFFAAFB22799DF6CA05`；
+- Release 与 PEXT 均严格包含 9 个预期文件，PEXT 不含 PDB、绝对/父级路径，DLL 未扫描到用户
+  名、开发目录或 PDB 痕迹；Release、`staging\atomic-trend-refresh\deployed` 和插件安装目录
+  9/9 文件哈希一致；
+- 部署前后用户数据均为 7 个文件，以相对路径、长度、UTC 时间戳和文件 SHA-256 生成的规范化
+  联合指纹保持 `8739B76AD190E16BC9BCD752D268B6FE52C4C59D5B169D9779836ACEFE3C18EF`；
+  Playnite 保持关闭；
+- 后续异步可取消刷新仍仅作为独立性能路线保留：先捕获不可变 DTO，再引入后台纯分析、generation、
+  取消过期请求与轻量加载状态；本轮未改变统计口径、图表视觉、下钻、XAML、版本或用户数据。
 
 ## 0.9.8 正式发布候选
 

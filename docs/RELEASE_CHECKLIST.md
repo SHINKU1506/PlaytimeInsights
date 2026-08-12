@@ -45,9 +45,9 @@
 3. 执行 Release 构建和完整测试；
 4. 确认 Release 目录只有 9 个预期发布文件，包含 LICENSE 且不含 PDB；
 5. 将同一 Release 文件部署到 `staging\<version>` 和安装目录；
-6. 使用 Playnite Toolbox 从 Release 目录打包；
+6. 使用 `scripts\Pack-Deterministic.ps1` 从 Release 目录调用 Playnite Toolbox 打包；
 7. 核对 Release、staging、安装目录逐文件 SHA-256；
-8. 核对 PEXT 只包含 9 个预期文件；
+8. 连续两轮打包哈希应一致，并核对 PEXT 只包含 9 个预期文件；
 9. 确认 `ExtensionsData` 文件数量、时间戳和内容未变化；
 10. 更新 DEVELOPMENT、ROADMAP、IMPLEMENTATION_STATUS 和 CHANGELOG。
 

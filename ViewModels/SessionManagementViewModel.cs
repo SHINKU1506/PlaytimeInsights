@@ -1,6 +1,7 @@
 using Playnite.SDK;
 using Playnite.SDK.Plugins;
 using PlaytimeInsights.Models;
+using PlaytimeInsights.Presentation.Coordinators;
 using PlaytimeInsights.Services;
 using System;
 using System.Collections.Generic;
@@ -37,7 +38,8 @@ namespace PlaytimeInsights.ViewModels
         public string LibraryName { get; set; }
     }
 
-    public sealed class SessionManagementViewModel : ObservableObject
+    public sealed class SessionManagementViewModel : ObservableObject,
+        ISessionManagementOperations
     {
         private readonly IPlayniteAPI playniteApi;
         private readonly SessionRepository repository;
@@ -51,6 +53,7 @@ namespace PlaytimeInsights.ViewModels
         private readonly RefreshReentrancyGuard refreshGuard =
             new RefreshReentrancyGuard();
         private IList<GameSession> filteredSessions = new List<GameSession>();
+        private int activeSessionCount;
         private string searchText = string.Empty;
         private SelectionOption<SessionSource?> selectedSource;
         private SelectionOption<MetadataFilterDimension> selectedMetadataDimension;
@@ -123,6 +126,15 @@ namespace PlaytimeInsights.ViewModels
             Sessions = pager.VisibleItems;
             selectedSource = SourceOptions[0];
             selectedMetadataDimension = MetadataDimensionOptions[0];
+            RefreshCommand = new RelayCommand(
+                Refresh,
+                () => !refreshGuard.IsActive);
+            LoadMoreCommand = new RelayCommand(
+                LoadMore,
+                () => !refreshGuard.IsActive && pager.HasMore);
+            RestoreSelectedCommand = new RelayCommand(
+                () => RestoreSelectedSession(),
+                () => !refreshGuard.IsActive && CanRestore);
         }
 
         public ObservableCollection<SelectionOption<SessionSource?>> SourceOptions { get; }
@@ -133,6 +145,12 @@ namespace PlaytimeInsights.ViewModels
         public ObservableCollection<SelectionOption<string>> MetadataValueOptions { get; }
 
         public ObservableCollection<SessionManagementItemViewModel> Sessions { get; }
+
+        public RelayCommand RefreshCommand { get; }
+
+        public RelayCommand LoadMoreCommand { get; }
+
+        public RelayCommand RestoreSelectedCommand { get; }
 
         public string SearchText
         {
@@ -222,6 +240,7 @@ namespace PlaytimeInsights.ViewModels
                     OnPropertyChanged(nameof(CanEdit));
                     OnPropertyChanged(nameof(CanDelete));
                     OnPropertyChanged(nameof(CanRestore));
+                    RestoreSelectedCommand?.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -237,7 +256,7 @@ namespace PlaytimeInsights.ViewModels
             "已显示 {0:N0} / 筛选结果 {1:N0} / 全部 {2:N0}",
             pager.VisibleCount,
             pager.TotalCount,
-            repository.GetAll().Count);
+            activeSessionCount);
 
         public Visibility LoadMoreVisibility =>
             pager.HasMore ? Visibility.Visible : Visibility.Collapsed;
@@ -251,9 +270,13 @@ namespace PlaytimeInsights.ViewModels
                 return;
             }
 
+            RaiseCommandStates();
+
             try
             {
                 var allSessions = repository.GetAllIncludingDeleted();
+                activeSessionCount = allSessions.Count(session =>
+                    !session.IsDeleted);
                 var games = playniteApi.Database.Games.ToList();
                 var libraryNames = GetLibraryNames();
                 RefreshMetadataValueOptions(games, libraryNames);
@@ -291,6 +314,7 @@ namespace PlaytimeInsights.ViewModels
             finally
             {
                 refreshGuard.Exit();
+                RaiseCommandStates();
             }
         }
 
@@ -636,6 +660,14 @@ namespace PlaytimeInsights.ViewModels
         {
             OnPropertyChanged(nameof(CountText));
             OnPropertyChanged(nameof(LoadMoreVisibility));
+            LoadMoreCommand?.RaiseCanExecuteChanged();
+        }
+
+        private void RaiseCommandStates()
+        {
+            RefreshCommand?.RaiseCanExecuteChanged();
+            LoadMoreCommand?.RaiseCanExecuteChanged();
+            RestoreSelectedCommand?.RaiseCanExecuteChanged();
         }
 
         private static void EnsureExportPath(string path)
