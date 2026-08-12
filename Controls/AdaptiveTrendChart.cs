@@ -2,6 +2,7 @@ using PlaytimeInsights.ViewModels;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -29,7 +30,8 @@ namespace PlaytimeInsights.Controls
                 typeof(AdaptiveTrendChart),
                 new FrameworkPropertyMetadata(
                     null,
-                    FrameworkPropertyMetadataOptions.AffectsRender));
+                    FrameworkPropertyMetadataOptions.AffectsRender,
+                    OnItemsSourceChanged));
 
         private int hoverIndex = -1;
         private IList<PeriodActivityViewModel> renderedItems =
@@ -43,6 +45,45 @@ namespace PlaytimeInsights.Controls
         }
 
         public event EventHandler<TrendPeriodSelectedEventArgs> PeriodSelected;
+
+        private static void OnItemsSourceChanged(
+            DependencyObject dependencyObject,
+            DependencyPropertyChangedEventArgs args)
+        {
+            var chart = (AdaptiveTrendChart)dependencyObject;
+            var oldCollection = args.OldValue as INotifyCollectionChanged;
+            if (oldCollection != null)
+            {
+                CollectionChangedEventManager.RemoveHandler(
+                    oldCollection,
+                    chart.ItemsSource_CollectionChanged);
+            }
+
+            var newCollection = args.NewValue as INotifyCollectionChanged;
+            if (newCollection != null)
+            {
+                CollectionChangedEventManager.AddHandler(
+                    newCollection,
+                    chart.ItemsSource_CollectionChanged);
+            }
+
+            chart.ResetRenderedState();
+        }
+
+        private void ItemsSource_CollectionChanged(
+            object sender,
+            NotifyCollectionChangedEventArgs args)
+        {
+            ResetRenderedState();
+        }
+
+        private void ResetRenderedState()
+        {
+            hoverIndex = -1;
+            renderedItems = new List<PeriodActivityViewModel>();
+            renderedPoints = new List<Point>();
+            InvalidateVisual();
+        }
 
         protected override void OnRender(DrawingContext drawingContext)
         {

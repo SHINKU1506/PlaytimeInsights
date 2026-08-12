@@ -1,17 +1,24 @@
 using Playnite.SDK;
 using PlaytimeInsights.Models;
+using PlaytimeInsights.Controls;
 using PlaytimeInsights.Presentation.Coordinators;
 using PlaytimeInsights.Presentation.Interactions;
 using PlaytimeInsights.Services;
 using PlaytimeInsights.ViewModels;
 using Newtonsoft.Json;
 using System;
+using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Xml.Linq;
 
 namespace PlaytimeInsights.Tests
@@ -99,6 +106,7 @@ namespace PlaytimeInsights.Tests
             Run("Session count reuses the refresh snapshot", TestSessionCountUsesRefreshSnapshot);
             Run("Stage E architecture closure keeps event boundaries symmetric", TestStageEArchitectureClosure);
             Run("Trend periods publish one complete replacement", TestTrendPeriodsPublishAtomically);
+            Run("Trend chart follows source lifecycle changes", TestTrendChartSourceLifecycle);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -2409,6 +2417,162 @@ namespace PlaytimeInsights.Tests
                     Anomalies = new List<AnomalySessionViewModel>()
                 }
             };
+        }
+
+        private static void TestTrendChartSourceLifecycle()
+        {
+            RunOnSta(() =>
+            {
+                var oldSource = new ObservableCollection<PeriodActivityViewModel>
+                {
+                    new PeriodActivityViewModel
+                    {
+                        Label = "old",
+                        DurationText = "10 秒",
+                        Seconds = 10
+                    }
+                };
+                var chart = new AdaptiveTrendChart
+                {
+                    ItemsSource = oldSource,
+                    Width = 640,
+                    Height = 230
+                };
+                RenderTrendChart(chart);
+                Equal(1, GetPrivateListCount(chart, "renderedItems"));
+
+                SetPrivateField(chart, "hoverIndex", 0);
+                var currentSource =
+                    new ObservableCollection<PeriodActivityViewModel>
+                    {
+                        new PeriodActivityViewModel
+                        {
+                            Label = "new-a",
+                            DurationText = "20 秒",
+                            Seconds = 20
+                        },
+                        new PeriodActivityViewModel
+                        {
+                            Label = "new-b",
+                            DurationText = "30 秒",
+                            Seconds = 30
+                        }
+                    };
+                chart.ItemsSource = currentSource;
+
+                Equal(0, GetPrivateListCount(chart, "renderedItems"));
+                Equal(0, GetPrivateListCount(chart, "renderedPoints"));
+                Equal(-1, GetPrivateField<int>(chart, "hoverIndex"));
+
+                RenderTrendChart(chart);
+                Equal(2, GetPrivateListCount(chart, "renderedItems"));
+                oldSource.Add(new PeriodActivityViewModel
+                {
+                    Label = "detached-old",
+                    DurationText = "40 秒",
+                    Seconds = 40
+                });
+                Equal(2, GetPrivateListCount(chart, "renderedItems"));
+
+                currentSource.Add(new PeriodActivityViewModel
+                {
+                    Label = "new-c",
+                    DurationText = "50 秒",
+                    Seconds = 50
+                });
+                Equal(0, GetPrivateListCount(chart, "renderedItems"));
+                Equal(0, GetPrivateListCount(chart, "renderedPoints"));
+                RenderTrendChart(chart);
+                Equal(3, GetPrivateListCount(chart, "renderedItems"));
+            });
+        }
+
+        private static void RunOnSta(Action action)
+        {
+            Exception error = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    error = ex;
+                }
+            })
+            {
+                IsBackground = true
+            };
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            if (!thread.Join(TimeSpan.FromSeconds(30)))
+            {
+                throw new TimeoutException("STA chart test timed out.");
+            }
+
+            if (error != null)
+            {
+                throw new InvalidOperationException(
+                    "STA chart test failed.",
+                    error);
+            }
+        }
+
+        private static void RenderTrendChart(AdaptiveTrendChart chart)
+        {
+            chart.Measure(new Size(640, 230));
+            chart.Arrange(new Rect(0, 0, 640, 230));
+            chart.UpdateLayout();
+            var bitmap = new RenderTargetBitmap(
+                640,
+                230,
+                96,
+                96,
+                PixelFormats.Pbgra32);
+            bitmap.Render(chart);
+        }
+
+        private static int GetPrivateListCount(
+            AdaptiveTrendChart chart,
+            string fieldName)
+        {
+            var value = GetPrivateField<object>(chart, fieldName);
+            var count = value.GetType().GetProperty("Count");
+            return (int)count.GetValue(value, null);
+        }
+
+        private static T GetPrivateField<T>(
+            AdaptiveTrendChart chart,
+            string fieldName)
+        {
+            var field = typeof(AdaptiveTrendChart).GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null)
+            {
+                throw new InvalidOperationException(
+                    "Missing chart field: " + fieldName);
+            }
+
+            return (T)field.GetValue(chart);
+        }
+
+        private static void SetPrivateField(
+            AdaptiveTrendChart chart,
+            string fieldName,
+            object value)
+        {
+            var field = typeof(AdaptiveTrendChart).GetField(
+                fieldName,
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            if (field == null)
+            {
+                throw new InvalidOperationException(
+                    "Missing chart field: " + fieldName);
+            }
+
+            field.SetValue(chart, value);
         }
 
         private static void TestSessionManagementVisualHierarchy()
