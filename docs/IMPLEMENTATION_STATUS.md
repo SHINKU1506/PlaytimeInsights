@@ -34,6 +34,11 @@
 - `.claude/` 已加入根 `.gitignore`；
 - 新增 6 项阶段 C 接线、完整成功路径和异常路径回归；Release 构建 0 警告/0 错误，当前
   80/80 回归通过；
+- 阶段 C Release 已在 Playnite 关闭时部署到 `staging\architecture-stage-c` 和插件安装目录，
+  两处与 Release 输出 9/9 文件一致；DLL 大小 290,816 字节，SHA-256 为
+  `2CA2F983EC130F965A86B77D63A2CD352617182DE8E8382586E65608A2A607BE`；
+- 部署前后 7 个用户数据文件联合指纹保持
+  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`；
 - 下一步是阶段 D：先机械移出 Dashboard 无状态条目类型，再按一致快照拆分职责。
 
 ## 0.9.8 正式发布候选

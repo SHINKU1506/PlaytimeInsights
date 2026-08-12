@@ -29,6 +29,10 @@ Release 输出一致。该开发 DLL SHA-256 为
 只保留生命周期、ContextMenu 与 Coordinator 转发；所有文件对话框、Owner、确认、编辑/预览窗口
 和错误弹窗集中在 Presentation/Interactions。
 
+阶段 C 验证产物已部署到 `staging\architecture-stage-c` 和本机插件目录；9/9 发布文件一致。
+开发 DLL SHA-256 为 `2CA2F983EC130F965A86B77D63A2CD352617182DE8E8382586E65608A2A607BE`，
+部署前后用户数据指纹不变。
+
 ## 环境
 
 - Playnite 安装目录：`D:\software\Playnite`
