@@ -114,6 +114,7 @@ namespace PlaytimeInsights.Tests
             Run("Trend projection leaves unrelated dashboard state intact", TestDashboardTrendProjectionApplyBoundary);
             Run("Ranking projection leaves unrelated dashboard state intact", TestDashboardRankingProjectionApplyBoundary);
             Run("Dashboard major lists publish atomically", TestDashboardMajorListsPublishAtomically);
+            Run("Dashboard refresh policy keeps local changes off data reload", TestDashboardRefreshRootPolicy);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -2252,10 +2253,10 @@ namespace PlaytimeInsights.Tests
 
             Equal(1, Regex.Matches(
                 root,
-                @"analyticsService\.CreateSnapshot\(",
+                @"analyticsService\.CreateSnapshotWithContext\(",
                 RegexOptions.CultureInvariant).Count);
-            Equal(true, root.Contains("Metrics.Apply(snapshot, allGames)"));
-            Equal(true, root.Contains("Distribution.Apply(snapshot)"));
+            Equal(true, root.Contains("Metrics.Apply(result.Snapshot, allGames)"));
+            Equal(true, root.Contains("Distribution.Apply(result.Snapshot)"));
             Equal(true, root.Contains(
                 "Drilldown.ResetContext(filteredGames, filteredSessions)"));
             Equal(true, root.Contains(
@@ -2297,6 +2298,55 @@ namespace PlaytimeInsights.Tests
                 plugin,
                 @"new DashboardViewModel\(",
                 RegexOptions.CultureInvariant).Count);
+        }
+
+        private static void TestDashboardRefreshRootPolicy()
+        {
+            var sourceRoot = FindSourceRoot();
+            var source = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+            var trendBlock = ExtractSourceBlock(
+                source,
+                "private DashboardRefreshTiming ApplyTrendRefresh()",
+                "private DashboardRefreshTiming ApplyRankingRefresh()");
+            var rankingBlock = ExtractSourceBlock(
+                source,
+                "private DashboardRefreshTiming ApplyRankingRefresh()",
+                "private DashboardRefreshTiming ApplyFullAnalysis()");
+
+            Equal(true, source.Contains("reason => Refresh(reason)"));
+            Equal(true, source.Contains(
+                "Refresh(DashboardRefreshReason.DataReload)"));
+            Equal(true, source.Contains(
+                "DashboardRefreshPlan.Create(reason, cacheReady)"));
+            Equal(1, Regex.Matches(
+                source,
+                @"Filter\.GetLibraryNames\(\)",
+                RegexOptions.CultureInvariant).Count);
+            Equal(1, Regex.Matches(
+                source,
+                @"Database\.Games\.ToList\(\)",
+                RegexOptions.CultureInvariant).Count);
+            Equal(1, Regex.Matches(
+                source,
+                @"sessionRepository\.GetAll\(\)",
+                RegexOptions.CultureInvariant).Count);
+            Equal(true, trendBlock.Contains("CreateTrendProjection("));
+            Equal(true, trendBlock.Contains("Distribution.ApplyTrend("));
+            Equal(true, trendBlock.Contains("Metrics.ApplyPeriodTitle("));
+            Equal(false, trendBlock.Contains("GetLibraryNames"));
+            Equal(false, trendBlock.Contains("sessionRepository"));
+            Equal(false, trendBlock.Contains("CreateSnapshot"));
+            Equal(true, rankingBlock.Contains("CreateRankingProjection("));
+            Equal(true, rankingBlock.Contains("Metrics.ApplyRangeRanking("));
+            Equal(false, rankingBlock.Contains("GetLibraryNames"));
+            Equal(false, rankingBlock.Contains("sessionRepository"));
+            Equal(false, rankingBlock.Contains("CreateSnapshot"));
+            Equal(true, source.Contains(
+                "PlaytimeInsights Dashboard refresh reason={0} " +
+                "data={1}ms filter={2}ms analytics={3}ms apply={4}ms total={5}ms"));
         }
 
         private static void TestSidebarNavigationUsesSingleAutomaticRefresh()

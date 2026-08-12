@@ -101,18 +101,18 @@
 - Consumes `DashboardRefreshPlan`, cached games/sessions/library names/current filtered lists and `DashboardAnalysisContext`.
 - Public `Refresh()` remains `DataReload`; filter callback calls private/internal `Refresh(DashboardRefreshReason)`.
 
-- [ ] Register `Dashboard refresh policy keeps local changes off data reload` as a plan-driven behavior test. Use a small `DashboardRefreshExecutor`-independent policy test if constructing Playnite API is impractical; assert the root consumes every plan flag and no local branch calls `GetLibraryNames`, `Database.Games` or `sessionRepository.GetAll` by reviewing the bounded switch in the same test only as an architecture boundary supplement.
-- [ ] Run suite and verify RED against the current unconditional `RefreshCore`.
-- [ ] Add cached fields and implement plan execution:
+- [x] Register `Dashboard refresh policy keeps local changes off data reload` as a plan-driven behavior test. Use a small `DashboardRefreshExecutor`-independent policy test if constructing Playnite API is impractical; assert the root consumes every plan flag and no local branch calls `GetLibraryNames`, `Database.Games` or `sessionRepository.GetAll` by reviewing the bounded switch in the same test only as an architecture boundary supplement.
+- [x] Run suite and verify RED against the current unconditional `RefreshCore`.
+- [x] Add cached fields and implement plan execution:
   - `DataReload`: load library names/games/sessions, refresh metadata values, rebuild filter, full snapshot/context/apply;
   - `Range`: reuse filtered lists, full snapshot/context/apply;
   - `MetadataDimension`: refresh options from cached games, rebuild filter, full snapshot/context/apply;
   - `MetadataValue`: rebuild filter, full snapshot/context/apply;
   - `Aggregation`: `CreateTrendProjection`, apply trend/title, reset drilldown selection only;
   - `Ranking`: `CreateRankingProjection`, apply range ranking/title only.
-- [ ] Add `Stopwatch` phase markers and one `Trace.WriteLine` record: `PlaytimeInsights Dashboard refresh reason={0} data={1}ms filter={2}ms analytics={3}ms apply={4}ms total={5}ms`.
-- [ ] Run suite. Expected: 95/95 pass and all command/reentrancy tests green.
-- [ ] Commit `perf(dashboard): reuse data across filter changes`.
+- [x] Add `Stopwatch` phase markers and one `Trace.WriteLine` record: `PlaytimeInsights Dashboard refresh reason={0} data={1}ms filter={2}ms analytics={3}ms apply={4}ms total={5}ms`.
+- [x] Run suite. Expected: 95/95 pass and all command/reentrancy tests green.
+- [x] Commit `perf(dashboard): reuse data across filter changes`.
 
 ---
 

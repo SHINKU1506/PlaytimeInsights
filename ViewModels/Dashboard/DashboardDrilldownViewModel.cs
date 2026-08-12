@@ -56,6 +56,11 @@ namespace PlaytimeInsights.ViewModels
         {
             activeGames = games ?? new List<Game>();
             activeSessions = sessions ?? new List<GameSession>();
+            ResetSelection();
+        }
+
+        public void ResetSelection()
+        {
             pager.Reset(null);
             NotifyPagingChanged();
             SessionDetailVisibility = Visibility.Collapsed;
