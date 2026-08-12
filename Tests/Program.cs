@@ -92,6 +92,12 @@ namespace PlaytimeInsights.Tests
             Run("Session coordinator contains export failure", TestCoordinatorContainsExportFailure);
             Run("Session coordinator cancels editor", TestCoordinatorCancelsEditor);
             Run("Session coordinator cancels reindex", TestCoordinatorCancelsReindex);
+            Run("Stage C composes WPF session workflows", TestStageCComposition);
+            Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
+            Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
+            Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
+            Run("Session coordinator completes remaining workflows", TestCoordinatorCompletesRemainingWorkflows);
+            Run("Session coordinator contains import failure", TestCoordinatorContainsImportFailure);
             Run("Release metadata and public README stay current", TestReleaseMetadataAndReadme);
             Run("Localization keys and format placeholders stay source-complete", TestLocalizationSourceCoverage);
             Run("Release 0.1 through 0.9 settings keep compatible defaults", TestLegacySettingsMatrix);
@@ -2723,6 +2729,233 @@ namespace PlaytimeInsights.Tests
             Equal(0, operations.MutationCalls);
         }
 
+        private static void TestStageCComposition()
+        {
+            var sourceRoot = FindSourceRoot();
+            var gitignore = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                ".gitignore"));
+            var plugin = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.cs"));
+            var view = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml.cs"));
+            var interaction = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Presentation",
+                "Interactions",
+                "WpfSessionManagementInteraction.cs"));
+
+            Equal(true, gitignore.Contains(".claude/"));
+            Equal(true, plugin.Contains(
+                "new WpfSessionManagementInteraction("));
+            Equal(true, plugin.Contains(
+                "new SessionManagementCoordinator("));
+            Equal(true, plugin.Contains(
+                "new SessionManagementView(coordinator)"));
+            Equal(true, view.Contains(
+                "private readonly SessionManagementCoordinator coordinator"));
+            foreach (var call in new[]
+            {
+                "coordinator.AddSession()",
+                "coordinator.EditSelectedSession()",
+                "coordinator.DeleteSelectedSession()",
+                "coordinator.ExportCsv()",
+                "coordinator.ExportJson()",
+                "coordinator.ImportSessions()",
+                "coordinator.CreateBackup()",
+                "coordinator.RestoreBackup()",
+                "coordinator.Reindex()",
+                "coordinator.SaveDiagnostics()"
+            })
+            {
+                Equal(true, view.Contains(call));
+            }
+
+            foreach (var forbidden in new[]
+            {
+                "OpenFileDialog",
+                "SaveFileDialog",
+                "MessageBox.Show",
+                "SessionEditorWindow",
+                "SessionImportPreviewWindow",
+                "ShowDataError",
+                "private static void Export"
+            })
+            {
+                Equal(false, view.Contains(forbidden));
+            }
+
+            foreach (var required in new[]
+            {
+                "class WpfSessionManagementInteraction",
+                "new OpenFileDialog",
+                "new SaveFileDialog",
+                "new SessionEditorWindow",
+                "new SessionImportPreviewWindow",
+                "Owner = ownerProvider()",
+                "LOCPlaytimeInsightsDeleteConfirmation",
+                "LOCPlaytimeInsightsRestoreConfirmationFormat",
+                "LOCPlaytimeInsightsReindexConfirmation",
+                "LOCPlaytimeInsightsSessionFileFilter",
+                "LOCPlaytimeInsightsBackupFileFilter",
+                "LOCPlaytimeInsightsErrorFormat"
+            })
+            {
+                Equal(true, interaction.Contains(required));
+            }
+        }
+
+        private static void TestCoordinatorCompletesImport()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                ImportPreview = new SessionImportPreview
+                {
+                    Candidates = new List<GameSession>
+                    {
+                        new GameSession { Id = Guid.NewGuid() }
+                    }
+                }
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ImportFiles = new[] { "sessions.csv" },
+                ConfirmImportResult = true
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(true, coordinator.ImportSessions());
+            Equal(1, operations.PreviewImportCalls);
+            Equal(1, interaction.ConfirmImportCalls);
+            Equal(1, operations.CommitImportCalls);
+            Equal(1, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCompletesRestore()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                RestorePreview = new SessionRestorePreview
+                {
+                    IsValid = true,
+                    SessionCount = 3,
+                    SchemaVersion = GameSession.CurrentSchemaVersion
+                }
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                RestorePath = "backup.json",
+                ConfirmRestoreResult = true
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(true, coordinator.RestoreBackup());
+            Equal(1, operations.PreviewRestoreCalls);
+            Equal(1, interaction.ConfirmRestoreCalls);
+            Equal(1, operations.RestoreCalls);
+            Equal(1, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCompletesEditAndReindex()
+        {
+            var edited = new GameSession
+            {
+                Id = Guid.NewGuid(),
+                GameId = Guid.NewGuid(),
+                GameName = "Edited"
+            };
+            var operations = new FakeSessionManagementOperations
+            {
+                CanEdit = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                EditorResult = edited,
+                ConfirmReindexResult = true
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(true, coordinator.EditSelectedSession());
+            Equal(true, coordinator.Reindex());
+            Equal(1, operations.UpdateCalls);
+            Equal(1, operations.ReindexCalls);
+            Equal(2, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorContainsImportFailure()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                ThrowOnPreviewImport = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ImportFiles = new[] { "sessions.csv" }
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(false, coordinator.ImportSessions());
+            Equal(1, operations.PreviewImportCalls);
+            Equal(0, operations.CommitImportCalls);
+            Equal(0, operations.MutationCalls);
+            Equal(1, interaction.ErrorCount);
+        }
+
+        private static void TestCoordinatorCompletesRemainingWorkflows()
+        {
+            var operations = new FakeSessionManagementOperations
+            {
+                CanDelete = true
+            };
+            var interaction = new FakeSessionManagementInteraction
+            {
+                ExportPath = "sessions.csv",
+                BackupPath = "backup.json",
+                DiagnosticsPath = "diagnostics.txt",
+                ConfirmDeleteResult = true,
+                EditorResult = new GameSession
+                {
+                    Id = Guid.NewGuid(),
+                    GameId = Guid.NewGuid(),
+                    GameName = "Added"
+                }
+            };
+            var coordinator = new SessionManagementCoordinator(
+                operations,
+                interaction);
+
+            Equal(true, coordinator.ExportCsv());
+            interaction.ExportPath = "sessions.json";
+            Equal(true, coordinator.ExportJson());
+            Equal(true, coordinator.CreateBackup());
+            Equal(true, coordinator.AddSession());
+            Equal(true, coordinator.DeleteSelectedSession());
+            Equal(true, coordinator.SaveDiagnostics());
+
+            Equal(1, operations.ExportCsvCalls);
+            Equal(1, operations.ExportJsonCalls);
+            Equal(1, operations.CreateBackupCalls);
+            Equal(1, operations.AddCalls);
+            Equal(1, operations.DeleteCalls);
+            Equal(1, operations.SaveDiagnosticsCalls);
+            Equal(2, operations.MutationCalls);
+            Equal(0, interaction.ErrorCount);
+        }
+
         private static void TestReleaseMetadataAndReadme()
         {
             var sourceRoot = FindSourceRoot();
@@ -3010,7 +3243,17 @@ namespace PlaytimeInsights.Tests
 
             public bool ThrowOnExportCsv { get; set; }
 
+            public bool ThrowOnPreviewImport { get; set; }
+
             public int ExportCsvCalls { get; private set; }
+
+            public int ExportJsonCalls { get; private set; }
+
+            public int SaveDiagnosticsCalls { get; private set; }
+
+            public int CreateBackupCalls { get; private set; }
+
+            public int AddCalls { get; private set; }
 
             public int PreviewImportCalls { get; private set; }
 
@@ -3056,11 +3299,13 @@ namespace PlaytimeInsights.Tests
 
             public int ExportJson(string path)
             {
+                ExportJsonCalls++;
                 return 0;
             }
 
             public void SaveDiagnostics(string path)
             {
+                SaveDiagnosticsCalls++;
             }
 
             public GameSession GetSelectedSession()
@@ -3079,6 +3324,7 @@ namespace PlaytimeInsights.Tests
 
             public bool AddSession(GameSession session)
             {
+                AddCalls++;
                 MutationCalls++;
                 return true;
             }
@@ -3101,6 +3347,11 @@ namespace PlaytimeInsights.Tests
                 IEnumerable<string> paths)
             {
                 PreviewImportCalls++;
+                if (ThrowOnPreviewImport)
+                {
+                    throw new InvalidOperationException("Import preview failed.");
+                }
+
                 return ImportPreview;
             }
 
@@ -3114,6 +3365,7 @@ namespace PlaytimeInsights.Tests
 
             public string CreateBackup(string path)
             {
+                CreateBackupCalls++;
                 return path;
             }
 

@@ -23,6 +23,7 @@ packages/
 .vs/
 .idea/
 .vscode/
+.claude/
 *.suo
 *.user
 *.userosscache

@@ -1,6 +1,6 @@
 # Playtime Insights 架构重构行为基线
 
-状态：阶段 B 后行为基线
+状态：阶段 C 后行为基线
 
 记录日期：2026-08-11
 
@@ -13,9 +13,9 @@
 本文记录命令与协调器迁移前的可见行为、事件职责、启用条件和数据副作用。后续重构允许删除
 已迁移的事件处理器，但不得在没有更新本基线和自动化护栏的情况下改变这些行为。
 
-阶段 0 没有修改生产代码。阶段 A 已新增尚未接线的交互接口、操作接口和 Coordinator，并让
-`SessionManagementViewModel` 实现操作接口；现有 View/XAML 仍走 0.9.8 路径，因此不改变存储
-schema、插件 ID、统计口径、对话框和客户端行为。
+阶段 0 没有修改生产代码。阶段 A 建立交互/操作接口与 Coordinator，阶段 B 完成低风险命令，
+阶段 C 已由插件根组装 `WpfSessionManagementInteraction` 与 Coordinator。存储 schema、插件 ID、
+统计口径、对话框文案和用户操作顺序保持不变。
 
 ## 当前组装边界
 
@@ -25,7 +25,8 @@ schema、插件 ID、统计口径、对话框和客户端行为。
 - `SessionManagementView.xaml.cs` 当前负责文件选择、确认、窗口 Owner 和多步骤流程；
 - `PlaytimeInsightsDashboardView.xaml.cs` 当前负责自定义事件适配和嵌套滚轮接力；
 - `SessionEditorWindow` 与 `SessionImportPreviewWindow` 负责自身对话框生命周期；
-- `SessionManagementCoordinator` 当前只由自动化测试实例化，尚未接入真实 View；
+- `SessionManagementCoordinator` 已由插件根创建并注入 `SessionManagementView`；
+- `WpfSessionManagementInteraction` 独占文件选择、Owner、确认、具体窗口和 MessageBox；
 - ViewModel 可以使用 `Visibility`、`Geometry`、`PointCollection` 等 WPF 表示层值，但禁止依赖
   `Window`、文件对话框、`MessageBox` 或具体窗口类型。
 
@@ -39,20 +40,20 @@ schema、插件 ID、统计口径、对话框和客户端行为。
 | `RefreshButton_Click` | 已迁移 | 原调用 `Refresh()` | 已删除，按钮绑定 `RefreshCommand` |
 | `AdvancedOptionsButton_Click` | UI 适配 | 设置 PlacementTarget 并打开 ContextMenu | 保留在 View |
 | `LoadMoreButton_Click` | 已迁移 | 原调用 `LoadMore()` | 已删除，按钮绑定 `LoadMoreCommand` |
-| `AddSessionButton_Click` | 多步骤工作流 | 打开空白编辑器并在确认后补录 | 阶段 C：Coordinator |
-| `EditSessionButton_Click` | 多步骤工作流 | 读取选中会话并在确认后更新 | 阶段 C：Coordinator |
-| `DeleteSessionButton_Click` | 多步骤工作流 | 危险确认后软删除 | 阶段 C：Coordinator |
+| `AddSessionButton_Click` | 薄转发 | 调用 `coordinator.AddSession()` | 已接线 |
+| `EditSessionButton_Click` | 薄转发 | 调用 `coordinator.EditSelectedSession()` | 已接线 |
+| `DeleteSessionButton_Click` | 薄转发 | 调用 `coordinator.DeleteSelectedSession()` | 已接线 |
 | `RestoreSessionButton_Click` | 已迁移 | 原恢复选中的已删除会话 | 已删除，菜单绑定 `RestoreSelectedCommand` |
-| `ExportCsvButton_Click` | 多步骤工作流 | 选择保存路径后导出 CSV | 阶段 C：Coordinator |
-| `ExportJsonButton_Click` | 多步骤工作流 | 选择保存路径后导出 JSON | 阶段 C：Coordinator |
-| `ImportButton_Click` | 多步骤工作流 | 多文件选择、预览、确认、提交和错误呈现 | 阶段 C：Coordinator |
-| `BackupButton_Click` | 多步骤工作流 | 选择路径并创建完整备份 | 阶段 C：Coordinator |
-| `RestoreBackupButton_Click` | 多步骤工作流 | 选择、预览、验证、确认并恢复备份 | 阶段 C：Coordinator |
-| `ReindexButton_Click` | 多步骤工作流 | 危险确认后重建索引 | 阶段 C：Coordinator |
-| `DiagnosticsButton_Click` | 多步骤工作流 | 选择路径并保存隐私诊断 | 阶段 C：Coordinator |
+| `ExportCsvButton_Click` | 薄转发 | 调用 `coordinator.ExportCsv()` | 已接线 |
+| `ExportJsonButton_Click` | 薄转发 | 调用 `coordinator.ExportJson()` | 已接线 |
+| `ImportButton_Click` | 薄转发 | 调用 `coordinator.ImportSessions()` | 已接线 |
+| `BackupButton_Click` | 薄转发 | 调用 `coordinator.CreateBackup()` | 已接线 |
+| `RestoreBackupButton_Click` | 薄转发 | 调用 `coordinator.RestoreBackup()` | 已接线 |
+| `ReindexButton_Click` | 薄转发 | 调用 `coordinator.Reindex()` | 已接线 |
+| `DiagnosticsButton_Click` | 薄转发 | 调用 `coordinator.SaveDiagnostics()` | 已接线 |
 
-辅助流程 `OpenEditor`、`Export` 和 `ShowDataError` 随阶段 C 一并收敛到强类型交互实现与
-Coordinator；窗口 Owner、默认文件名、文件过滤器和本地化错误文案仍由 WPF 交互实现负责。
+原辅助流程 `OpenEditor`、`Export` 和 `ShowDataError` 已从 View 删除。窗口 Owner、默认文件名、
+文件过滤器和本地化错误文案由 WPF 交互实现负责，调用顺序与异常捕获由 Coordinator 负责。
 
 ### PlaytimeInsightsDashboardView
 
@@ -144,11 +145,13 @@ Coordinator；窗口 Owner、默认文件名、文件过滤器和本地化错误
 护栏不要求 Code-behind 行数为零，也不强制保留已经迁移的处理器。事件从 XAML 删除后可以从
 职责矩阵的“当前处理器”部分移入迁移记录；新增事件必须先分类。
 
-## 阶段 B 结果与进入阶段 C 的条件
+## 阶段 C 结果与进入阶段 D 的条件
 
-- 当前 61 项发布回归、1 项架构护栏、8 项工作流和 4 项命令回归共 74 项均通过；
+- 当前 61 项发布回归、1 项架构护栏、8 项阶段 A 工作流、4 项命令和 6 项阶段 C 回归共 80 项
+  均通过；
 - Release 构建保持 0 警告、0 错误；
 - 生产代码与 0.9.8 行为一致；
 - 强类型交互边界和取消、拒绝、无效输入、文件失败测试已建立；
 - RelayCommand 与低风险命令迁移完成，未改变视觉布局、存储或异步模型；
-- Coordinator 在阶段 C 接线前不得绕过现有 WPF 文案、Owner、默认文件名和过滤器语义。
+- Coordinator 已正式接线，现有 WPF 文案、Owner、默认文件名和过滤器语义保持；
+- 阶段 D 先机械移动无状态类型，再拆分职责；不得让子 ViewModel 重复扫描会话。

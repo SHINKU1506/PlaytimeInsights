@@ -3,6 +3,8 @@ using Playnite.SDK.Events;
 using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using PlaytimeInsights.Models;
+using PlaytimeInsights.Presentation.Coordinators;
+using PlaytimeInsights.Presentation.Interactions;
 using PlaytimeInsights.Services;
 using PlaytimeInsights.ViewModels;
 using PlaytimeInsights.Views;
@@ -219,10 +221,17 @@ namespace PlaytimeInsights
                         RefreshOpenAnalytics);
                     activeSessionManagement.Refresh();
 
-                    return new SessionManagementView
+                    SessionManagementView view = null;
+                    var interaction = new WpfSessionManagementInteraction(
+                        () => System.Windows.Window.GetWindow(view));
+                    var coordinator = new SessionManagementCoordinator(
+                        activeSessionManagement,
+                        interaction);
+                    view = new SessionManagementView(coordinator)
                     {
                         DataContext = activeSessionManagement
                     };
+                    return view;
                 },
                 Closed = () => activeSessionManagement = null
             };

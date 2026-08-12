@@ -1,6 +1,6 @@
 # Playtime Insights 主体架构优化计划
 
-状态：重构准备、阶段 A 与阶段 B 已完成；阶段 C 待实施
+状态：重构准备与阶段 A–C 已完成；阶段 D 待实施
 
 规划日期：2026-08-11
 
@@ -52,6 +52,22 @@
 
 阶段 B 没有迁移文件选择、确认、编辑窗口、ContextMenu 打开、Loaded、滚轮或动画逻辑。
 
+### 阶段 C 完成记录
+
+2026-08-12 已完成阶段 C：
+
+- 新增 `WpfSessionManagementInteraction`，集中实现导入/保存文件选择、Window Owner、危险确认、
+  导入预览、会话编辑及本地化错误呈现；
+- 插件根负责组装 ViewModel、WPF Interaction、Coordinator 和 View；
+- `SessionManagementView` 的 10 个多步骤 Click 处理器缩减为单行 Coordinator 转发，移除
+  `OpenFileDialog`、`SaveFileDialog`、MessageBox、具体窗口创建和异常编排；
+- Coordinator 正式承接 CSV/JSON 导出、多文件导入、完整备份、备份恢复、补录/编辑、软删除、
+  重建索引和诊断报告流程；取消与异常语义保持阶段 A 基线；
+- 新增 6 项阶段 C 接线、成功与失败路径回归，当前总计 80 项；Release 构建 0 警告、0 错误；
+- 项目根 `.gitignore` 新增 `.claude/`，本地 Claude 配置不进入源码历史。
+
+阶段 C 保留 `Loaded`、ContextMenu 打开、窗口内部生命周期、主看板自定义事件适配、滚轮和动画。
+
 ## 结论
 
 项目值得引入命令、提高 UI 工作流的可测试性，并逐步拆分大型 ViewModel；但优化目标不是
@@ -72,7 +88,7 @@
   模型，是比主看板 Code-behind 更明显的长期维护点；
 - 当前没有统一 `ICommand` 实现；
 - 0.9.8 发布基线为 61 项自动化回归；阶段 0 新增 1 项架构护栏，阶段 A 新增 8 项工作流回归，
-  阶段 B 新增 4 项命令回归，当前共 74 项。
+  阶段 B 新增 4 项命令回归，阶段 C 新增 6 项接线/工作流回归，当前共 80 项。
 
 ## 优化目标
 
@@ -206,7 +222,7 @@ ViewModels/
 - `CanExecute` 自动化覆盖全部状态组合；
 - 不引入新程序集依赖。
 
-## 阶段 C：提取会话管理交互与协调器
+## 阶段 C：提取会话管理交互与协调器（已完成）
 
 ### 建议目录
 

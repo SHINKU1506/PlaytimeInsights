@@ -11,8 +11,8 @@
 
 准备分支新增第 62 项回归 `Architecture refactor baseline keeps boundaries documented`。该测试会
 动态扫描 XAML 事件并核对职责矩阵，同时阻止 ViewModel 引入具体对话框/Window 类型或外部 MVVM
-框架。阶段 A 新增 8 项 Coordinator 假交互测试；阶段 B 再新增 4 项 RelayCommand、绑定和错误
-标题回归，当前共 74 项。Coordinator 尚未接入真实 View；进入阶段 C 前应运行：
+框架。阶段 A 新增 8 项 Coordinator 假交互测试，阶段 B 新增 4 项命令回归，阶段 C 新增 6 项
+WPF 接线及成功/失败路径回归，当前共 80 项。进入阶段 D 前应运行：
 
 ```powershell
 dotnet build PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite"
@@ -23,6 +23,11 @@ dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release `
 阶段 B 验证产物部署到 `staging\architecture-stage-b` 和本机插件目录；两处 9 个发布文件均与
 Release 输出一致。该开发 DLL SHA-256 为
 `654CEDAE3753E205507828C0A5634D4D5234CAD26CD7F60C93392408EC77B5B0`，部署未改变用户数据指纹。
+
+阶段 C 中 `PlaytimeInsights.cs` 负责组装 `SessionManagementViewModel`、
+`WpfSessionManagementInteraction`、`SessionManagementCoordinator` 和 View。会话页 Code-behind
+只保留生命周期、ContextMenu 与 Coordinator 转发；所有文件对话框、Owner、确认、编辑/预览窗口
+和错误弹窗集中在 Presentation/Interactions。
 
 ## 环境
 

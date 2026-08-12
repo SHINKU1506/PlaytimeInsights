@@ -562,6 +562,10 @@ Playnite 插件程序集版本冲突。
 导出错误标题不再复用带访问键的按钮标签；中英资源各 272 键，74/74 回归通过。下一步进入
 阶段 C 的 WPF 交互实现和 Coordinator 正式接线。
 
+同日阶段 C 已完成：真实 WPF Interaction 与 Coordinator 正式接线，会话 View 移除具体文件/
+窗口/MessageBox 编排；`.claude/` 加入忽略规则，80/80 回归通过。下一步进入阶段 D 的条目类型
+机械移动与大型 ViewModel 拆分。
+
 ### 1.1+
 
 - 年度回顾；
