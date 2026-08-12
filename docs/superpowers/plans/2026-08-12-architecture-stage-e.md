@@ -22,6 +22,7 @@
 ### Task 1: Establish the Stage E closure guard
 
 **Files:**
+- Create: `scripts/Pack-Deterministic.ps1`
 - Modify: `Tests/Program.cs`
 - Create: `docs/ARCHITECTURE.md`
 
@@ -82,12 +83,14 @@
 
 **Interfaces:**
 - Consumes: green Stage E source tree and `D:\software\Playnite\Toolbox.exe pack`.
-- Produces: two clean Release builds and two PEXT packages with identical DLL and package hashes, verified contents, deployment hashes and unchanged user-data fingerprint.
+- Produces: a deterministic Toolbox wrapper, two clean Release builds and two PEXT packages with identical DLL and package hashes, verified contents, deployment hashes and unchanged user-data fingerprint.
 
-- [ ] Confirm Playnite is closed and record the seven-file user-data fingerprint.
-- [ ] Clean, build plugin and tests, run the full suite, pack to a fresh `staging/architecture-stage-e/pass-1/dist` directory and capture DLL/PEXT hashes.
-- [ ] Remove only verified generated `bin/Release`, `obj/Release`, test Release and Stage-E pass-2 directories through normal `dotnet clean`/fresh output; do not delete source or user data.
-- [ ] Repeat clean build, tests and pack into `staging/architecture-stage-e/pass-2/dist`; require pass-1/pass-2 DLL and PEXT SHA-256 equality.
+- [x] Confirm Playnite is closed and record the seven-file user-data fingerprint.
+- [x] Clean, build plugin and tests, run the full suite, pack to a fresh `staging/architecture-stage-e/pass-1/dist` directory and capture DLL/PEXT hashes.
+- [x] Remove only verified generated `bin/Release`, `obj/Release`, test Release and Stage-E pass-2 directories through normal `dotnet clean`/fresh output; do not delete source or user data.
+- [x] Repeat clean build and tests; diagnose the raw Toolbox PEXT mismatch as DLL ZIP timestamp metadata while confirming all nine entry content hashes match.
+- [x] Add `Pack-Deterministic.ps1`, which validates the nine-file input, copies to a bounded temporary directory, normalizes timestamps and calls Toolbox without modifying Release output.
+- [x] Run the deterministic pack twice and require identical PEXT SHA-256.
 - [ ] Open each PEXT as ZIP and require exactly: DLL, extension.yaml, three icons, LICENSE, PRIVACY.md and two Localization XAML files; reject PDB, absolute paths and unexpected entries.
 - [ ] Deploy the second-pass nine files to `staging/architecture-stage-e/deployed` and the installed plugin directory; require all hashes equal.
 - [ ] Recompute user-data count/fingerprint and require no change.

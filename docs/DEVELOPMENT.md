@@ -132,10 +132,15 @@ Playnite 插件 DLL 不能热重载。每次更新 DLL 后必须完全退出并�
 ## 打包
 
 ```powershell
-D:\software\Playnite\Toolbox.exe pack `
-  .\bin\Release\net462 `
-  .\dist
+.\scripts\Pack-Deterministic.ps1 `
+  -SourceDirectory .\bin\Release\net462 `
+  -OutputDirectory .\dist `
+  -ToolboxPath D:\software\Playnite\Toolbox.exe
 ```
+
+该脚本先验证 Release 目录严格包含 9 个预期文件，再在一次性临时副本中统一文件时间戳并调用
+Toolbox。Toolbox 直接打包会把 DLL 的构建时间写入 ZIP 元数据：即使两轮 DLL 和包内所有文件内容
+完全一致，PEXT 外层 SHA-256 仍会变化。确定性入口不修改原 Release 文件，只消除这一元数据差异。
 
 当前 0.9.8 包名：
 
