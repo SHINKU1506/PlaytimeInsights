@@ -28,6 +28,7 @@ namespace PlaytimeInsights
         private readonly SessionExportService sessionExportService;
         private readonly SessionImportService sessionImportService;
         private readonly SessionDiagnosticsService sessionDiagnosticsService;
+        private DashboardViewModel cachedDashboard;
         private DashboardViewModel activeDashboard;
         private SessionManagementViewModel activeSessionManagement;
         private Timer checkpointTimer;
@@ -186,12 +187,17 @@ namespace PlaytimeInsights
                 Icon = Path.Combine(installationDirectory, "icon-dashboard.png"),
                 Opened = () =>
                 {
-                    activeDashboard = new DashboardViewModel(
-                        PlayniteApi,
-                        sessionRepository,
-                        analyticsService,
-                        sessionQueryService,
-                        settings);
+                    if (cachedDashboard == null)
+                    {
+                        cachedDashboard = new DashboardViewModel(
+                            PlayniteApi,
+                            sessionRepository,
+                            analyticsService,
+                            sessionQueryService,
+                            settings);
+                    }
+
+                    activeDashboard = cachedDashboard;
                     activeDashboard.Refresh();
 
                     return new PlaytimeInsightsDashboardView

@@ -94,6 +94,7 @@ namespace PlaytimeInsights.Tests
             Run("Session coordinator cancels reindex", TestCoordinatorCancelsReindex);
             Run("Stage C composes WPF session workflows", TestStageCComposition);
             Run("Stage D dashboard keeps one snapshot coordination boundary", TestStageDDashboardComposition);
+            Run("Dashboard filters persist across sidebar navigation", TestDashboardNavigationStateLifetime);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -2190,6 +2191,29 @@ namespace PlaytimeInsights.Tests
             Equal(false, childSource.Contains("SessionRepository"));
             Equal(false, childSource.Contains("CreateSnapshot("));
             Equal(false, childSource.Contains("sessionRepository.GetAll"));
+        }
+
+        private static void TestDashboardNavigationStateLifetime()
+        {
+            var sourceRoot = FindSourceRoot();
+            var plugin = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.cs"));
+
+            Equal(true, plugin.Contains(
+                "private DashboardViewModel cachedDashboard;"));
+            Equal(true, plugin.Contains(
+                "if (cachedDashboard == null)"));
+            Equal(true, plugin.Contains(
+                "activeDashboard = cachedDashboard;"));
+            Equal(true, plugin.Contains(
+                "Closed = () => activeDashboard = null"));
+            Equal(false, plugin.Contains(
+                "Closed = () => cachedDashboard = null"));
+            Equal(1, Regex.Matches(
+                plugin,
+                @"new DashboardViewModel\(",
+                RegexOptions.CultureInvariant).Count);
         }
 
         private static void TestSessionManagementVisualHierarchy()
