@@ -95,6 +95,7 @@ namespace PlaytimeInsights.Tests
             Run("Stage C composes WPF session workflows", TestStageCComposition);
             Run("Stage D dashboard keeps one snapshot coordination boundary", TestStageDDashboardComposition);
             Run("Dashboard filters persist across sidebar navigation", TestDashboardNavigationStateLifetime);
+            Run("Sidebar navigation uses one automatic refresh", TestSidebarNavigationUsesSingleAutomaticRefresh);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -2216,6 +2217,42 @@ namespace PlaytimeInsights.Tests
                 RegexOptions.CultureInvariant).Count);
         }
 
+        private static void TestSidebarNavigationUsesSingleAutomaticRefresh()
+        {
+            var sourceRoot = FindSourceRoot();
+            var plugin = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.cs"));
+            var dashboardView = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+            var sessionView = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml.cs"));
+            var dashboardOpened = ExtractSidebarOpenedBlock(
+                plugin,
+                "icon-dashboard.png");
+            var sessionsOpened = ExtractSidebarOpenedBlock(
+                plugin,
+                "icon-sessions.png");
+
+            Equal(false, dashboardOpened.Contains("activeDashboard.Refresh()"));
+            Equal(false, sessionsOpened.Contains(
+                "activeSessionManagement.Refresh()"));
+            Equal(true, dashboardView.Contains(
+                "Loaded += PlaytimeInsightsDashboardView_Loaded"));
+            Equal(true, dashboardView.Contains("command.Execute(null)"));
+            Equal(true, sessionView.Contains(
+                "Loaded += SessionManagementView_Loaded"));
+            Equal(true, sessionView.Contains("ViewModel?.Refresh()"));
+            Equal(true, dashboardOpened.Contains(
+                "activeDashboard = cachedDashboard"));
+            Equal(true, plugin.Contains(
+                "Closed = () => activeDashboard = null"));
+        }
+
         private static void TestSessionManagementVisualHierarchy()
         {
             var sourceRoot = FindSourceRoot();
@@ -3308,6 +3345,35 @@ namespace PlaytimeInsights.Tests
 
             throw new DirectoryNotFoundException(
                 "Could not locate the PlaytimeInsights source root.");
+        }
+
+        private static string ExtractSidebarOpenedBlock(
+            string source,
+            string iconName)
+        {
+            var iconIndex = source.IndexOf(iconName, StringComparison.Ordinal);
+            if (iconIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    "Could not locate sidebar icon " + iconName + ".");
+            }
+
+            var openedIndex = source.IndexOf(
+                "Opened = () =>",
+                iconIndex,
+                StringComparison.Ordinal);
+            var closedIndex = source.IndexOf(
+                "Closed =",
+                openedIndex,
+                StringComparison.Ordinal);
+            if (openedIndex < 0 || closedIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    "Could not locate sidebar lifecycle block for " +
+                    iconName + ".");
+            }
+
+            return source.Substring(openedIndex, closedIndex - openedIndex);
         }
 
         private static void Equal<T>(T expected, T actual)

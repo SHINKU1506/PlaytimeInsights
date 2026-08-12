@@ -198,7 +198,6 @@ namespace PlaytimeInsights
                     }
 
                     activeDashboard = cachedDashboard;
-                    activeDashboard.Refresh();
 
                     return new PlaytimeInsightsDashboardView
                     {
@@ -225,7 +224,6 @@ namespace PlaytimeInsights
                         sessionImportService,
                         sessionDiagnosticsService,
                         RefreshOpenAnalytics);
-                    activeSessionManagement.Refresh();
 
                     SessionManagementView view = null;
                     var interaction = new WpfSessionManagementInteraction(
