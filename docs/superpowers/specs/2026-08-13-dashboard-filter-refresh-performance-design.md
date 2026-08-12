@@ -86,9 +86,19 @@ public enum DashboardRefreshReason
 
 若局部原因在首次完整加载前到达，安全降级为 `DataReload`，不得使用空缓存生成误导结果。
 
-### 3. 局部快照应用
+### 3. 可复用分析上下文与局部投影
 
-分析服务本轮仍可生成完整 `DashboardSnapshot`，但应用范围按原因收窄：
+完整分析除 `DashboardSnapshot` 外，同时返回 `DashboardAnalysisContext`。上下文只保存当前范围的
+日分配、每日游戏名称摘要、区间游戏统计、日期范围与周起始规则，不持有 Repository、数据库
+枚举器或 ViewModel 集合。
+
+分析服务增加两个局部入口：
+
+- `CreateTrendProjection(context, aggregation)`：只从日分配与每日游戏摘要创建周期、标题和趋势
+  几何；
+- `CreateRankingProjection(context, metric, topGames)`：只从区间游戏统计重新排序和格式化排名。
+
+应用范围按原因收窄：
 
 - `Aggregation`：只调用 `DashboardDistributionViewModel.ApplyTrend(snapshot)` 和
   `DashboardMetricsViewModel.ApplyPeriodTitle(snapshot)`；不替换热力图、星期/小时分布、排名、
@@ -97,9 +107,8 @@ public enum DashboardRefreshReason
   热力图、分布、累计排名或区间指标；
 - `Range`/`MetadataDimension`/`MetadataValue`/`DataReload`：应用完整快照并重置完整下钻上下文。
 
-完整快照计算在当前 18 条会话下不是主要成本；局部应用可以立即消除大部分整页绑定/布局工作。
-后续如大数据场景仍慢，再让分析服务暴露可复用的 `dailySeconds`/`gameStats` 中间结果，避免局部原因
-重复计算完整快照。
+聚合和排名不会再次扫描会话，也不会重建 Advanced 分布、热力图和无关指标。时间范围与元数据
+变化会用缓存游戏/会话创建新的完整快照和上下文。
 
 ### 4. 主要集合原子发布
 
