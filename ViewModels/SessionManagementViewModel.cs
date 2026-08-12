@@ -53,6 +53,7 @@ namespace PlaytimeInsights.ViewModels
         private readonly RefreshReentrancyGuard refreshGuard =
             new RefreshReentrancyGuard();
         private IList<GameSession> filteredSessions = new List<GameSession>();
+        private int activeSessionCount;
         private string searchText = string.Empty;
         private SelectionOption<SessionSource?> selectedSource;
         private SelectionOption<MetadataFilterDimension> selectedMetadataDimension;
@@ -255,7 +256,7 @@ namespace PlaytimeInsights.ViewModels
             "已显示 {0:N0} / 筛选结果 {1:N0} / 全部 {2:N0}",
             pager.VisibleCount,
             pager.TotalCount,
-            repository.GetAll().Count);
+            activeSessionCount);
 
         public Visibility LoadMoreVisibility =>
             pager.HasMore ? Visibility.Visible : Visibility.Collapsed;
@@ -274,6 +275,8 @@ namespace PlaytimeInsights.ViewModels
             try
             {
                 var allSessions = repository.GetAllIncludingDeleted();
+                activeSessionCount = allSessions.Count(session =>
+                    !session.IsDeleted);
                 var games = playniteApi.Database.Games.ToList();
                 var libraryNames = GetLibraryNames();
                 RefreshMetadataValueOptions(games, libraryNames);

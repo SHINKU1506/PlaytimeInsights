@@ -96,6 +96,7 @@ namespace PlaytimeInsights.Tests
             Run("Stage D dashboard keeps one snapshot coordination boundary", TestStageDDashboardComposition);
             Run("Dashboard filters persist across sidebar navigation", TestDashboardNavigationStateLifetime);
             Run("Sidebar navigation uses one automatic refresh", TestSidebarNavigationUsesSingleAutomaticRefresh);
+            Run("Session count reuses the refresh snapshot", TestSessionCountUsesRefreshSnapshot);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -2253,6 +2254,35 @@ namespace PlaytimeInsights.Tests
                 "Closed = () => activeDashboard = null"));
         }
 
+        private static void TestSessionCountUsesRefreshSnapshot()
+        {
+            var sourceRoot = FindSourceRoot();
+            var source = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "SessionManagementViewModel.cs"));
+            var countTextBlock = ExtractSourceBlock(
+                source,
+                "public string CountText",
+                "public Visibility LoadMoreVisibility");
+            var refreshBlock = ExtractSourceBlock(
+                source,
+                "public void Refresh()",
+                "public void LoadMore()");
+
+            Equal(false, countTextBlock.Contains("repository.GetAll()"));
+            Equal(true, countTextBlock.Contains("activeSessionCount"));
+            Equal(true, Regex.IsMatch(
+                refreshBlock,
+                @"activeSessionCount\s*=\s*allSessions\.Count\s*\(" +
+                @"\s*session\s*=>\s*!session\.IsDeleted\s*\)",
+                RegexOptions.CultureInvariant));
+            Equal(1, Regex.Matches(
+                refreshBlock,
+                @"repository\.GetAllIncludingDeleted\(\)",
+                RegexOptions.CultureInvariant).Count);
+        }
+
         private static void TestSessionManagementVisualHierarchy()
         {
             var sourceRoot = FindSourceRoot();
@@ -3374,6 +3404,28 @@ namespace PlaytimeInsights.Tests
             }
 
             return source.Substring(openedIndex, closedIndex - openedIndex);
+        }
+
+        private static string ExtractSourceBlock(
+            string source,
+            string startMarker,
+            string endMarker)
+        {
+            var startIndex = source.IndexOf(
+                startMarker,
+                StringComparison.Ordinal);
+            var endIndex = source.IndexOf(
+                endMarker,
+                startIndex,
+                StringComparison.Ordinal);
+            if (startIndex < 0 || endIndex < 0)
+            {
+                throw new InvalidOperationException(
+                    "Could not extract source block between " +
+                    startMarker + " and " + endMarker + ".");
+            }
+
+            return source.Substring(startIndex, endIndex - startIndex);
         }
 
         private static void Equal<T>(T expected, T actual)
