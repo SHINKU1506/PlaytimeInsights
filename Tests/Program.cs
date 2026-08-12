@@ -97,6 +97,7 @@ namespace PlaytimeInsights.Tests
             Run("Dashboard filters persist across sidebar navigation", TestDashboardNavigationStateLifetime);
             Run("Sidebar navigation uses one automatic refresh", TestSidebarNavigationUsesSingleAutomaticRefresh);
             Run("Session count reuses the refresh snapshot", TestSessionCountUsesRefreshSnapshot);
+            Run("Stage E architecture closure keeps event boundaries symmetric", TestStageEArchitectureClosure);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -2281,6 +2282,79 @@ namespace PlaytimeInsights.Tests
                 refreshBlock,
                 @"repository\.GetAllIncludingDeleted\(\)",
                 RegexOptions.CultureInvariant).Count);
+        }
+
+        private static void TestStageEArchitectureClosure()
+        {
+            var sourceRoot = FindSourceRoot();
+            var viewNames = new[]
+            {
+                "PlaytimeInsightsDashboardView",
+                "SessionManagementView",
+                "SessionEditorWindow",
+                "SessionImportPreviewWindow"
+            };
+            var eventPattern = new Regex(
+                "(?:Click|PreviewMouseWheel|PeriodSelected|" +
+                "MouseLeftButtonUp)=\"([A-Za-z_][A-Za-z0-9_]*)\"",
+                RegexOptions.CultureInvariant);
+            var loadedPattern = new Regex(
+                "Loaded \\+= ([A-Za-z_][A-Za-z0-9_]*);",
+                RegexOptions.CultureInvariant);
+            var handlerPattern = new Regex(
+                @"private\s+(?:static\s+)?[A-Za-z0-9_<>?]+\s+" +
+                @"([A-Za-z_][A-Za-z0-9_]*_(?:Click|PreviewMouseWheel|" +
+                @"PeriodSelected|MouseLeftButtonUp|Loaded))\s*\(",
+                RegexOptions.CultureInvariant);
+
+            foreach (var viewName in viewNames)
+            {
+                var xaml = File.ReadAllText(Path.Combine(
+                    sourceRoot,
+                    "Views",
+                    viewName + ".xaml"));
+                var code = File.ReadAllText(Path.Combine(
+                    sourceRoot,
+                    "Views",
+                    viewName + ".xaml.cs"));
+                var eventSources = new HashSet<string>(
+                    eventPattern.Matches(xaml)
+                        .Cast<Match>()
+                        .Select(match => match.Groups[1].Value));
+                foreach (Match match in loadedPattern.Matches(code))
+                {
+                    eventSources.Add(match.Groups[1].Value);
+                }
+
+                var declarations = new HashSet<string>(
+                    handlerPattern.Matches(code)
+                        .Cast<Match>()
+                        .Select(match => match.Groups[1].Value));
+                Equal(
+                    string.Join("|", eventSources.OrderBy(value => value)),
+                    string.Join("|", declarations.OrderBy(value => value)));
+            }
+
+            var architecturePath = Path.Combine(
+                sourceRoot,
+                "docs",
+                "ARCHITECTURE.md");
+            Equal(true, File.Exists(architecturePath));
+            var architecture = File.ReadAllText(architecturePath);
+            foreach (var boundary in new[]
+            {
+                "DashboardFilterViewModel",
+                "DashboardMetricsViewModel",
+                "DashboardDistributionViewModel",
+                "DashboardDrilldownViewModel",
+                "SessionManagementCoordinator",
+                "ISessionManagementInteraction",
+                "WpfSessionManagementInteraction",
+                "one DashboardSnapshot"
+            })
+            {
+                Equal(true, architecture.Contains(boundary));
+            }
         }
 
         private static void TestSessionManagementVisualHierarchy()
