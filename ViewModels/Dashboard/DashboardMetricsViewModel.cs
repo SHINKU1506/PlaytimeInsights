@@ -3,7 +3,6 @@ using Playnite.SDK.Models;
 using PlaytimeInsights.Services;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace PlaytimeInsights.ViewModels
@@ -28,12 +27,14 @@ namespace PlaytimeInsights.ViewModels
         private string currentStreakText;
         private string currentStreakDateText;
         private string anomalyCountText;
+        private IReadOnlyList<GameRankingViewModel> rangeGameRankings =
+            new List<GameRankingViewModel>();
+        private IReadOnlyList<GameRankingViewModel> lifetimeGameRankings =
+            new List<GameRankingViewModel>();
 
         public DashboardMetricsViewModel(IPlayniteAPI playniteApi)
         {
             this.playniteApi = playniteApi;
-            RangeGameRankings = new ObservableCollection<GameRankingViewModel>();
-            LifetimeGameRankings = new ObservableCollection<GameRankingViewModel>();
         }
 
         public string LifetimeDurationText { get => lifetimeDurationText; private set => SetValue(ref lifetimeDurationText, value); }
@@ -83,9 +84,17 @@ namespace PlaytimeInsights.ViewModels
 
         public string AnomalyCountText { get => anomalyCountText; private set => SetValue(ref anomalyCountText, value); }
 
-        public ObservableCollection<GameRankingViewModel> RangeGameRankings { get; }
+        public IReadOnlyList<GameRankingViewModel> RangeGameRankings
+        {
+            get => rangeGameRankings;
+            private set => SetValue(ref rangeGameRankings, value);
+        }
 
-        public ObservableCollection<GameRankingViewModel> LifetimeGameRankings { get; }
+        public IReadOnlyList<GameRankingViewModel> LifetimeGameRankings
+        {
+            get => lifetimeGameRankings;
+            private set => SetValue(ref lifetimeGameRankings, value);
+        }
 
         public void Apply(DashboardSnapshot snapshot, IEnumerable<Game> allGames)
         {
@@ -108,8 +117,25 @@ namespace PlaytimeInsights.ViewModels
             CurrentStreakText = snapshot.Advanced.CurrentStreakText;
             CurrentStreakDateText = snapshot.Advanced.CurrentStreakDateText;
             AnomalyCountText = snapshot.Advanced.AnomalyCountText;
-            Replace(RangeGameRankings, snapshot.RangeGameRankings);
-            Replace(LifetimeGameRankings, snapshot.LifetimeGameRankings);
+            RangeGameRankings = (snapshot.RangeGameRankings ??
+                Enumerable.Empty<GameRankingViewModel>()).ToList();
+            LifetimeGameRankings = (snapshot.LifetimeGameRankings ??
+                Enumerable.Empty<GameRankingViewModel>()).ToList();
+        }
+
+        public void ApplyPeriodTitle(DashboardTrendProjection projection)
+        {
+            PeriodTitleText = projection.PeriodTitleText;
+        }
+
+        public void ApplyRangeRanking(
+            DashboardRankingProjection projection,
+            IEnumerable<Game> allGames)
+        {
+            ApplyRankingCoverImages(projection.RangeGameRankings, allGames);
+            RangeRankingTitleText = projection.RangeRankingTitleText;
+            RangeGameRankings = (projection.RangeGameRankings ??
+                Enumerable.Empty<GameRankingViewModel>()).ToList();
         }
 
         private void ApplyRankingCoverImages(
@@ -131,7 +157,8 @@ namespace PlaytimeInsights.ViewModels
 
                 try
                 {
-                    ranking.CoverImagePath = playniteApi.Database.GetFullFilePath(game.CoverImage);
+                    ranking.CoverImagePath = playniteApi?.Database
+                        ?.GetFullFilePath(game.CoverImage);
                 }
                 catch
                 {
@@ -140,13 +167,5 @@ namespace PlaytimeInsights.ViewModels
             }
         }
 
-        private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> values)
-        {
-            target.Clear();
-            foreach (var value in values)
-            {
-                target.Add(value);
-            }
-        }
     }
 }

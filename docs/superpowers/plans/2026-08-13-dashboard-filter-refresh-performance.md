@@ -82,12 +82,12 @@
   - `DashboardDistributionViewModel.ApplyTrend(DashboardTrendProjection)`
   - major list properties as `IReadOnlyList<T>`.
 
-- [ ] Register `Trend projection leaves unrelated dashboard state intact`, `Ranking projection leaves unrelated dashboard state intact`, and `Dashboard major lists publish atomically`.
-- [ ] Write failing tests against real Metrics/Distribution objects. Capture property notifications and references before local apply; assert trend changes only trend/title, ranking changes only range ranking/title, and two full applies replace each major list once with complete content. Verify `SelectWeekday` still toggles selection and replaces the 24-hour list.
-- [ ] Run suite. Expected RED: partial apply methods and atomic list properties are missing.
-- [ ] Replace major `ObservableCollection` properties with field-backed `IReadOnlyList` properties and one `SetValue` per full apply. Keep weekday item mutation; implement hour selection by assigning a new complete list. Implement the two local apply boundaries and root forwarding signatures.
-- [ ] Run suite. Expected: 94/94 pass, XAML ItemsSource bindings unchanged.
-- [ ] Commit `perf(dashboard): publish only affected dashboard state`.
+- [x] Register `Trend projection leaves unrelated dashboard state intact`, `Ranking projection leaves unrelated dashboard state intact`, and `Dashboard major lists publish atomically`.
+- [x] Write failing tests against real Metrics/Distribution objects. Capture property notifications and references before local apply; assert trend changes only trend/title, ranking changes only range ranking/title, and two full applies replace each major list once with complete content. Verify `SelectWeekday` still toggles selection and replaces the 24-hour list.
+- [x] Run suite. Expected RED: partial apply methods and atomic list properties are missing.
+- [x] Replace major `ObservableCollection` properties with field-backed `IReadOnlyList` properties and one `SetValue` per full apply. Keep weekday item mutation; implement hour selection by assigning a new complete list. Implement the two local apply boundaries and root forwarding signatures.
+- [x] Run suite. Expected: 94/94 pass, XAML ItemsSource bindings unchanged.
+- [x] Commit `perf(dashboard): publish only affected dashboard state`.
 
 ---
 

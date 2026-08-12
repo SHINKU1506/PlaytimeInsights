@@ -111,6 +111,9 @@ namespace PlaytimeInsights.Tests
             Run("Dashboard refresh plans isolate dependencies", TestDashboardRefreshPlans);
             Run("Dashboard analysis context reprojects trend without rescan", TestDashboardTrendProjectionReuse);
             Run("Dashboard analysis context reprojects ranking without rescan", TestDashboardRankingProjectionReuse);
+            Run("Trend projection leaves unrelated dashboard state intact", TestDashboardTrendProjectionApplyBoundary);
+            Run("Ranking projection leaves unrelated dashboard state intact", TestDashboardRankingProjectionApplyBoundary);
+            Run("Dashboard major lists publish atomically", TestDashboardMajorListsPublishAtomically);
             Run("Session coordinator completes import workflow", TestCoordinatorCompletesImport);
             Run("Session coordinator completes restore workflow", TestCoordinatorCompletesRestore);
             Run("Session coordinator completes edit and reindex", TestCoordinatorCompletesEditAndReindex);
@@ -2458,6 +2461,174 @@ namespace PlaytimeInsights.Tests
             Equal(2, viewModel.PeriodActivities.Count);
             Equal("new-a", viewModel.PeriodActivities[0].Label);
             Equal("new-b", viewModel.PeriodActivities[1].Label);
+        }
+
+        private static void TestDashboardTrendProjectionApplyBoundary()
+        {
+            var viewModel = new DashboardDistributionViewModel();
+            viewModel.Apply(CreateAtomicDistributionSnapshot("initial"));
+            var heatmapCells = viewModel.HeatmapCells;
+            var weekdays = viewModel.WeekdayDistribution;
+            var notifications = new List<string>();
+            viewModel.PropertyChanged += (sender, args) =>
+                notifications.Add(args.PropertyName);
+
+            viewModel.ApplyTrend(new DashboardTrendProjection
+            {
+                PeriodActivities = new List<PeriodActivityViewModel>
+                {
+                    new PeriodActivityViewModel { Label = "projected", Seconds = 42 }
+                },
+                TrendChartWidth = 720,
+                TrendLinePoints = new System.Windows.Media.PointCollection(),
+                TrendLineGeometry = System.Windows.Media.Geometry.Empty,
+                TrendAreaGeometry = System.Windows.Media.Geometry.Empty,
+                TrendPoints = new List<TrendPointViewModel>()
+            });
+
+            Equal("projected", viewModel.PeriodActivities[0].Label);
+            Equal(true, ReferenceEquals(heatmapCells, viewModel.HeatmapCells));
+            Equal(true, ReferenceEquals(weekdays, viewModel.WeekdayDistribution));
+            Equal(false, notifications.Contains(nameof(viewModel.HeatmapCells)));
+            Equal(false, notifications.Contains(nameof(viewModel.WeekdayDistribution)));
+        }
+
+        private static void TestDashboardRankingProjectionApplyBoundary()
+        {
+            var metrics = new DashboardMetricsViewModel(null);
+            var snapshot = CreateAtomicDistributionSnapshot("metrics");
+            snapshot.RangeRankingTitleText = "duration";
+            snapshot.StatusText = "unchanged status";
+            snapshot.RangeGameRankings = new List<GameRankingViewModel>
+            {
+                new GameRankingViewModel { Name = "old range" }
+            };
+            snapshot.LifetimeGameRankings = new List<GameRankingViewModel>
+            {
+                new GameRankingViewModel { Name = "lifetime" }
+            };
+            metrics.Apply(snapshot, new Playnite.SDK.Models.Game[0]);
+            var lifetimeRankings = metrics.LifetimeGameRankings;
+            var notifications = new List<string>();
+            metrics.PropertyChanged += (sender, args) =>
+                notifications.Add(args.PropertyName);
+
+            metrics.ApplyRangeRanking(
+                new DashboardRankingProjection
+                {
+                    RangeRankingTitleText = "session count",
+                    RangeGameRankings = new List<GameRankingViewModel>
+                    {
+                        new GameRankingViewModel { Name = "new range" }
+                    }
+                },
+                new Playnite.SDK.Models.Game[0]);
+
+            Equal("session count", metrics.RangeRankingTitleText);
+            Equal("new range", metrics.RangeGameRankings[0].Name);
+            Equal("unchanged status", metrics.StatusText);
+            Equal(true, ReferenceEquals(lifetimeRankings, metrics.LifetimeGameRankings));
+            Equal(false, notifications.Contains(nameof(metrics.LifetimeGameRankings)));
+        }
+
+        private static void TestDashboardMajorListsPublishAtomically()
+        {
+            var viewModel = new DashboardDistributionViewModel();
+            viewModel.Apply(CreateAtomicDistributionSnapshot("old"));
+            var oldHeatmap = viewModel.HeatmapCells;
+            var oldTrend = viewModel.TrendPoints;
+            var oldWeekdays = viewModel.WeekdayDistribution;
+            var oldHours = viewModel.HourDistribution;
+            var notifications = new Dictionary<string, int>();
+            viewModel.PropertyChanged += (sender, args) =>
+            {
+                int count;
+                notifications.TryGetValue(args.PropertyName, out count);
+                notifications[args.PropertyName] = count + 1;
+            };
+
+            viewModel.Apply(CreateAtomicDistributionSnapshot("new"));
+
+            Equal(false, ReferenceEquals(oldHeatmap, viewModel.HeatmapCells));
+            Equal(false, ReferenceEquals(oldTrend, viewModel.TrendPoints));
+            Equal(false, ReferenceEquals(oldWeekdays, viewModel.WeekdayDistribution));
+            Equal(false, ReferenceEquals(oldHours, viewModel.HourDistribution));
+            Equal(1, notifications[nameof(viewModel.HeatmapCells)]);
+            Equal(1, notifications[nameof(viewModel.TrendPoints)]);
+            Equal(1, notifications[nameof(viewModel.WeekdayDistribution)]);
+            Equal(1, notifications[nameof(viewModel.HourDistribution)]);
+
+            var unfilteredHours = viewModel.HourDistribution;
+            viewModel.SelectWeekday(viewModel.WeekdayDistribution[0]);
+            Equal(true, viewModel.WeekdayDistribution[0].IsSelected);
+            Equal(false, ReferenceEquals(unfilteredHours, viewModel.HourDistribution));
+            Equal(24, viewModel.HourDistribution.Count);
+            var filteredHours = viewModel.HourDistribution;
+            viewModel.SelectWeekday(viewModel.WeekdayDistribution[0]);
+            Equal(false, viewModel.WeekdayDistribution[0].IsSelected);
+            Equal(false, ReferenceEquals(filteredHours, viewModel.HourDistribution));
+        }
+
+        private static DashboardSnapshot CreateAtomicDistributionSnapshot(string suffix)
+        {
+            var weekdays = Enumerable.Range(0, 7)
+                .Select(index => new DistributionBarViewModel
+                {
+                    Label = suffix + "-day-" + index,
+                    Seconds = (ulong)(index + 1)
+                })
+                .ToList();
+            var hours = Enumerable.Range(0, 24)
+                .Select(index => new DistributionBarViewModel
+                {
+                    Label = index.ToString("00") + ":00",
+                    Seconds = (ulong)(index + 1)
+                })
+                .ToList();
+            var cells = Enumerable.Range(0, 7)
+                .SelectMany(day => Enumerable.Range(0, 24).Select(hour =>
+                    new WeekHourCellViewModel
+                    {
+                        DayLabel = suffix + "-day-" + day,
+                        HourLabel = hour.ToString("00") + ":00",
+                        Seconds = (ulong)(day + hour + 1)
+                    }))
+                .ToList();
+            return new DashboardSnapshot
+            {
+                PeriodActivities = new List<PeriodActivityViewModel>
+                {
+                    new PeriodActivityViewModel { Label = suffix, Seconds = 1 }
+                },
+                HeatmapCells = new List<HeatmapCellViewModel>
+                {
+                    new HeatmapCellViewModel { TooltipText = suffix }
+                },
+                HeatmapWeekdayLabels = new List<string> { suffix },
+                HeatmapColumnCount = 1,
+                TrendLinePoints = new System.Windows.Media.PointCollection(),
+                TrendLineGeometry = System.Windows.Media.Geometry.Empty,
+                TrendAreaGeometry = System.Windows.Media.Geometry.Empty,
+                TrendPoints = new List<TrendPointViewModel>
+                {
+                    new TrendPointViewModel { TooltipText = suffix }
+                },
+                RangeGameRankings = new List<GameRankingViewModel>(),
+                LifetimeGameRankings = new List<GameRankingViewModel>(),
+                Advanced = new AdvancedAnalyticsSnapshot
+                {
+                    WeekdayDistribution = weekdays,
+                    HourDistribution = hours,
+                    WeekHourCells = cells,
+                    WeekdayLabels = new List<string> { suffix },
+                    HourLabels = new List<string> { suffix },
+                    AnomalyVisibility = System.Windows.Visibility.Collapsed,
+                    Anomalies = new List<AnomalySessionViewModel>
+                    {
+                        new AnomalySessionViewModel { GameName = suffix }
+                    }
+                }
+            };
         }
 
         private static DashboardSnapshot CreateDistributionSnapshot(

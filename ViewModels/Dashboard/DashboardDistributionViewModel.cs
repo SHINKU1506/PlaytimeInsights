@@ -1,6 +1,5 @@
 using PlaytimeInsights.Services;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
@@ -17,25 +16,27 @@ namespace PlaytimeInsights.ViewModels
         private Visibility anomalyVisibility = Visibility.Collapsed;
         private IReadOnlyList<PeriodActivityViewModel> periodActivities =
             new List<PeriodActivityViewModel>();
+        private IReadOnlyList<HeatmapCellViewModel> heatmapCells =
+            new List<HeatmapCellViewModel>();
+        private IReadOnlyList<string> heatmapWeekdayLabels = new List<string>();
+        private IReadOnlyList<TrendPointViewModel> trendPoints =
+            new List<TrendPointViewModel>();
+        private IReadOnlyList<DistributionBarViewModel> weekdayDistribution =
+            new List<DistributionBarViewModel>();
+        private IReadOnlyList<DistributionBarViewModel> hourDistribution =
+            new List<DistributionBarViewModel>();
+        private IReadOnlyList<WeekHourCellViewModel> weekHourCells =
+            new List<WeekHourCellViewModel>();
+        private IReadOnlyList<string> advancedWeekdayLabels = new List<string>();
+        private IReadOnlyList<string> advancedHourLabels = new List<string>();
+        private IReadOnlyList<AnomalySessionViewModel> anomalies =
+            new List<AnomalySessionViewModel>();
         private int? selectedWeekdayIndex;
-        private IList<DistributionBarViewModel> allHourDistribution =
+        private IReadOnlyList<DistributionBarViewModel> allHourDistribution =
             new List<DistributionBarViewModel>();
         private string hourDistributionTitle = LocalizationService.Get(
             "LOCPlaytimeInsightsHourDistributionAll",
             "24 小时分布 · 全部星期");
-
-        public DashboardDistributionViewModel()
-        {
-            HeatmapCells = new ObservableCollection<HeatmapCellViewModel>();
-            HeatmapWeekdayLabels = new ObservableCollection<string>();
-            TrendPoints = new ObservableCollection<TrendPointViewModel>();
-            WeekdayDistribution = new ObservableCollection<DistributionBarViewModel>();
-            HourDistribution = new ObservableCollection<DistributionBarViewModel>();
-            WeekHourCells = new ObservableCollection<WeekHourCellViewModel>();
-            AdvancedWeekdayLabels = new ObservableCollection<string>();
-            AdvancedHourLabels = new ObservableCollection<string>();
-            Anomalies = new ObservableCollection<AnomalySessionViewModel>();
-        }
 
         public int HeatmapColumnCount { get => heatmapColumnCount; private set => SetValue(ref heatmapColumnCount, value); }
 
@@ -57,37 +58,75 @@ namespace PlaytimeInsights.ViewModels
             private set => SetValue(ref periodActivities, value);
         }
 
-        public ObservableCollection<HeatmapCellViewModel> HeatmapCells { get; }
+        public IReadOnlyList<HeatmapCellViewModel> HeatmapCells
+        {
+            get => heatmapCells;
+            private set => SetValue(ref heatmapCells, value);
+        }
 
-        public ObservableCollection<string> HeatmapWeekdayLabels { get; }
+        public IReadOnlyList<string> HeatmapWeekdayLabels
+        {
+            get => heatmapWeekdayLabels;
+            private set => SetValue(ref heatmapWeekdayLabels, value);
+        }
 
-        public ObservableCollection<TrendPointViewModel> TrendPoints { get; }
+        public IReadOnlyList<TrendPointViewModel> TrendPoints
+        {
+            get => trendPoints;
+            private set => SetValue(ref trendPoints, value);
+        }
 
-        public ObservableCollection<DistributionBarViewModel> WeekdayDistribution { get; }
+        public IReadOnlyList<DistributionBarViewModel> WeekdayDistribution
+        {
+            get => weekdayDistribution;
+            private set => SetValue(ref weekdayDistribution, value);
+        }
 
-        public ObservableCollection<DistributionBarViewModel> HourDistribution { get; }
+        public IReadOnlyList<DistributionBarViewModel> HourDistribution
+        {
+            get => hourDistribution;
+            private set => SetValue(ref hourDistribution, value);
+        }
 
-        public ObservableCollection<WeekHourCellViewModel> WeekHourCells { get; }
+        public IReadOnlyList<WeekHourCellViewModel> WeekHourCells
+        {
+            get => weekHourCells;
+            private set => SetValue(ref weekHourCells, value);
+        }
 
-        public ObservableCollection<string> AdvancedWeekdayLabels { get; }
+        public IReadOnlyList<string> AdvancedWeekdayLabels
+        {
+            get => advancedWeekdayLabels;
+            private set => SetValue(ref advancedWeekdayLabels, value);
+        }
 
-        public ObservableCollection<string> AdvancedHourLabels { get; }
+        public IReadOnlyList<string> AdvancedHourLabels
+        {
+            get => advancedHourLabels;
+            private set => SetValue(ref advancedHourLabels, value);
+        }
 
-        public ObservableCollection<AnomalySessionViewModel> Anomalies { get; }
+        public IReadOnlyList<AnomalySessionViewModel> Anomalies
+        {
+            get => anomalies;
+            private set => SetValue(ref anomalies, value);
+        }
 
         public void Apply(DashboardSnapshot snapshot)
         {
             HeatmapColumnCount = snapshot.HeatmapColumnCount;
-            TrendChartWidth = snapshot.TrendChartWidth;
-            TrendLinePoints = snapshot.TrendLinePoints;
-            TrendLineGeometry = snapshot.TrendLineGeometry;
-            TrendAreaGeometry = snapshot.TrendAreaGeometry;
             AnomalyVisibility = snapshot.Advanced.AnomalyVisibility;
-            PeriodActivities = (snapshot.PeriodActivities ??
-                Enumerable.Empty<PeriodActivityViewModel>()).ToList();
-            Replace(HeatmapCells, snapshot.HeatmapCells);
-            Replace(HeatmapWeekdayLabels, snapshot.HeatmapWeekdayLabels);
-            Replace(TrendPoints, snapshot.TrendPoints);
+            ApplyTrend(new DashboardTrendProjection
+            {
+                PeriodActivities = snapshot.PeriodActivities,
+                TrendChartWidth = snapshot.TrendChartWidth,
+                TrendLinePoints = snapshot.TrendLinePoints,
+                TrendLineGeometry = snapshot.TrendLineGeometry,
+                TrendAreaGeometry = snapshot.TrendAreaGeometry,
+                TrendPoints = snapshot.TrendPoints
+            });
+            HeatmapCells = Copy(snapshot.HeatmapCells);
+            HeatmapWeekdayLabels = Copy(snapshot.HeatmapWeekdayLabels);
 
             selectedWeekdayIndex = null;
             foreach (var bar in snapshot.Advanced.WeekdayDistribution)
@@ -99,16 +138,26 @@ namespace PlaytimeInsights.ViewModels
                     bar.Label);
             }
 
-            allHourDistribution = snapshot.Advanced.HourDistribution.ToList();
-            Replace(WeekdayDistribution, snapshot.Advanced.WeekdayDistribution);
-            Replace(HourDistribution, allHourDistribution);
-            Replace(WeekHourCells, snapshot.Advanced.WeekHourCells);
-            Replace(AdvancedWeekdayLabels, snapshot.Advanced.WeekdayLabels);
-            Replace(AdvancedHourLabels, snapshot.Advanced.HourLabels);
-            Replace(Anomalies, snapshot.Advanced.Anomalies);
+            allHourDistribution = Copy(snapshot.Advanced.HourDistribution);
+            WeekdayDistribution = Copy(snapshot.Advanced.WeekdayDistribution);
+            HourDistribution = allHourDistribution.ToList();
+            WeekHourCells = Copy(snapshot.Advanced.WeekHourCells);
+            AdvancedWeekdayLabels = Copy(snapshot.Advanced.WeekdayLabels);
+            AdvancedHourLabels = Copy(snapshot.Advanced.HourLabels);
+            Anomalies = Copy(snapshot.Advanced.Anomalies);
             HourDistributionTitle = LocalizationService.Get(
                 "LOCPlaytimeInsightsHourDistributionAll",
                 "24 小时分布 · 全部星期");
+        }
+
+        public void ApplyTrend(DashboardTrendProjection projection)
+        {
+            TrendChartWidth = projection.TrendChartWidth;
+            TrendLinePoints = projection.TrendLinePoints;
+            TrendLineGeometry = projection.TrendLineGeometry;
+            TrendAreaGeometry = projection.TrendAreaGeometry;
+            PeriodActivities = Copy(projection.PeriodActivities);
+            TrendPoints = Copy(projection.TrendPoints);
         }
 
         public bool ContainsWeekday(DistributionBarViewModel bar)
@@ -118,7 +167,7 @@ namespace PlaytimeInsights.ViewModels
 
         public void SelectWeekday(DistributionBarViewModel bar)
         {
-            var index = WeekdayDistribution.IndexOf(bar);
+            var index = FindIndex(WeekdayDistribution, bar);
             if (index < 0)
             {
                 return;
@@ -132,7 +181,7 @@ namespace PlaytimeInsights.ViewModels
 
             if (!selectedWeekdayIndex.HasValue)
             {
-                Replace(HourDistribution, allHourDistribution);
+                HourDistribution = allHourDistribution.ToList();
                 HourDistributionTitle = LocalizationService.Get(
                     "LOCPlaytimeInsightsHourDistributionAll",
                     "24 小时分布 · 全部星期");
@@ -140,24 +189,33 @@ namespace PlaytimeInsights.ViewModels
             }
 
             var selectedBar = WeekdayDistribution[selectedWeekdayIndex.Value];
-            Replace(
-                HourDistribution,
-                AdvancedAnalyticsService.CreateHourDistributionForWeekday(
-                    WeekHourCells,
-                    selectedWeekdayIndex.Value));
+            HourDistribution = AdvancedAnalyticsService
+                .CreateHourDistributionForWeekday(
+                    WeekHourCells.ToList(),
+                    selectedWeekdayIndex.Value)
+                .ToList();
             HourDistributionTitle = LocalizationService.Format(
                 "LOCPlaytimeInsightsHourDistributionSelectedFormat",
                 "24 小时分布 · {0}",
                 selectedBar.Label);
         }
 
-        private static void Replace<T>(ObservableCollection<T> target, IEnumerable<T> values)
+        private static IReadOnlyList<T> Copy<T>(IEnumerable<T> values)
         {
-            target.Clear();
-            foreach (var value in values)
+            return (values ?? Enumerable.Empty<T>()).ToList();
+        }
+
+        private static int FindIndex<T>(IReadOnlyList<T> values, T value)
+        {
+            for (var index = 0; index < values.Count; index++)
             {
-                target.Add(value);
+                if (EqualityComparer<T>.Default.Equals(values[index], value))
+                {
+                    return index;
+                }
             }
+
+            return -1;
         }
     }
 }

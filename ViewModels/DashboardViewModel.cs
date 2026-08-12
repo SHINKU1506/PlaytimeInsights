@@ -188,27 +188,27 @@ namespace PlaytimeInsights.ViewModels
         public IReadOnlyList<PeriodActivityViewModel> PeriodActivities =>
             Distribution.PeriodActivities;
 
-        public ObservableCollection<HeatmapCellViewModel> HeatmapCells => Distribution.HeatmapCells;
+        public IReadOnlyList<HeatmapCellViewModel> HeatmapCells => Distribution.HeatmapCells;
 
-        public ObservableCollection<string> HeatmapWeekdayLabels => Distribution.HeatmapWeekdayLabels;
+        public IReadOnlyList<string> HeatmapWeekdayLabels => Distribution.HeatmapWeekdayLabels;
 
-        public ObservableCollection<TrendPointViewModel> TrendPoints => Distribution.TrendPoints;
+        public IReadOnlyList<TrendPointViewModel> TrendPoints => Distribution.TrendPoints;
 
-        public ObservableCollection<GameRankingViewModel> RangeGameRankings => Metrics.RangeGameRankings;
+        public IReadOnlyList<GameRankingViewModel> RangeGameRankings => Metrics.RangeGameRankings;
 
-        public ObservableCollection<GameRankingViewModel> LifetimeGameRankings => Metrics.LifetimeGameRankings;
+        public IReadOnlyList<GameRankingViewModel> LifetimeGameRankings => Metrics.LifetimeGameRankings;
 
-        public ObservableCollection<DistributionBarViewModel> WeekdayDistribution => Distribution.WeekdayDistribution;
+        public IReadOnlyList<DistributionBarViewModel> WeekdayDistribution => Distribution.WeekdayDistribution;
 
-        public ObservableCollection<DistributionBarViewModel> HourDistribution => Distribution.HourDistribution;
+        public IReadOnlyList<DistributionBarViewModel> HourDistribution => Distribution.HourDistribution;
 
-        public ObservableCollection<WeekHourCellViewModel> WeekHourCells => Distribution.WeekHourCells;
+        public IReadOnlyList<WeekHourCellViewModel> WeekHourCells => Distribution.WeekHourCells;
 
-        public ObservableCollection<string> AdvancedWeekdayLabels => Distribution.AdvancedWeekdayLabels;
+        public IReadOnlyList<string> AdvancedWeekdayLabels => Distribution.AdvancedWeekdayLabels;
 
-        public ObservableCollection<string> AdvancedHourLabels => Distribution.AdvancedHourLabels;
+        public IReadOnlyList<string> AdvancedHourLabels => Distribution.AdvancedHourLabels;
 
-        public ObservableCollection<AnomalySessionViewModel> Anomalies => Distribution.Anomalies;
+        public IReadOnlyList<AnomalySessionViewModel> Anomalies => Distribution.Anomalies;
 
         public ObservableCollection<SessionDetailViewModel> SessionDetails => Drilldown.SessionDetails;
 
