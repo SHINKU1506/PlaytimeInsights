@@ -450,6 +450,28 @@ DashboardViewModel
 4. 1.1-B：阶段 C，会话管理 Coordinator；
 5. 1.2：阶段 D、E，拆分大型 ViewModel 和清理。
 
+## 后续性能阶段：Dashboard 异步可取消刷新
+
+聚合趋势图旧图残留的当前修复采用“完整快照生成后原子替换序列并主动失效”，不在阶段 E 分支
+直接引入异步。若后续仍需降低大数据量下切换范围、粒度或筛选时的 UI 停顿，应作为独立性能阶段
+实施以下路线：
+
+1. UI 线程先捕获不可变分析输入 DTO；不得把 `IPlayniteAPI`、WPF 对象、可观察集合或数据库实时
+   枚举器交给后台线程；
+2. 将 `AnalyticsService.CreateSnapshot` 的纯计算部分限定为只依赖 DTO，并在后台任务执行；
+3. 每个刷新请求分配递增 generation 和 `CancellationTokenSource`，取消旧请求并在应用前拒绝过期
+   generation，保证快速连续切换时只有最后一次结果进入界面；
+4. UI 使用 `IsRefreshing` 和轻量加载状态表达正在计算；默认保留当前完整图表，避免先清空造成闪烁，
+   新快照到达后一次性替换全部相关状态；
+5. 分段测量 UI 数据捕获、后台分析、封面投影、Observable 状态发布和下一帧提交时间，再依据数据
+   决定是否增加 100–200 ms 防抖；
+6. 自动化覆盖快速切换、取消、异常恢复、页面关闭、游戏停止触发刷新和数据库变化竞态；客户端
+   验收加载态、键盘命令、下钻及页面切换期间的状态一致性。
+
+该阶段必须先证明分析边界不访问线程相关的 Playnite/WPF 对象，并保持根 ViewModel 每次只创建一个
+一致 `DashboardSnapshot`。详细前置设计见
+`docs\superpowers\specs\2026-08-12-atomic-trend-chart-refresh-design.md`。
+
 ## 完成定义
 
 - 不以 Code-behind 清零为完成标准；
