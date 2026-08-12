@@ -1,6 +1,6 @@
 # Playtime Insights 主体架构优化计划
 
-状态：重构准备与阶段 A–C 已完成；阶段 D 待实施
+状态：重构准备与阶段 A–D 已完成；阶段 E 待实施
 
 规划日期：2026-08-11
 
@@ -67,6 +67,26 @@
 - 项目根 `.gitignore` 新增 `.claude/`，本地 Claude 配置不进入源码历史。
 
 阶段 C 保留 `Loaded`、ContextMenu 打开、窗口内部生命周期、主看板自定义事件适配、滚轮和动画。
+
+### 阶段 D 完成记录
+
+2026-08-12 已完成阶段 D，并保留两段式可审查历史：
+
+- 首个机械提交将 Dashboard 的条目、选择项和快照类型移入 `ViewModels\Dashboard`，保持类名、
+  命名空间、公共 API 与 XAML 绑定不变；
+- 新增 `DashboardFilterViewModel`、`DashboardMetricsViewModel`、
+  `DashboardDistributionViewModel` 和 `DashboardDrilldownViewModel`，分别承接筛选、指标/排名、
+  趋势/分布/热力图与精确会话下钻；
+- 根 `DashboardViewModel` 从约 1094 行缩减到 354 行，保留既有根级绑定作为兼容转发层；
+- 根对象仍是唯一读取全部游戏/会话并调用 `AnalyticsService.CreateSnapshot` 的协调者，四个子状态
+  只投影同一快照，不持有 `SessionRepository`，不会重复扫描会话；
+- 新增阶段 D 静态护栏，锁定唯一快照调用、四个组合对象以及子对象不得访问仓库的边界；当前共
+  81 项回归通过，Release 构建 0 警告、0 错误；
+- 干净构建的 10 万会话分析为 510 ms，相对机械搬迁验证时的 521 ms 未退化，满足 10% 预算；
+- 阶段 D Release 已部署至 `staging\architecture-stage-d` 和插件安装目录，三处 9/9 文件哈希
+  一致，部署前后用户数据文件数量与联合指纹不变。
+
+阶段 D 没有修改 XAML、统计口径、存储 schema、插件 ID、异步模型或客户端可见文案。
 
 ## 结论
 
@@ -300,7 +320,7 @@ ViewModel 继续只接收路径、预览和领域对象，不主动“打开窗�
 - Window Owner、默认文件名和本地化文案在 WPF 实现中保持；
 - 危险操作的确认和自动回滚备份语义不变。
 
-## 阶段 D：拆分大型 ViewModel
+## 阶段 D：拆分大型 ViewModel（已完成）
 
 ### 先移动无状态条目类型
 

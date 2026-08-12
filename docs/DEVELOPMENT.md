@@ -12,7 +12,8 @@
 准备分支新增第 62 项回归 `Architecture refactor baseline keeps boundaries documented`。该测试会
 动态扫描 XAML 事件并核对职责矩阵，同时阻止 ViewModel 引入具体对话框/Window 类型或外部 MVVM
 框架。阶段 A 新增 8 项 Coordinator 假交互测试，阶段 B 新增 4 项命令回归，阶段 C 新增 6 项
-WPF 接线及成功/失败路径回归，当前共 80 项。进入阶段 D 前应运行：
+WPF 接线及成功/失败路径回归，阶段 D 新增 1 项 Dashboard 组合边界护栏，当前共 81 项。进入
+阶段 E 前应运行：
 
 ```powershell
 dotnet build PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite"
@@ -32,6 +33,17 @@ Release 输出一致。该开发 DLL SHA-256 为
 阶段 C 验证产物已部署到 `staging\architecture-stage-c` 和本机插件目录；9/9 发布文件一致。
 开发 DLL SHA-256 为 `2CA2F983EC130F965A86B77D63A2CD352617182DE8E8382586E65608A2A607BE`，
 部署前后用户数据指纹不变。
+
+阶段 D 将 Dashboard 条目类型迁入 `ViewModels\Dashboard`，并以 Filter、Metrics、Distribution、
+Drilldown 四个子 ViewModel 组合根对象。根 `DashboardViewModel` 是唯一的全量游戏/会话读取者，
+只创建一次 `DashboardSnapshot` 后分发；子对象不得持有 `SessionRepository` 或自行调用
+`AnalyticsService.CreateSnapshot`。对应静态护栏会在回归中持续检查该边界。
+
+阶段 D 验证产物已部署到 `staging\architecture-stage-d` 和本机插件目录；Release、staging、
+安装目录三处 9/9 发布文件一致。开发 DLL 为 294,400 字节，SHA-256 为
+`0156F2C0F11D5310BF4B79B26958BDAD010F4433A40C46A704DFA3AA2713764D`；部署前后用户数据均为
+7 个文件，联合指纹保持
+`C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
 
 ## 环境
 
