@@ -25,6 +25,8 @@ namespace PlaytimeInsights.ViewModels
         private IReadOnlyDictionary<Guid, string> libraryNames =
             new Dictionary<Guid, string>();
         private IList<Game> allGames = new List<Game>();
+        private IReadOnlyDictionary<Guid, Game> gamesById =
+            new Dictionary<Guid, Game>();
         private IList<GameSession> allSessions = new List<GameSession>();
         private IList<Game> filteredGames = new List<Game>();
         private IList<GameSession> filteredSessions = new List<GameSession>();
@@ -345,6 +347,8 @@ namespace PlaytimeInsights.ViewModels
             var loadedSessions = sessionRepository.GetAll().ToList();
             libraryNames = loadedLibraryNames;
             allGames = loadedGames;
+            gamesById = loadedGames.GroupBy(game => game.Id)
+                .ToDictionary(group => group.Key, group => group.First());
             allSessions = loadedSessions;
             dataCacheReady = true;
         }
@@ -398,7 +402,7 @@ namespace PlaytimeInsights.ViewModels
                 settings.Settings.TopGames);
             var analyticsMilliseconds = phase.ElapsedMilliseconds;
             phase.Restart();
-            Metrics.ApplyRangeRanking(projection, allGames);
+            Metrics.ApplyRangeRanking(projection, gamesById);
             return new DashboardRefreshTiming(
                 analyticsMilliseconds,
                 phase.ElapsedMilliseconds);
@@ -414,7 +418,7 @@ namespace PlaytimeInsights.ViewModels
             analysisContext = result.Context;
             var analyticsMilliseconds = phase.ElapsedMilliseconds;
             phase.Restart();
-            Metrics.Apply(result.Snapshot, allGames);
+            Metrics.Apply(result.Snapshot, gamesById);
             Distribution.Apply(result.Snapshot);
             Drilldown.ResetContext(filteredGames, filteredSessions);
             return new DashboardRefreshTiming(

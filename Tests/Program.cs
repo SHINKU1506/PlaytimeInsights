@@ -2255,7 +2255,7 @@ namespace PlaytimeInsights.Tests
                 root,
                 @"analyticsService\.CreateSnapshotWithContext\(",
                 RegexOptions.CultureInvariant).Count);
-            Equal(true, root.Contains("Metrics.Apply(result.Snapshot, allGames)"));
+            Equal(true, root.Contains("Metrics.Apply(result.Snapshot, gamesById)"));
             Equal(true, root.Contains("Distribution.Apply(result.Snapshot)"));
             Equal(true, root.Contains(
                 "Drilldown.ResetContext(filteredGames, filteredSessions)"));
@@ -2340,13 +2340,17 @@ namespace PlaytimeInsights.Tests
             Equal(false, trendBlock.Contains("sessionRepository"));
             Equal(false, trendBlock.Contains("CreateSnapshot"));
             Equal(true, rankingBlock.Contains("CreateRankingProjection("));
-            Equal(true, rankingBlock.Contains("Metrics.ApplyRangeRanking("));
+            Equal(true, rankingBlock.Contains(
+                "Metrics.ApplyRangeRanking(projection, gamesById)"));
+            Equal(false, rankingBlock.Contains("allGames"));
             Equal(false, rankingBlock.Contains("GetLibraryNames"));
             Equal(false, rankingBlock.Contains("sessionRepository"));
             Equal(false, rankingBlock.Contains("CreateSnapshot"));
             Equal(true, source.Contains(
                 "PlaytimeInsights Dashboard refresh reason={0} " +
                 "data={1}ms filter={2}ms analytics={3}ms apply={4}ms total={5}ms"));
+            Equal(true, source.Contains(
+                "gamesById = loadedGames.GroupBy(game => game.Id)"));
         }
 
         private static void TestSidebarNavigationUsesSingleAutomaticRefresh()

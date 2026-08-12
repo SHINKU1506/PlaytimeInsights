@@ -98,8 +98,16 @@ namespace PlaytimeInsights.ViewModels
 
         public void Apply(DashboardSnapshot snapshot, IEnumerable<Game> allGames)
         {
-            ApplyRankingCoverImages(snapshot.RangeGameRankings, allGames);
-            ApplyRankingCoverImages(snapshot.LifetimeGameRankings, allGames);
+            var gamesById = CreateGameIndex(allGames);
+            Apply(snapshot, gamesById);
+        }
+
+        public void Apply(
+            DashboardSnapshot snapshot,
+            IReadOnlyDictionary<Guid, Game> gamesById)
+        {
+            ApplyRankingCoverImages(snapshot.RangeGameRankings, gamesById);
+            ApplyRankingCoverImages(snapshot.LifetimeGameRankings, gamesById);
             LifetimeDurationText = snapshot.LifetimeDurationText;
             TrackedDurationText = snapshot.TrackedDurationText;
             RangeDurationText = snapshot.RangeDurationText;
@@ -132,7 +140,14 @@ namespace PlaytimeInsights.ViewModels
             DashboardRankingProjection projection,
             IEnumerable<Game> allGames)
         {
-            ApplyRankingCoverImages(projection.RangeGameRankings, allGames);
+            ApplyRangeRanking(projection, CreateGameIndex(allGames));
+        }
+
+        public void ApplyRangeRanking(
+            DashboardRankingProjection projection,
+            IReadOnlyDictionary<Guid, Game> gamesById)
+        {
+            ApplyRankingCoverImages(projection.RangeGameRankings, gamesById);
             RangeRankingTitleText = projection.RangeRankingTitleText;
             RangeGameRankings = (projection.RangeGameRankings ??
                 Enumerable.Empty<GameRankingViewModel>()).ToList();
@@ -140,11 +155,9 @@ namespace PlaytimeInsights.ViewModels
 
         private void ApplyRankingCoverImages(
             IEnumerable<GameRankingViewModel> rankings,
-            IEnumerable<Game> games)
+            IReadOnlyDictionary<Guid, Game> gamesById)
         {
-            var gamesById = (games ?? Enumerable.Empty<Game>())
-                .GroupBy(game => game.Id)
-                .ToDictionary(group => group.Key, group => group.First());
+            gamesById = gamesById ?? new Dictionary<Guid, Game>();
             foreach (var ranking in rankings ?? Enumerable.Empty<GameRankingViewModel>())
             {
                 Game game;
@@ -165,6 +178,14 @@ namespace PlaytimeInsights.ViewModels
                     ranking.CoverImagePath = null;
                 }
             }
+        }
+
+        private static IReadOnlyDictionary<Guid, Game> CreateGameIndex(
+            IEnumerable<Game> games)
+        {
+            return (games ?? Enumerable.Empty<Game>())
+                .GroupBy(game => game.Id)
+                .ToDictionary(group => group.Key, group => group.First());
         }
 
     }
