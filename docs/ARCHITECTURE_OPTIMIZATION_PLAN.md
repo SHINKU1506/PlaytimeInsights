@@ -1,6 +1,6 @@
 # Playtime Insights 主体架构优化计划
 
-状态：重构准备与阶段 A–D 已完成；阶段 E 待实施
+状态：重构准备与阶段 A–D 已完成；阶段 E 工程验收完成，待客户端复验
 
 规划日期：2026-08-11
 
@@ -108,17 +108,12 @@
 
 ## 当前基线
 
-- `SessionManagementView.xaml.cs`：约 375 行，主要承担文件选择、确认/错误弹窗、窗口创建和
-  会话管理流程编排；
-- `PlaytimeInsightsDashboardView.xaml.cs`：约 135 行，其中大部分为滚轮边界接力、视觉树查找
-  和自定义图表事件适配；
-- `SessionManagementViewModel.cs`：约 649 行，核心导入、导出、备份、恢复、重建索引和会话
-  CRUD 已独立于窗口实现；
-- `DashboardViewModel.cs`：约 1094 行，同时包含筛选、指标、分布、排名、下钻、分页和多个条目
-  模型，是比主看板 Code-behind 更明显的长期维护点；
-- 当前没有统一 `ICommand` 实现；
-- 0.9.8 发布基线为 61 项自动化回归；阶段 0 新增 1 项架构护栏，阶段 A 新增 8 项工作流回归，
-  阶段 B 新增 4 项命令回归，阶段 C 新增 6 项接线/工作流回归，当前共 80 项。
+- `SessionManagementView.xaml.cs`：95 行，只保留生命周期、ContextMenu 放置和 Coordinator 薄转发；
+- `PlaytimeInsightsDashboardView.xaml.cs`：133 行，只保留生命周期、自定义事件适配和滚轮/视觉树逻辑；
+- `SessionManagementViewModel.cs`：681 行，业务操作独立于窗口，绑定 getter 不读取 Repository；
+- `DashboardViewModel.cs`：354 行，组合 Filter、Metrics、Distribution 和 Drilldown 四个子状态；
+- 插件自有 `RelayCommand` / `RelayCommand<T>` 已接入标准命令，不含第三方 MVVM 运行时依赖；
+- 当前共 85 项自动化回归，包含工作流取消/失败、命令状态、单快照、导航性能和事件对称性护栏。
 
 ## 优化目标
 
@@ -379,7 +374,7 @@ DashboardViewModel
 - 筛选变更、下钻和封面解析结果与重构前一致；
 - 压力预算不得退化超过 10%。
 
-## 阶段 E：清理与文档化
+## 阶段 E：清理与文档化（工程验收完成，待客户端复验）
 
 1. 删除已无引用的事件处理器；
 2. 保留并注释合理的 View 层适配代码；
@@ -387,6 +382,25 @@ DashboardViewModel
 4. 静态测试不应机械要求 Code-behind 行数为 0；
 5. 检查所有命令的本地化、自动化名称和键盘行为；
 6. 完成两轮干净 Release 构建和完整 PEXT 验证。
+
+### 阶段 E 结果
+
+- 动态审计四个 View 的 XAML/Loaded 事件源与私有处理器，未发现孤立处理器，生产删除数为 0；
+- 为生命周期、自定义控件事件、滚轮、ContextMenu、Coordinator 转发和窗口内部交互补充职责注释；
+- 新增 `docs\ARCHITECTURE.md`，记录组装根、Dashboard 单快照分发、会话 Coordinator/Interaction、
+  View 边界和测试证据；
+- 新增事件源/处理器双向对称性护栏，不要求 Code-behind 行数为 0；
+- 命令本地化、AutomationProperties、CanExecute、默认/取消按钮、循环 Tab 和初始焦点由既有动态
+  回归覆盖；当前共 85/85 项通过；
+- 两轮独立干净 Release 的 DLL 均为 294,400 字节，SHA-256 均为
+  `7A763012974D25685A512CDB4A10A7ACE32FF31C08B09DF2A583F20DFA807ADE`；
+- 发现 Toolbox 直接打包会保留 DLL 的 ZIP 时间戳；新增 `scripts\Pack-Deterministic.ps1` 在临时
+  副本中归一化时间戳。两轮 PEXT 均为 139,177 字节，SHA-256 均为
+  `3DDF721B41078D694984D044C71797A38A801098D1359B6F824EDED1926F9126`；
+- 两个 PEXT 均仅含 9 个预期条目，内容逐项与 Release 一致，不含 PDB、绝对路径或额外文件；
+- 第二轮 Release 已部署至 `staging\architecture-stage-e\deployed` 和插件安装目录，三处 9/9
+  文件哈希一致；部署前后 7 个用户数据文件联合指纹不变；
+- 阶段 E 未修改 XAML、统计口径、会话 schema、插件 ID、版本或客户端文案。当前只待客户端复验。
 
 ## 测试矩阵
 

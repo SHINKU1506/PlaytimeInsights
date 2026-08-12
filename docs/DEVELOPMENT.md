@@ -1,6 +1,6 @@
 # 开发与构建
 
-更新日期：2026-08-11
+更新日期：2026-08-12
 
 ## 架构重构准备
 
@@ -12,8 +12,8 @@
 准备分支新增第 62 项回归 `Architecture refactor baseline keeps boundaries documented`。该测试会
 动态扫描 XAML 事件并核对职责矩阵，同时阻止 ViewModel 引入具体对话框/Window 类型或外部 MVVM
 框架。阶段 A 新增 8 项 Coordinator 假交互测试，阶段 B 新增 4 项命令回归，阶段 C 新增 6 项
-WPF 接线及成功/失败路径回归，阶段 D 新增 1 项 Dashboard 组合边界护栏，当前共 81 项。进入
-阶段 E 前应运行：
+WPF 接线及成功/失败路径回归；阶段 D/E 又覆盖 Dashboard 组合、导航生命周期、刷新快照与事件
+对称性，当前共 85 项。应运行：
 
 ```powershell
 dotnet build PlaytimeInsights.sln -c Release -p:PlayniteInstallDir="D:\software\Playnite"
@@ -54,6 +54,14 @@ Drilldown 四个子 ViewModel 组合根对象。根 `DashboardViewModel` 是唯�
 逐项一致。DLL 为 294,400 字节，SHA-256 为
 `7A763012974D25685A512CDB4A10A7ACE32FF31C08B09DF2A583F20DFA807ADE`；部署前后 7 个用户数据
 文件联合指纹保持 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
+
+阶段 E 最终架构见 `docs\ARCHITECTURE.md`。事件双向审计未发现孤立处理器，现有 View 代码均有
+真实事件源和明确职责。两轮独立干净构建 85/85 项回归均通过；DLL SHA-256 均为
+`7A763012974D25685A512CDB4A10A7ACE32FF31C08B09DF2A583F20DFA807ADE`。确定性 PEXT 两轮均为
+139,177 字节，SHA-256 均为
+`3DDF721B41078D694984D044C71797A38A801098D1359B6F824EDED1926F9126`，仅含 9 个预期条目。
+第二轮 Release 已部署至 `staging\architecture-stage-e\deployed` 和本机插件目录；部署前后用户
+数据联合指纹保持 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
 
 ## 环境
 

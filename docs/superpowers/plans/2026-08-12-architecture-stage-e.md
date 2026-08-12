@@ -56,7 +56,7 @@
 - [x] Update the baseline status and composition section: WPF interaction owns file/window work for session management; `SessionManagementView` owns lifecycle, ContextMenu placement and coordinator forwarding; Dashboard root fans one snapshot to four child states.
 - [x] Record the zero-deletion result and dynamic handler-symmetry rule.
 - [x] Run the full regression suite and `git diff --check`.
-- [ ] Commit with `docs(architecture): finalize view boundaries`.
+- [x] Commit with `docs(architecture): finalize view boundaries`.
 
 ### Task 3: Verify command, localization, keyboard and accessibility semantics
 
@@ -91,15 +91,15 @@
 - [x] Repeat clean build and tests; diagnose the raw Toolbox PEXT mismatch as DLL ZIP timestamp metadata while confirming all nine entry content hashes match.
 - [x] Add `Pack-Deterministic.ps1`, which validates the nine-file input, copies to a bounded temporary directory, normalizes timestamps and calls Toolbox without modifying Release output.
 - [x] Run the deterministic pack twice and require identical PEXT SHA-256.
-- [ ] Open each PEXT as ZIP and require exactly: DLL, extension.yaml, three icons, LICENSE, PRIVACY.md and two Localization XAML files; reject PDB, absolute paths and unexpected entries.
-- [ ] Deploy the second-pass nine files to `staging/architecture-stage-e/deployed` and the installed plugin directory; require all hashes equal.
-- [ ] Recompute user-data count/fingerprint and require no change.
-- [ ] Mark Stage E complete in all status documents, recording test count, timing, hashes, package contents, zero-deletion audit and remaining client verification.
-- [ ] Commit with `docs(architecture): complete stage E verification` and push `refactor/architecture-preparation`.
+- [x] Open each PEXT as ZIP and require exactly: DLL, extension.yaml, three icons, LICENSE, PRIVACY.md and two Localization XAML files; reject PDB, absolute paths and unexpected entries.
+- [x] Deploy the second-pass nine files to `staging/architecture-stage-e/deployed` and the installed plugin directory; require all hashes equal.
+- [x] Recompute user-data count/fingerprint and require no change.
+- [x] Mark Stage E engineering verification complete in all status documents, recording test count, timing, hashes, package contents, zero-deletion audit and remaining client verification.
+- [x] Commit with `docs(architecture): complete stage E verification` and push `refactor/architecture-preparation`.
 
 ### Task 5: Client handoff
 
 **Files:** None.
 
-- [ ] Ask the user to check Dashboard/session navigation, explicit refresh, filter persistence, chart and heatmap drilldown, nested scrolling, Advanced Options, editor/import dialog keyboard behavior and session CRUD/import/export.
-- [ ] Keep the branch intact until the user chooses merge or PR integration.
+- [x] Ask the user to check Dashboard/session navigation, explicit refresh, filter persistence, chart and heatmap drilldown, nested scrolling, Advanced Options, editor/import dialog keyboard behavior and session CRUD/import/export.
+- [x] Keep the branch intact until the user chooses merge or PR integration.
