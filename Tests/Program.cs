@@ -2134,10 +2134,9 @@ namespace PlaytimeInsights.Tests
                     window.Close();
                     PumpDispatcher();
 
-                    // TEMPORARY RED: skipped reattachment uses a different View.
                     window = new Window
                     {
-                        Content = new PlaytimeInsightsDashboardView(),
+                        Content = view,
                         ShowInTaskbar = false,
                         Width = 640,
                         Height = 480

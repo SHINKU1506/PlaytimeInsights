@@ -1,6 +1,6 @@
 # 开发与构建
 
-更新日期：2026-08-13
+更新日期：2026-08-14
 
 ## 架构重构准备
 
@@ -103,6 +103,21 @@ Dashboard 筛选进一步采用选择性刷新，具体依赖表和 TDD 路线�
 均为 `51755E6EC35275D2D3CBE065C64398BF4EB761591B59C518BD48D727070C6178`。三处 9/9 发布文件一致，
 部署前后 7 个用户数据文件指纹保持
 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
+
+## 2026-08-14 侧边栏 View 复用与封面缓存最终修复波
+
+本小节记录最终审查修复波：同一 Dashboard View 的 Loaded 重新挂载、视觉树不增长、
+单一 View 缓存来源、共享封面缓存容量与冻结不变量、以及文件失效测试的确定性 PNG。
+该批次已完成实现、自动回归与独立 CPU/WPF 代理验证；**尚未部署到 Playnite**，
+上面所有 `architecture-stage-d` 部署证据均属于旧批次，不能作为本批次的部署证明。
+
+回归共 108/108 项通过（含新增 `Dashboard View reattaches and Loaded fires again`）。
+封面解码统一由 `Services\CoverImageCache.cs` 的共享 `CoverImageCache(512)` 提供；
+`CoverImageConverter` 不再携带私有解码器，生产容量 512 通过运行时反射与源码守卫锁定。
+`GetOrLoad` 在提交前对未冻结解码结果调用 `Freeze()`，失败时移除陈旧键并返回 null。
+详细 RED/GREEN 记录见
+`artifacts\sdd\2026-08-14-sidebar-view-and-cover-cache\final-fix-report.md`（忽略目录，
+不进入源码历史）。部署与确定性 PEXT 核对将在部署阶段完成后再更新本小节。
 
 ## 环境
 

@@ -18,6 +18,8 @@ namespace PlaytimeInsights.Services
 
     internal interface ICoverImageDecoder
     {
+        // Decoders may return unfrozen values; the cache normalizes them
+        // with Freeze() before commit.
         BitmapSource Decode(string path, int decodePixelWidth);
     }
 
@@ -127,6 +129,19 @@ namespace PlaytimeInsights.Services
             {
                 Remove(key);
                 return null;
+            }
+
+            if (!decoded.IsFrozen)
+            {
+                try
+                {
+                    decoded.Freeze();
+                }
+                catch
+                {
+                    Remove(key);
+                    return null;
+                }
             }
 
             return Commit(key, stamp, decoded);
