@@ -2,7 +2,7 @@
 
 状态：阶段 E 架构基线
 
-更新日期：2026-08-13
+更新日期：2026-08-14
 
 ## Runtime composition
 
@@ -12,10 +12,14 @@ window or control types into ViewModels.
 
 ### Dashboard
 
-The plugin keeps one Dashboard ViewModel for the lifetime of the Playnite process so date range, aggregation, ranking,
-metadata filters and custom dates survive sidebar navigation. `activeDashboard` only identifies whether the page is
-currently open. A View `Loaded` event is the sole automatic refresh entry; `SidebarItem.Opened` does not run a second
-refresh.
+The plugin keeps one Dashboard ViewModel and one `PlaytimeInsightsDashboardView` for the lifetime of the Playnite
+process. Date range, aggregation, ranking, metadata filters and custom dates therefore retain their existing ViewModel
+lifetime, while scroll offset, focus and other pure View state may remain with the cached visual tree. `activeDashboard`
+only identifies whether the page is currently open; `Closed` does not clear either cache or the View DataContext.
+
+A View `Loaded` event is the sole automatic refresh event entry and invokes at most one DataReload. `SidebarItem.Opened`
+and `Closed` do not refresh. Loaded is not treated as a navigation counter: WPF can raise an additional
+`Unloaded -> Loaded` sequence after theme or template changes, and each such Loaded follows the same one-refresh rule.
 
 `DashboardViewModel` is the coordinator and public compatibility surface for existing XAML bindings. A typed refresh
 plan chooses the smallest valid path:
@@ -101,6 +105,22 @@ Session workflow button
 ```
 
 All session data stays local. The storage schema and plugin ID are outside the presentation refactor boundary.
+
+## Cover thumbnail cache
+
+Dashboard and session XAML keep local `CoverImageConverter` resources, but all converter instances route through one
+process-wide cache. `CoverImageCache` keys entries by normalized full Windows path plus decode width, compares paths
+case-insensitively, and validates each hit with file length plus `LastWriteTimeUtc`. Missing, unreadable, changed or
+undecodable files remove the stale key; changed files are synchronously decoded again.
+
+The production cache uses an access-order LRU with a 512-entry limit. This is an entry-count bound, not a strict memory
+bound: a typical 96 x 96 32-bit thumbnail is about 36 KiB of pixel data, while actual cover aspect ratios and WPF object
+overhead vary. Images use `OnLoad`, `IgnoreImageCache`, the requested decode width and `Freeze()`, so file handles are
+released and the same immutable `BitmapSource` can be shared by multiple controls.
+
+Dictionary and LRU mutations are protected by a private lock; file-stamp reads and decode remain outside it. The current
+implementation guarantees cache-container integrity only. A future asynchronous decoder must add a post-decode stamp
+check and generation or equivalent stale-result suppression before claiming newest-result semantics.
 
 ## Commands and interaction semantics
 

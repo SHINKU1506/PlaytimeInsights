@@ -48,10 +48,21 @@ Drilldown 四个子 ViewModel 组合根对象。根 `DashboardViewModel` 是唯�
 7 个文件，联合指纹保持
 `C318F566DFB2032202836D457D1CC0E5C77CDDED09921136A7273007B594225A`。
 
-侧边栏性能修复规定 View `Loaded` 是页面进入时唯一的自动刷新入口，`SidebarItem.Opened` 只负责
-组装或复用 ViewModel 和 View。不要同时在两处调用 `Refresh()`，否则会在 UI 线程重复枚举游戏库、
-克隆会话、重建筛选与可观察集合。`SessionManagementViewModel.CountText` 必须只投影最近一次刷新
-快照中的 `activeSessionCount`，不得在属性 getter 中调用 Repository。
+侧边栏性能修复规定 View `Loaded` 是唯一的自动刷新事件入口，每个 Loaded 事件最多执行一次
+DataReload；`SidebarItem.Opened` 和 `Closed` 只负责组装、复用或标记活动对象，不得调用 `Refresh()`。
+Loaded 不等价于一次侧边栏导航：WPF 主题或模板变化也可能触发额外的 `Unloaded -> Loaded`。不要在
+Opened 与 Loaded 同时刷新，否则会在 UI 线程重复枚举游戏库、克隆会话、重建筛选与可观察集合。
+
+Dashboard 的 ViewModel 与完整 View 都由插件实例缓存到进程结束。`Closed` 只清除 `activeDashboard`，
+不得清除缓存、DataContext、滚动偏移、焦点或其他纯 View 状态。会话页仍在每次打开时新建 ViewModel、
+Interaction、Coordinator 和 View，不得把两页生命周期混为一体。`SessionManagementViewModel.CountText`
+只投影最近一次刷新快照中的 `activeSessionCount`，不得在属性 getter 中调用 Repository。
+
+所有 `CoverImageConverter` 实例必须通过共享 `CoverImageCache` 获取缩略图。生产容量固定为 512 条目；
+键为规范化完整路径和解码宽度，Windows 路径比较使用 `OrdinalIgnoreCase`，有效性由文件长度和
+`LastWriteTimeUtc` 决定。首次或失效后的解码仍是同步 WPF 解码，并必须使用 `OnLoad`、
+`IgnoreImageCache`、请求宽度和 `Freeze()`。512 是条目上限，不是严格内存上限。当前锁只保证字典与
+LRU 结构安全；未来异步化必须增加解码后的文件戳复核和过期结果抑制。
 
 本次性能修复验证产物已部署到 `staging\architecture-stage-d` 和本机插件目录；三处 9/9 文件
 逐项一致。DLL 为 294,400 字节，SHA-256 为
