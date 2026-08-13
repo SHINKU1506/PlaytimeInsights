@@ -5,6 +5,7 @@ using PlaytimeInsights.Presentation.Coordinators;
 using PlaytimeInsights.Presentation.Interactions;
 using PlaytimeInsights.Services;
 using PlaytimeInsights.ViewModels;
+using PlaytimeInsights.Views;
 using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
@@ -89,6 +90,7 @@ namespace PlaytimeInsights.Tests
             Run("Responsive metric panel selects expected columns", TestResponsiveMetricPanelColumns);
             Run("Responsive metric panel centers and equalizes rows", TestResponsiveMetricPanelArrangement);
             Run("Responsive metric panel contains invalid inputs", TestResponsiveMetricPanelEdgeCases);
+            Run("Dashboard metrics use responsive semantic visual foundation", TestResponsiveMetricVisualFoundation);
             Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
             Run("Nested dashboard scrollers hand wheel input to page boundaries", TestDashboardMouseWheelRouting);
             Run("Architecture refactor baseline keeps boundaries documented", TestArchitectureRefactorBaseline);
@@ -2102,7 +2104,7 @@ namespace PlaytimeInsights.Tests
             Equal(true, dashboard.Contains("FontSize\" Value=\"26\""));
             Equal(true, dashboard.Contains("FontWeight\" Value=\"Bold\""));
             Equal(true, dashboard.Contains("FontFamily\" Value=\"Segoe MDL2 Assets\""));
-            Equal(true, dashboard.Contains("Foreground\" Value=\"#FF8A8A8A\""));
+            Equal(true, dashboard.Contains("Foreground\" Value=\"{DynamicResource TextBrush}\""));
             Equal(true, dashboard.Contains(
                 "DataContext=\"{Binding PreviousPeriodComparison}\""));
             Equal(true, dashboard.Contains(
@@ -2987,6 +2989,67 @@ namespace PlaytimeInsights.Tests
             });
         }
 
+        private static void TestResponsiveMetricVisualFoundation()
+        {
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 1200
+                };
+                view.Measure(new Size(1200, double.PositiveInfinity));
+                view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+                view.UpdateLayout();
+                var panel = FindVisualDescendant<ResponsiveUniformPanel>(view);
+                Equal(true, panel != null);
+                Equal(9, panel.Children.Count);
+                Equal(204d, panel.MinItemWidth);
+                Equal(232d, panel.PreferredItemWidth);
+                Equal(300d, panel.MaxItemWidth);
+                Equal(1, panel.MinColumns);
+                Equal(4, panel.MaxColumns);
+                Equal(12d, panel.HorizontalSpacing);
+                Equal(12d, panel.VerticalSpacing);
+                Equal(true, panel.CenterIncompleteRow);
+
+                Equal(1d, (double)view.Resources["TextOpacityPrimary"]);
+                Equal(0.72d, (double)view.Resources["TextOpacitySecondary"]);
+                Equal(0.58d, (double)view.Resources["TextOpacityTertiary"]);
+                Equal(0.45d, (double)view.Resources["TextOpacityDisabled"]);
+
+                var card = new Border
+                {
+                    Style = (Style)view.Resources["MetricCardStyle"]
+                };
+                Equal(154d, card.MinHeight);
+                Equal(true, double.IsNaN(card.Width));
+                Equal(true, double.IsNaN(card.Height));
+                Equal(new Thickness(0), card.Margin);
+
+                var header = new TextBlock
+                {
+                    Style = (Style)view.Resources["MetricHeaderStyle"]
+                };
+                var icon = new TextBlock
+                {
+                    Style = (Style)view.Resources["MetricIconStyle"]
+                };
+                var helper = new TextBlock
+                {
+                    Style = (Style)view.Resources["MetricHelperTextStyle"]
+                };
+                Equal(0.72d, header.Opacity);
+                Equal(0.58d, icon.Opacity);
+                Equal(0.58d, helper.Opacity);
+
+                LayoutMetricPanel(panel, 1200);
+                panel.Arrange(new Rect(0, 0, 1200, panel.DesiredSize.Height));
+                var ninth = GetLayoutSlot(panel.Children[8]);
+                Equal(true,
+                    Math.Abs(ninth.Left - ((1200 - ninth.Width) / 2)) < 0.01);
+            });
+        }
+
         private static ResponsiveUniformPanel CreateMetricPanel(int count, double minHeight)
         {
             var panel = new ResponsiveUniformPanel();
@@ -3006,6 +3069,35 @@ namespace PlaytimeInsights.Tests
             }
 
             return panel;
+        }
+
+        private static T FindVisualDescendant<T>(DependencyObject root)
+            where T : DependencyObject
+        {
+            if (root == null)
+            {
+                return null;
+            }
+
+            for (var index = 0;
+                index < VisualTreeHelper.GetChildrenCount(root);
+                index++)
+            {
+                var child = VisualTreeHelper.GetChild(root, index);
+                var match = child as T;
+                if (match != null)
+                {
+                    return match;
+                }
+
+                match = FindVisualDescendant<T>(child);
+                if (match != null)
+                {
+                    return match;
+                }
+            }
+
+            return null;
         }
 
         private static void LayoutMetricPanel(
