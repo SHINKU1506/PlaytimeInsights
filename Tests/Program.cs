@@ -25,6 +25,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using System.Xml.Linq;
 
 namespace PlaytimeInsights.Tests
@@ -138,6 +139,7 @@ namespace PlaytimeInsights.Tests
             Run("Sidebar navigation reuses Dashboard View", TestSidebarNavigationReusesDashboardView);
             Run("Dashboard reentry preserves visual tree", TestDashboardReentryPreservesVisualTree);
             Run("Dashboard cache keeps one Loaded refresh boundary", TestDashboardViewCacheRefreshBoundary);
+            Run("Dashboard View reattaches and Loaded fires again", TestDashboardViewLoadedReattaches);
             Run("Cover cache reuses normalized path", TestCoverCacheReusesNormalizedPath);
             Run("Cover cache invalidates changed and missing files", TestCoverCacheInvalidatesFiles);
             Run("Cover cache separates widths and evicts LRU", TestCoverCacheWidthsAndLru);
@@ -1807,6 +1809,39 @@ namespace PlaytimeInsights.Tests
             return target;
         }
 
+        private static string CreateGeneratedPng(
+            string path,
+            int width,
+            int height,
+            Color color)
+        {
+            var visual = new DrawingVisual();
+            using (var drawingContext = visual.RenderOpen())
+            {
+                drawingContext.DrawRectangle(
+                    new SolidColorBrush(color),
+                    null,
+                    new Rect(0, 0, width, height));
+            }
+
+            var bitmap = new RenderTargetBitmap(
+                width,
+                height,
+                96,
+                96,
+                PixelFormats.Pbgra32);
+            bitmap.Render(visual);
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using (var stream = File.Create(path))
+            {
+                encoder.Save(stream);
+            }
+
+            return path;
+        }
+
         private static CoverImageCacheContract LoadCoverImageCacheContract()
         {
             const string contract =
@@ -1996,12 +2031,17 @@ namespace PlaytimeInsights.Tests
                     LayoutDashboardView(firstView);
                     var firstScroller = FindVisualDescendants<ScrollViewer>(firstView)
                         .Single(scroller => scroller.Name == "DashboardScrollViewer");
+                    var firstTreeCount = CountVisualTreeNodes(firstView);
+                    Equal(true, firstTreeCount > 0);
 
                     dashboardItem.Closed();
                     var reopenedView = (PlaytimeInsightsDashboardView)dashboardItem.Opened();
                     LayoutDashboardView(reopenedView);
                     var reopenedScroller = FindVisualDescendants<ScrollViewer>(reopenedView)
                         .Single(scroller => scroller.Name == "DashboardScrollViewer");
+                    var reopenedTreeCount = CountVisualTreeNodes(reopenedView);
+                    Equal(true, reopenedTreeCount > 0);
+                    Equal(firstTreeCount, reopenedTreeCount);
 
                     Equal(true, ReferenceEquals(firstView, reopenedView));
                     Equal(true, ReferenceEquals(firstScroller, reopenedScroller));
@@ -2030,6 +2070,11 @@ namespace PlaytimeInsights.Tests
             Equal(false, dashboardOpened.Contains("activeDashboard.Refresh()"));
             Equal(false, plugin.Contains(
                 "Closed = () => cachedDashboardView = null"));
+            Equal(true, plugin.Contains(
+                "private PlaytimeInsightsDashboardView cachedDashboardView;"));
+            Equal(1, Regex.Matches(
+                plugin,
+                Regex.Escape("new PlaytimeInsightsDashboardView")).Count);
             Equal(1, Regex.Matches(
                 dashboardView,
                 Regex.Escape(
@@ -2053,6 +2098,64 @@ namespace PlaytimeInsights.Tests
 
                     Equal(true, ReferenceEquals(first, second));
                 });
+            });
+        }
+
+        private static void TestDashboardViewLoadedReattaches()
+        {
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView();
+                var loadedCount = 0;
+                object lastLoadedSender = null;
+                view.Loaded += delegate(object sender, RoutedEventArgs e)
+                {
+                    loadedCount++;
+                    lastLoadedSender = sender;
+                };
+
+                Window window = null;
+                try
+                {
+                    window = new Window
+                    {
+                        Content = view,
+                        ShowInTaskbar = false,
+                        Width = 640,
+                        Height = 480
+                    };
+                    window.Show();
+                    PumpDispatcher();
+
+                    Equal(1, loadedCount);
+                    Equal(true, ReferenceEquals(view, lastLoadedSender));
+
+                    window.Content = null;
+                    window.Close();
+                    PumpDispatcher();
+
+                    // TEMPORARY RED: skipped reattachment uses a different View.
+                    window = new Window
+                    {
+                        Content = new PlaytimeInsightsDashboardView(),
+                        ShowInTaskbar = false,
+                        Width = 640,
+                        Height = 480
+                    };
+                    window.Show();
+                    PumpDispatcher();
+
+                    Equal(2, loadedCount);
+                    Equal(true, ReferenceEquals(view, lastLoadedSender));
+                }
+                finally
+                {
+                    if (window != null)
+                    {
+                        window.Content = null;
+                        window.Close();
+                    }
+                }
             });
         }
 
@@ -2093,6 +2196,17 @@ namespace PlaytimeInsights.Tests
                         CultureInfo.InvariantCulture);
                     Equal(true, first != null);
                     Equal(true, ReferenceEquals(first, second));
+
+                    var cacheField = typeof(CoverImageConverter).GetField(
+                        "cache",
+                        BindingFlags.NonPublic | BindingFlags.Static);
+                    Equal(true, cacheField != null);
+                    var sharedCache = cacheField.GetValue(null);
+                    var capacityField = sharedCache.GetType().GetField(
+                        "capacity",
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                    Equal(true, capacityField != null);
+                    Equal(512, (int)capacityField.GetValue(sharedCache));
                 });
             });
         }
@@ -2105,24 +2219,31 @@ namespace PlaytimeInsights.Tests
                 {
                     var contract = LoadCoverImageCacheContract();
                     var cache = contract.Create(2);
-                    var path = CopyPngTo(tempRoot, "cover.png", "icon-dashboard.png");
+                    var path = CreateGeneratedPng(
+                        Path.Combine(tempRoot, "cover.png"),
+                        1,
+                        1,
+                        Color.FromRgb(180, 30, 30));
 
                     var first = contract.GetOrLoad(cache, path, 96);
                     Equal(true, first != null);
 
                     var originalLength = new FileInfo(path).Length;
-                    File.Copy(
-                        Path.Combine(FindSourceRoot(), "icon-sessions.png"),
+                    CreateGeneratedPng(
                         path,
-                        true);
+                        64,
+                        64,
+                        Color.FromRgb(30, 180, 30));
                     Equal(true, new FileInfo(path).Length != originalLength);
                     var afterLengthChange = contract.GetOrLoad(cache, path, 96);
+                    Equal(true, afterLengthChange != null);
                     Equal(true, !ReferenceEquals(first, afterLengthChange));
 
                     File.SetLastWriteTimeUtc(
                         path,
                         File.GetLastWriteTimeUtc(path).AddSeconds(60));
                     var afterStampChange = contract.GetOrLoad(cache, path, 96);
+                    Equal(true, afterStampChange != null);
                     Equal(true, !ReferenceEquals(afterLengthChange, afterStampChange));
 
                     File.Delete(path);
@@ -2325,6 +2446,10 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Converters",
                 "CoverImageConverter.cs"));
+            var coverCache = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Services",
+                "CoverImageCache.cs"));
             var adaptiveTrendChart = File.ReadAllText(Path.Combine(
                 sourceRoot,
                 "Controls",
@@ -2520,9 +2645,20 @@ namespace PlaytimeInsights.Tests
                 "GetFullFilePath(game.CoverImage)"));
             Equal(true, dashboardViewModel.Contains(
                 "ApplyCoverImages(details, activeGames)"));
-            Equal(true, coverConverter.Contains(
+            Equal(true, coverCache.Contains(
                 "CacheOption = BitmapCacheOption.OnLoad"));
-            Equal(true, coverConverter.Contains("DecodePixelWidth = 96"));
+            Equal(true, coverCache.Contains(
+                "image.DecodePixelWidth = decodePixelWidth"));
+            Equal(true, coverCache.Contains(
+                "if (!decoded.IsFrozen)"));
+            Equal(true, coverCache.Contains(
+                "decoded.Freeze();"));
+            Equal(true, coverConverter.Contains(
+                "private const int DecodePixelWidth = 96"));
+            Equal(true, coverConverter.Contains(
+                "new CoverImageCache(512)"));
+            Equal(false, coverConverter.Contains(
+                "private sealed class CoverImageDecoder"));
         }
 
         private static void TestStageDDashboardComposition()
@@ -3436,6 +3572,25 @@ namespace PlaytimeInsights.Tests
             }
         }
 
+        private static int CountVisualTreeNodes(DependencyObject root)
+        {
+            if (root == null)
+            {
+                return 0;
+            }
+
+            var count = 1;
+            for (var index = 0;
+                index < VisualTreeHelper.GetChildrenCount(root);
+                index++)
+            {
+                count += CountVisualTreeNodes(
+                    VisualTreeHelper.GetChild(root, index));
+            }
+
+            return count;
+        }
+
         private static void LayoutDashboardView(
             PlaytimeInsightsDashboardView view)
         {
@@ -3594,6 +3749,15 @@ namespace PlaytimeInsights.Tests
                     "STA chart test failed.",
                     error);
             }
+        }
+
+        private static void PumpDispatcher()
+        {
+            var frame = new DispatcherFrame();
+            Dispatcher.CurrentDispatcher.BeginInvoke(
+                DispatcherPriority.Background,
+                new Action(() => frame.Continue = false));
+            Dispatcher.PushFrame(frame);
         }
 
         private static void RenderTrendChart(AdaptiveTrendChart chart)
