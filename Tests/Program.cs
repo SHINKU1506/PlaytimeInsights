@@ -1,4 +1,7 @@
 using Playnite.SDK;
+using Playnite.SDK.Events;
+using Playnite.SDK.Plugins;
+using PlaytimeInsights.Converters;
 using PlaytimeInsights.Models;
 using PlaytimeInsights.Controls;
 using PlaytimeInsights.Presentation.Coordinators;
@@ -132,6 +135,13 @@ namespace PlaytimeInsights.Tests
             Run("Localization keys and format placeholders stay source-complete", TestLocalizationSourceCoverage);
             Run("Release 0.1 through 0.9 settings keep compatible defaults", TestLegacySettingsMatrix);
             Run("Sidebar entries publish distinct transparent icons", TestSidebarIconPublishing);
+            Run("Sidebar navigation reuses Dashboard View", TestSidebarNavigationReusesDashboardView);
+            Run("Dashboard reentry preserves visual tree", TestDashboardReentryPreservesVisualTree);
+            Run("Dashboard cache keeps one Loaded refresh boundary", TestDashboardViewCacheRefreshBoundary);
+            Run("Cover cache reuses normalized path", TestCoverCacheReusesNormalizedPath);
+            Run("Cover cache invalidates changed and missing files", TestCoverCacheInvalidatesFiles);
+            Run("Cover cache separates widths and evicts LRU", TestCoverCacheWidthsAndLru);
+            Run("Cover decoder returns frozen thumbnail", TestCoverDecoderReturnsFrozenThumbnail);
 
             Console.WriteLine(failures == 0
                 ? "All Playtime Insights tests passed."
@@ -1784,6 +1794,54 @@ namespace PlaytimeInsights.Tests
             }
         }
 
+        private static string CopyPngTo(
+            string tempRoot,
+            string targetFileName,
+            string assetFileName)
+        {
+            var source = Path.Combine(
+                FindSourceRoot(),
+                assetFileName);
+            var target = Path.Combine(tempRoot, targetFileName);
+            File.Copy(source, target);
+            return target;
+        }
+
+        private static CoverImageCacheContract LoadCoverImageCacheContract()
+        {
+            const string contract =
+                "PlaytimeInsights.Services.CoverImageCache with public constructor " +
+                "(int capacity) and public BitmapSource GetOrLoad(string path, int decodePixelWidth)";
+            var type = typeof(global::PlaytimeInsights.PlaytimeInsights)
+                .Assembly
+                .GetType("PlaytimeInsights.Services.CoverImageCache");
+            if (type == null)
+            {
+                throw new InvalidOperationException(
+                    "Cover cache contract missing: " + contract + ".");
+            }
+
+            var constructor = type.GetConstructor(new[] { typeof(int) });
+            if (constructor == null || !constructor.IsPublic)
+            {
+                throw new InvalidOperationException(
+                    "Cover cache contract missing: " + contract + ".");
+            }
+
+            var method = type.GetMethod(
+                "GetOrLoad",
+                new[] { typeof(string), typeof(int) });
+            if (method == null ||
+                !method.IsPublic ||
+                method.ReturnType != typeof(BitmapSource))
+            {
+                throw new InvalidOperationException(
+                    "Cover cache contract missing: " + contract + ".");
+            }
+
+            return new CoverImageCacheContract(constructor, method);
+        }
+
         private static void Run(string name, Action test)
         {
             try
@@ -1891,6 +1949,226 @@ namespace PlaytimeInsights.Tests
                 Equal(8, (int)bytes[24]);
                 Equal(6, (int)bytes[25]);
             }
+        }
+
+        private static void TestSidebarNavigationReusesDashboardView()
+        {
+            WithTempDirectory(tempRoot =>
+            {
+                RunOnSta(() =>
+                {
+                    var plugin = new global::PlaytimeInsights.PlaytimeInsights(
+                        new FakePlayniteApi(tempRoot));
+                    var dashboardItem = plugin.GetSidebarItems()
+                        .Single(item => string.Equals(
+                            Path.GetFileName(Convert.ToString(item.Icon)),
+                            "icon-dashboard.png",
+                            StringComparison.OrdinalIgnoreCase));
+
+                    var first = dashboardItem.Opened();
+                    var second = dashboardItem.Opened();
+                    dashboardItem.Closed();
+                    var third = dashboardItem.Opened();
+
+                    Equal(true, ReferenceEquals(first, second));
+                    Equal(true, ReferenceEquals(first, third));
+                    Equal(true, ReferenceEquals(first.DataContext, second.DataContext));
+                    Equal(true, ReferenceEquals(first.DataContext, third.DataContext));
+                });
+            });
+        }
+
+        private static void TestDashboardReentryPreservesVisualTree()
+        {
+            WithTempDirectory(tempRoot =>
+            {
+                RunOnSta(() =>
+                {
+                    var plugin = new global::PlaytimeInsights.PlaytimeInsights(
+                        new FakePlayniteApi(tempRoot));
+                    var dashboardItem = plugin.GetSidebarItems()
+                        .Single(item => string.Equals(
+                            Path.GetFileName(Convert.ToString(item.Icon)),
+                            "icon-dashboard.png",
+                            StringComparison.OrdinalIgnoreCase));
+
+                    var firstView = (PlaytimeInsightsDashboardView)dashboardItem.Opened();
+                    LayoutDashboardView(firstView);
+                    var firstScroller = FindVisualDescendants<ScrollViewer>(firstView)
+                        .Single(scroller => scroller.Name == "DashboardScrollViewer");
+                    var firstImageCount = FindVisualDescendants<Image>(firstView).Count;
+
+                    dashboardItem.Closed();
+                    var reopenedView = (PlaytimeInsightsDashboardView)dashboardItem.Opened();
+                    LayoutDashboardView(reopenedView);
+                    var reopenedScroller = FindVisualDescendants<ScrollViewer>(reopenedView)
+                        .Single(scroller => scroller.Name == "DashboardScrollViewer");
+                    var reopenedImageCount = FindVisualDescendants<Image>(reopenedView).Count;
+
+                    Equal(true, ReferenceEquals(firstScroller, reopenedScroller));
+                    Equal(true, reopenedImageCount <= firstImageCount);
+                });
+            });
+        }
+
+        private static void TestDashboardViewCacheRefreshBoundary()
+        {
+            var sourceRoot = FindSourceRoot();
+            var plugin = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.cs"));
+            var dashboardView = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+            var dashboardViewModel = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+            var dashboardOpened = ExtractSidebarOpenedBlock(
+                plugin,
+                "icon-dashboard.png");
+
+            Equal(true, plugin.Contains(
+                "private PlaytimeInsightsDashboardView cachedDashboardView;"));
+            Equal(false, dashboardOpened.Contains("activeDashboard.Refresh()"));
+            Equal(false, plugin.Contains(
+                "Closed = () => cachedDashboardView = null"));
+            Equal(1, Regex.Matches(
+                plugin,
+                @"new PlaytimeInsightsDashboardView").Count);
+            Equal(1, Regex.Matches(
+                dashboardView,
+                "Loaded += PlaytimeInsightsDashboardView_Loaded").Count);
+            Equal(true, dashboardViewModel.Contains(
+                "Refresh(DashboardRefreshReason.DataReload)"));
+        }
+
+        private static void TestCoverCacheReusesNormalizedPath()
+        {
+            WithTempDirectory(tempRoot =>
+            {
+                RunOnSta(() =>
+                {
+                    var contract = LoadCoverImageCacheContract();
+                    var cache = contract.Create(4);
+                    var path = CopyPngTo(tempRoot, "cover.png", "icon-dashboard.png");
+                    var aliasDirectory = Path.Combine(tempRoot, "alias");
+                    Directory.CreateDirectory(aliasDirectory);
+                    var equivalentPath = Path.Combine(
+                        aliasDirectory,
+                        "..",
+                        "cover.png");
+
+                    var samePath = contract.GetOrLoad(cache, path, 96);
+                    var normalizedPath = contract.GetOrLoad(
+                        cache,
+                        equivalentPath,
+                        96);
+                    Equal(true, ReferenceEquals(samePath, normalizedPath));
+
+                    var converter1 = new CoverImageConverter();
+                    var converter2 = new CoverImageConverter();
+                    var first = converter1.Convert(
+                        path,
+                        typeof(BitmapSource),
+                        null,
+                        CultureInfo.InvariantCulture);
+                    var second = converter2.Convert(
+                        path,
+                        typeof(BitmapSource),
+                        null,
+                        CultureInfo.InvariantCulture);
+                    Equal(true, first != null);
+                    Equal(true, ReferenceEquals(first, second));
+                });
+            });
+        }
+
+        private static void TestCoverCacheInvalidatesFiles()
+        {
+            WithTempDirectory(tempRoot =>
+            {
+                RunOnSta(() =>
+                {
+                    var contract = LoadCoverImageCacheContract();
+                    var cache = contract.Create(2);
+                    var path = CopyPngTo(tempRoot, "cover.png", "icon-dashboard.png");
+
+                    var first = contract.GetOrLoad(cache, path, 96);
+                    Equal(true, first != null);
+
+                    var originalLength = new FileInfo(path).Length;
+                    File.Copy(
+                        Path.Combine(FindSourceRoot(), "icon-sessions.png"),
+                        path,
+                        true);
+                    Equal(true, new FileInfo(path).Length != originalLength);
+                    var afterLengthChange = contract.GetOrLoad(cache, path, 96);
+                    Equal(true, !ReferenceEquals(first, afterLengthChange));
+
+                    File.SetLastWriteTimeUtc(
+                        path,
+                        File.GetLastWriteTimeUtc(path).AddSeconds(60));
+                    var afterStampChange = contract.GetOrLoad(cache, path, 96);
+                    Equal(true, !ReferenceEquals(afterLengthChange, afterStampChange));
+
+                    File.Delete(path);
+                    Equal(true, contract.GetOrLoad(cache, path, 96) == null);
+                });
+            });
+        }
+
+        private static void TestCoverCacheWidthsAndLru()
+        {
+            WithTempDirectory(tempRoot =>
+            {
+                RunOnSta(() =>
+                {
+                    var contract = LoadCoverImageCacheContract();
+                    var pathA = CopyPngTo(tempRoot, "a.png", "icon-dashboard.png");
+                    var pathB = CopyPngTo(tempRoot, "b.png", "icon-sessions.png");
+                    var pathC = CopyPngTo(tempRoot, "c.png", "icon.png");
+
+                    var widths = contract.Create(2);
+                    var width96 = contract.GetOrLoad(widths, pathA, 96);
+                    var width48 = contract.GetOrLoad(widths, pathA, 48);
+                    Equal(true, width96 != null);
+                    Equal(true, !ReferenceEquals(width96, width48));
+
+                    var lru = contract.Create(2);
+                    var lruA = contract.GetOrLoad(lru, pathA, 96);
+                    var lruB = contract.GetOrLoad(lru, pathB, 96);
+                    Equal(true, ReferenceEquals(
+                        lruA,
+                        contract.GetOrLoad(lru, pathA, 96)));
+                    var lruC = contract.GetOrLoad(lru, pathC, 96);
+                    Equal(true, lruC != null);
+                    var lruBReloaded = contract.GetOrLoad(lru, pathB, 96);
+                    Equal(true, !ReferenceEquals(lruB, lruBReloaded));
+                });
+            });
+        }
+
+        private static void TestCoverDecoderReturnsFrozenThumbnail()
+        {
+            WithTempDirectory(tempRoot =>
+            {
+                RunOnSta(() =>
+                {
+                    var contract = LoadCoverImageCacheContract();
+                    var cache = contract.Create(2);
+                    var path = CopyPngTo(tempRoot, "cover.png", "icon-dashboard.png");
+
+                    var image = contract.GetOrLoad(cache, path, 96);
+                    Equal(true, image != null);
+                    Equal(true, image.IsFrozen);
+                    Equal(true, image.PixelWidth <= 96);
+
+                    File.Delete(path);
+                    Equal(true, image.PixelWidth > 0);
+                });
+            });
         }
 
         private static void TestLocalizedWeekdayLabels()
@@ -3143,6 +3421,14 @@ namespace PlaytimeInsights.Tests
 
                 CollectVisualDescendants(child, matches);
             }
+        }
+
+        private static void LayoutDashboardView(
+            PlaytimeInsightsDashboardView view)
+        {
+            view.Measure(new Size(1200, double.PositiveInfinity));
+            view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+            view.UpdateLayout();
         }
 
         private static void LayoutMetricPanel(
@@ -4904,6 +5190,142 @@ namespace PlaytimeInsights.Tests
                     ? byDimension.Values.SelectMany(item => item)
                     : Enumerable.Empty<string>();
             }
+        }
+
+        private sealed class CoverImageCacheContract
+        {
+            private readonly ConstructorInfo constructor;
+            private readonly MethodInfo getOrLoad;
+
+            public CoverImageCacheContract(
+                ConstructorInfo constructor,
+                MethodInfo getOrLoad)
+            {
+                this.constructor = constructor;
+                this.getOrLoad = getOrLoad;
+            }
+
+            public object Create(int capacity)
+            {
+                return constructor.Invoke(new object[] { capacity });
+            }
+
+            public BitmapSource GetOrLoad(
+                object cache,
+                string path,
+                int decodePixelWidth)
+            {
+                return (BitmapSource)getOrLoad.Invoke(
+                    cache,
+                    new object[] { path, decodePixelWidth });
+            }
+        }
+
+        private sealed class FakePlayniteApi : IPlayniteAPI
+        {
+            public FakePlayniteApi(string pathsRoot)
+            {
+                Paths = new FakePlaynitePathsApi(pathsRoot);
+            }
+
+            public IMainViewAPI MainView => null;
+
+            public IGameDatabaseAPI Database => null;
+
+            public IDialogsFactory Dialogs => null;
+
+            public IPlaynitePathsAPI Paths { get; }
+
+            public INotificationsAPI Notifications => null;
+
+            public IPlayniteInfoAPI ApplicationInfo => null;
+
+            public IWebViewFactory WebViews => null;
+
+            public IResourceProvider Resources => null;
+
+            public IUriHandlerAPI UriHandler => null;
+
+            public IPlayniteSettingsAPI ApplicationSettings => null;
+
+            public IAddons Addons => null;
+
+            public IEmulationAPI Emulation => null;
+
+            public string ExpandGameVariables(
+                Playnite.SDK.Models.Game game,
+                string inputString)
+            {
+                return null;
+            }
+
+            public string ExpandGameVariables(
+                Playnite.SDK.Models.Game game,
+                string inputString,
+                string emulatorDir)
+            {
+                return null;
+            }
+
+            public Playnite.SDK.Models.GameAction ExpandGameVariables(
+                Playnite.SDK.Models.Game game,
+                Playnite.SDK.Models.GameAction action)
+            {
+                return null;
+            }
+
+            public void StartGame(Guid gameId)
+            {
+            }
+
+            public void InstallGame(Guid gameId)
+            {
+            }
+
+            public void UninstallGame(Guid gameId)
+            {
+            }
+
+            public void AddCustomElementSupport(
+                Plugin source,
+                AddCustomElementSupportArgs args)
+            {
+            }
+
+            public void AddSettingsSupport(
+                Plugin source,
+                AddSettingsSupportArgs args)
+            {
+            }
+
+            public void AddConvertersSupport(
+                Plugin source,
+                AddConvertersSupportArgs args)
+            {
+            }
+
+            public List<GamepadController> GetConnectedControllers()
+            {
+                return new List<GamepadController>();
+            }
+        }
+
+        private sealed class FakePlaynitePathsApi : IPlaynitePathsAPI
+        {
+            private readonly string root;
+
+            public FakePlaynitePathsApi(string root)
+            {
+                this.root = root;
+            }
+
+            public bool IsPortable => false;
+
+            public string ApplicationPath => root;
+
+            public string ConfigurationPath => root;
+
+            public string ExtensionsDataPath => root;
         }
     }
 }
