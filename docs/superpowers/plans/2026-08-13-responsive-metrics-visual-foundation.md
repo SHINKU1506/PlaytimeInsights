@@ -674,7 +674,8 @@ Before committing, `git status --short` must still show `?? perf_test.ps1` and n
 **Interfaces:**
 - Consumes: `ResponsiveUniformPanel` and its eight public properties from Task 1.
 - Produces: Dashboard resources named exactly `TextOpacityPrimary`, `TextOpacitySecondary`, `TextOpacityTertiary`, and `TextOpacityDisabled`, typed as `sys:Double` with values `1`, `0.72`, `0.58`, and `0.45`.
-- Produces: a named metric container `MetricCardsPanel` whose runtime type is `ResponsiveUniformPanel`, with `MinItemWidth=204`, `PreferredItemWidth=232`, `MaxItemWidth=300`, `MinColumns=1`, `MaxColumns=4`, `HorizontalSpacing=12`, `VerticalSpacing=12`, and `CenterIncompleteRow=true`.
+- Produces: the Dashboard's sole metric container whose runtime type is `ResponsiveUniformPanel`, with `MinItemWidth=204`, `PreferredItemWidth=232`, `MaxItemWidth=300`, `MinColumns=1`, `MaxColumns=4`, `HorizontalSpacing=12`, `VerticalSpacing=12`, and `CenterIncompleteRow=true`.
+- The custom Panel must remain unnamed in XAML. This project has a root type `PlaytimeInsights` that shadows the `PlaytimeInsights.*` namespace in WPF-generated named fields, so `x:Name` on this custom control produces reproducible `CS0426` in the temporary WPF project. The live test locates the sole Panel by runtime type after layout.
 - Produces: metric cards with `MinHeight="154"`, no fixed `Width`, no fixed `Height`, and no card-level `Margin`.
 
 - [ ] **Step 1: Add a failing live WPF visual-foundation test**
@@ -692,9 +693,14 @@ private static void TestResponsiveMetricVisualFoundation()
 {
     RunOnSta(() =>
     {
-        var view = new PlaytimeInsightsDashboardView();
-        var panel = view.FindName("MetricCardsPanel") as
-            ResponsiveUniformPanel;
+        var view = new PlaytimeInsightsDashboardView
+        {
+            Width = 1200
+        };
+        view.Measure(new Size(1200, double.PositiveInfinity));
+        view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+        view.UpdateLayout();
+        var panel = FindVisualDescendant<ResponsiveUniformPanel>(view);
         Equal(true, panel != null);
         Equal(9, panel.Children.Count);
         Equal(204d, panel.MinItemWidth);
@@ -742,6 +748,35 @@ private static void TestResponsiveMetricVisualFoundation()
             Math.Abs(ninth.Left - ((1200 - ninth.Width) / 2)) < 0.01);
     });
 }
+
+private static T FindVisualDescendant<T>(DependencyObject parent)
+    where T : DependencyObject
+{
+    if (parent == null)
+    {
+        return null;
+    }
+
+    for (var index = 0;
+        index < VisualTreeHelper.GetChildrenCount(parent);
+        index++)
+    {
+        var child = VisualTreeHelper.GetChild(parent, index);
+        var match = child as T;
+        if (match != null)
+        {
+            return match;
+        }
+
+        match = FindVisualDescendant<T>(child);
+        if (match != null)
+        {
+            return match;
+        }
+    }
+
+    return null;
+}
 ```
 
 - [ ] **Step 2: Run the harness and confirm the static test fails**
@@ -753,7 +788,7 @@ dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release --no-restore
 & .\Tests\bin\Release\net462\PlaytimeInsightsRegression.exe
 ```
 
-Expected: `Dashboard metrics use responsive semantic visual foundation` fails because `FindName("MetricCardsPanel")` returns null before the metric container is migrated and named. If view construction exposes a missing test-only theme resource, add only the minimum resource setup in the test harness and keep the production XAML unchanged.
+Expected: `Dashboard metrics use responsive semantic visual foundation` fails because the old metric container is a `WrapPanel`, so `FindVisualDescendant<ResponsiveUniformPanel>(view)` returns null. If view construction exposes a missing test-only theme resource, add only the minimum resource setup in the test harness and keep the production XAML unchanged.
 
 - [ ] **Step 3: Add semantic opacity resources and migrate relevant text**
 
@@ -817,8 +852,7 @@ Change `MetricCardStyle` to:
 Replace only the `WrapPanel` that directly contains the nine metric cards with:
 
 ```xml
-<controls:ResponsiveUniformPanel x:Name="MetricCardsPanel"
-                                 Margin="0,0,0,18"
+<controls:ResponsiveUniformPanel Margin="0,0,0,18"
                                  MinItemWidth="204"
                                  PreferredItemWidth="232"
                                  MaxItemWidth="300"
