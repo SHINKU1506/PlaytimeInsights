@@ -1,7 +1,7 @@
 # Playtime Insights 响应式指标卡与视觉基础设计
 
-状态：待实施  
-设计日期：2026-08-13  
+状态：待实施
+设计日期：2026-08-13
 依据：`docs/VISUAL_UX_OPTIMIZATION_PLAN.md` 与当前 `main` 实现
 
 ## 目标
