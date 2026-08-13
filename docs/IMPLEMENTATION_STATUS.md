@@ -4,6 +4,39 @@
 
 当前阶段：0.9.8 已正式发布；架构重构 A–E 与 Dashboard 选择性刷新客户端验收通过
 
+## 2026-08-13 响应式指标卡与 Dashboard 语义文本基础
+
+- 本批次实现文件：新增 `Controls\ResponsiveUniformPanel.cs`；修改 `Views\PlaytimeInsightsDashboardView.xaml` 和 `Tests\Program.cs`；本 Task 3 仅更新本文件与 `docs\VISUAL_UX_OPTIMIZATION_PLAN.md`；
+- `ResponsiveUniformPanel` 使用 204/232/300 像素宽度约束、1–4 列、12 像素横纵间距、同排等宽等高和不完整末行居中；指标卡移除固定 218 × 154，保留 `MinHeight=154`；
+- 自动化覆盖 320/360/640/900/1200 内容宽度、0/1/9/10 子元素、长本地化文本、无限约束和无效属性值；真实 Dashboard 运行时测试通过视觉树类型定位 `ResponsiveUniformPanel`；
+- Panel 无 `x:Name`。WPF `CS0426` 根因是无命名根元素，按批准修正改为真实视觉树类型定位，避免使用会触发该错误的命名路径；
+- 最终回归：`Tests\bin\Release\net462\PlaytimeInsightsRegression.exe` 输出 99/99，所有项目均为 `[PASS]`，并以 `All Playtime Insights tests passed.` 结束；
+- 测试项目 Release：`dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release --no-restore`，0 警告、0 错误；生产项目 Release：`dotnet build PlaytimeInsights.csproj -c Release --no-restore`，0 警告、0 错误；
+- Dashboard 已加入四个命名语义透明度资源：`TextOpacityPrimary`、`TextOpacitySecondary`、`TextOpacityTertiary`、`TextOpacityDisabled`；Sessions/settings 跨页面抽取仍待后续；
+- 本轮未部署、未打包、未启动 Playnite，未修改主题、配置或用户数据；未触碰任何安装目录或用户数据文件；
+- `perf_test.ps1` 是主工作区用户保留的未跟踪文件；隔离工作树中不出现属于正常状态，本任务未触碰它，也不会将其加入提交；
+- 本批次完成范围仅为响应式指标卡和 Dashboard 语义文本基础；空状态、跨页面 token 共享、微交互和会话列宽治理仍是后续工作。
+
+### 客户端视觉验收（待用户在 Playnite 中执行）
+
+以下步骤分别用中文和英文执行；客户端验收尚未通过，仍是唯一外部未完成项：
+
+#### 中文
+
+1. 在 100%、125%、150%、200% DPI 下，分别使用默认深色、Seaside、浅色和 Windows 高对比度主题；
+2. 在 Dashboard 内容宽度 320、360、640、900、1200 以及连续拖动调整窗口时，确认指标卡按 1/2/3/4 列稳定换行；
+3. 确认同排卡片等宽、等高，最后一张不完整末行居中，长标题和辅助文本可读且不截断、不重叠；
+4. 确认纯展示指标卡没有 Hover 或 Click affordance；
+5. 确认现有图表、筛选、下钻和滚轮行为未改变。
+
+#### English
+
+1. At 100%, 125%, 150%, and 200% DPI, check the default dark, Seaside, light, and Windows high-contrast themes;
+2. At Dashboard content widths 320, 360, 640, 900, and 1200, plus continuous window resizing, confirm stable 1/2/3/4-column metric-card layout;
+3. Confirm equal widths and heights within each row, a centered final card in an incomplete row, and readable long titles/helper text without clipping or overlap;
+4. Confirm that the display-only metric cards expose no hover or click affordance;
+5. Confirm that existing charts, filters, drilldown, and wheel behavior are unchanged.
+
 ## 架构重构准备分支
 
 - 2026-08-13 用户完成客户端验收：连续切换聚合、排名、时间范围和元数据筛选未发现本轮选择性
