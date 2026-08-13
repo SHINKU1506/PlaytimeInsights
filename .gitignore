@@ -38,6 +38,7 @@ packages/
 *.bak
 *.old
 artifacts/
+/.worktrees/
 
 # Runtime/user data must never be committed if copied into the source tree
 /ExtensionsData/
