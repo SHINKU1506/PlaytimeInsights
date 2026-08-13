@@ -29,6 +29,7 @@ namespace PlaytimeInsights
         private readonly SessionImportService sessionImportService;
         private readonly SessionDiagnosticsService sessionDiagnosticsService;
         private DashboardViewModel cachedDashboard;
+        private PlaytimeInsightsDashboardView cachedDashboardView;
         private DashboardViewModel activeDashboard;
         private SessionManagementViewModel activeSessionManagement;
         private Timer checkpointTimer;
@@ -199,10 +200,15 @@ namespace PlaytimeInsights
 
                     activeDashboard = cachedDashboard;
 
-                    return new PlaytimeInsightsDashboardView
+                    if (cachedDashboardView == null)
                     {
-                        DataContext = activeDashboard
-                    };
+                        cachedDashboardView = new PlaytimeInsightsDashboardView
+                        {
+                            DataContext = cachedDashboard
+                        };
+                    }
+
+                    return cachedDashboardView;
                 },
                 Closed = () => activeDashboard = null
             };
