@@ -2815,6 +2815,22 @@ namespace PlaytimeInsights.Tests
         {
             RunOnSta(() =>
             {
+                foreach (var sample in new[]
+                {
+                    new { Count = 9, Width = 640d, Columns = 2 },
+                    new { Count = 10, Width = 640d, Columns = 2 },
+                    new { Count = 9, Width = 1200d, Columns = 4 },
+                    new { Count = 10, Width = 1200d, Columns = 4 }
+                })
+                {
+                    var arranged = CreateMetricPanel(sample.Count, 154);
+                    LayoutMetricPanel(arranged, sample.Width);
+                    AssertResponsiveMetricPanelSlots(
+                        arranged,
+                        sample.Width,
+                        sample.Columns);
+                }
+
                 var panel = CreateMetricPanel(9, 154);
                 ((Border)panel.Children[1]).MinHeight = 190;
                 LayoutMetricPanel(panel, 1200);
@@ -2830,6 +2846,92 @@ namespace PlaytimeInsights.Tests
                 Equal(true, fourth.Right <= 1200);
                 Equal(true, Math.Abs(ninth.Left - ((1200 - ninth.Width) / 2)) < 0.01);
             });
+        }
+
+        private static void AssertResponsiveMetricPanelSlots(
+            ResponsiveUniformPanel panel,
+            double availableWidth,
+            int expectedColumns)
+        {
+            var slots = panel.Children
+                .Cast<UIElement>()
+                .Select(GetLayoutSlot)
+                .ToList();
+            var rows = new List<List<Rect>>();
+
+            foreach (var slot in slots)
+            {
+                var row = rows.Count == 0
+                    ? null
+                    : rows[rows.Count - 1];
+                if (row == null ||
+                    Math.Abs(row[0].Top - slot.Top) >= 0.01)
+                {
+                    row = new List<Rect>();
+                    rows.Add(row);
+                }
+
+                row.Add(slot);
+            }
+
+            Equal(
+                (slots.Count + expectedColumns - 1) / expectedColumns,
+                rows.Count);
+
+            for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+            {
+                var row = rows[rowIndex];
+                var expectedItemsInRow = Math.Min(
+                    expectedColumns,
+                    slots.Count - (rowIndex * expectedColumns));
+                Equal(expectedItemsInRow, row.Count);
+
+                var first = row[0];
+                for (var itemIndex = 0; itemIndex < row.Count; itemIndex++)
+                {
+                    var slot = row[itemIndex];
+                    Equal(true, Math.Abs(slot.Width - first.Width) < 0.01);
+                    Equal(true, Math.Abs(slot.Top - first.Top) < 0.01);
+                    Equal(true, Math.Abs(slot.Height - first.Height) < 0.01);
+                    Equal(true, slot.Width > 0 && slot.Height > 0);
+                    Equal(true, slot.Left >= 0);
+                    Equal(true, slot.Right <= availableWidth);
+                    Equal(true, slot.Bottom <= panel.DesiredSize.Height);
+
+                    if (itemIndex > 0)
+                    {
+                        var previous = row[itemIndex - 1];
+                        Equal(
+                            true,
+                            Math.Abs((slot.Left - previous.Right) - 12d) < 0.01);
+                    }
+                }
+
+                if (rowIndex > 0)
+                {
+                    var previousRow = rows[rowIndex - 1];
+                    foreach (var previous in previousRow)
+                    {
+                        foreach (var slot in row)
+                        {
+                            Equal(
+                                true,
+                                Math.Abs((slot.Top - previous.Bottom) - 12d) < 0.01);
+                        }
+                    }
+                }
+            }
+
+            var lastRow = rows[rows.Count - 1];
+            if (lastRow.Count < expectedColumns)
+            {
+                var rowWidth = (lastRow.Count * lastRow[0].Width) +
+                    ((lastRow.Count - 1) * 12d);
+                Equal(
+                    true,
+                    Math.Abs(lastRow[0].Left -
+                        ((availableWidth - rowWidth) / 2)) < 0.01);
+            }
         }
 
         private static void TestResponsiveMetricPanelEdgeCases()
