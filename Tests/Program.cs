@@ -1996,17 +1996,15 @@ namespace PlaytimeInsights.Tests
                     LayoutDashboardView(firstView);
                     var firstScroller = FindVisualDescendants<ScrollViewer>(firstView)
                         .Single(scroller => scroller.Name == "DashboardScrollViewer");
-                    var firstImageCount = FindVisualDescendants<Image>(firstView).Count;
 
                     dashboardItem.Closed();
                     var reopenedView = (PlaytimeInsightsDashboardView)dashboardItem.Opened();
                     LayoutDashboardView(reopenedView);
                     var reopenedScroller = FindVisualDescendants<ScrollViewer>(reopenedView)
                         .Single(scroller => scroller.Name == "DashboardScrollViewer");
-                    var reopenedImageCount = FindVisualDescendants<Image>(reopenedView).Count;
 
+                    Equal(true, ReferenceEquals(firstView, reopenedView));
                     Equal(true, ReferenceEquals(firstScroller, reopenedScroller));
-                    Equal(true, reopenedImageCount <= firstImageCount);
                 });
             });
         }
@@ -2029,19 +2027,33 @@ namespace PlaytimeInsights.Tests
                 plugin,
                 "icon-dashboard.png");
 
-            Equal(true, plugin.Contains(
-                "private PlaytimeInsightsDashboardView cachedDashboardView;"));
             Equal(false, dashboardOpened.Contains("activeDashboard.Refresh()"));
             Equal(false, plugin.Contains(
                 "Closed = () => cachedDashboardView = null"));
             Equal(1, Regex.Matches(
-                plugin,
-                @"new PlaytimeInsightsDashboardView").Count);
-            Equal(1, Regex.Matches(
                 dashboardView,
-                "Loaded += PlaytimeInsightsDashboardView_Loaded").Count);
+                Regex.Escape(
+                    "Loaded += PlaytimeInsightsDashboardView_Loaded")).Count);
             Equal(true, dashboardViewModel.Contains(
                 "Refresh(DashboardRefreshReason.DataReload)"));
+
+            WithTempDirectory(tempRoot =>
+            {
+                RunOnSta(() =>
+                {
+                    var instance = new global::PlaytimeInsights.PlaytimeInsights(
+                        new FakePlayniteApi(tempRoot));
+                    var dashboardItem = instance.GetSidebarItems()
+                        .Single(item => string.Equals(
+                            Path.GetFileName(Convert.ToString(item.Icon)),
+                            "icon-dashboard.png",
+                            StringComparison.OrdinalIgnoreCase));
+                    var first = dashboardItem.Opened();
+                    var second = dashboardItem.Opened();
+
+                    Equal(true, ReferenceEquals(first, second));
+                });
+            });
         }
 
         private static void TestCoverCacheReusesNormalizedPath()
@@ -2145,6 +2157,7 @@ namespace PlaytimeInsights.Tests
                     var lruC = contract.GetOrLoad(lru, pathC, 96);
                     Equal(true, lruC != null);
                     var lruBReloaded = contract.GetOrLoad(lru, pathB, 96);
+                    Equal(true, lruBReloaded != null);
                     Equal(true, !ReferenceEquals(lruB, lruBReloaded));
                 });
             });
