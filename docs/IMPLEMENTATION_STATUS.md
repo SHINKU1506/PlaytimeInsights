@@ -9,7 +9,7 @@
 - 本批次实现文件：新增 `Controls\ResponsiveUniformPanel.cs`；修改 `Views\PlaytimeInsightsDashboardView.xaml` 和 `Tests\Program.cs`；本 Task 3 仅更新本文件与 `docs\VISUAL_UX_OPTIMIZATION_PLAN.md`；
 - `ResponsiveUniformPanel` 使用 204/232/300 像素宽度约束、1–4 列、12 像素横纵间距、同排等宽等高和不完整末行居中；指标卡移除固定 218 × 154，保留 `MinHeight=154`；
 - 自动化覆盖 320/360/640/900/1200 内容宽度、0/1/9/10 子元素、长本地化文本、无限约束和无效属性值；真实 Dashboard 运行时测试通过视觉树类型定位 `ResponsiveUniformPanel`；
-- Panel 无 `x:Name`。WPF `CS0426` 根因是无命名根元素，按批准修正改为真实视觉树类型定位，避免使用会触发该错误的命名路径；
+- Panel 无 `x:Name`。根类型 `PlaytimeInsights` 遮蔽 `PlaytimeInsights.Controls` 命名空间；给自定义 Panel 添加 `x:Name` 后，WPF 临时项目生成字段声明时触发 `CS0426`。已移除 `x:Name`，测试按真实视觉树 runtime type 定位；
 - 最终回归：`Tests\bin\Release\net462\PlaytimeInsightsRegression.exe` 输出 99/99，所有项目均为 `[PASS]`，并以 `All Playtime Insights tests passed.` 结束；
 - 测试项目 Release：`dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release --no-restore`，0 警告、0 错误；生产项目 Release：`dotnet build PlaytimeInsights.csproj -c Release --no-restore`，0 警告、0 错误；
 - Dashboard 已加入四个命名语义透明度资源：`TextOpacityPrimary`、`TextOpacitySecondary`、`TextOpacityTertiary`、`TextOpacityDisabled`；Sessions/settings 跨页面抽取仍待后续；
