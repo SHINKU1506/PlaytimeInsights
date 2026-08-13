@@ -108,8 +108,11 @@ Dashboard 筛选进一步采用选择性刷新，具体依赖表和 TDD 路线�
 
 本小节记录最终审查修复波：同一 Dashboard View 的 Loaded 重新挂载、视觉树不增长、
 单一 View 缓存来源、共享封面缓存容量与冻结不变量、以及文件失效测试的确定性 PNG。
-该批次已完成实现、自动回归与独立 CPU/WPF 代理验证；**尚未部署到 Playnite**，
-上面所有 `architecture-stage-d` 部署证据均属于旧批次，不能作为本批次的部署证明。
+该批次已完成实现、自动回归、独立 CPU/WPF 代理验证与本地 Playnite 部署。部署提交为
+`b422f040e3d3f3f995ba1e1708ab77417c3c4b3c`，Release/部署 DLL 均为 316,928 字节，SHA-256 均为
+`D5FC8F3460BA999DA03FCA1EA9CDD09CFDA3105E97C541C9A55569CA54E811F0`；旧插件备份位于
+`C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260814-031201`。上面所有
+`architecture-stage-d` 部署证据仍属于旧批次，不能作为本批次的部署证明。
 
 回归共 108/108 项通过（含新增 `Dashboard View reattaches and Loaded fires again`）。
 封面解码统一由 `Services\CoverImageCache.cs` 的共享 `CoverImageCache(512)` 提供；
@@ -117,7 +120,9 @@ Dashboard 筛选进一步采用选择性刷新，具体依赖表和 TDD 路线�
 `GetOrLoad` 在提交前对未冻结解码结果调用 `Freeze()`，失败时移除陈旧键并返回 null。
 详细 RED/GREEN 记录见
 `artifacts\sdd\2026-08-14-sidebar-view-and-cover-cache\final-fix-report.md`（忽略目录，
-不进入源码历史）。部署与确定性 PEXT 核对将在部署阶段完成后再更新本小节。
+不进入源码历史）。Playnite 于 2026-08-14 03:12:25 成功加载插件 `0.9.8`，进程响应正常。
+当前自动化环境无法初始化 computer-use，且 Playnite 未向 Windows UI Automation 暴露后代控件；因此
+未执行坐标猜测式点击。真实侧边栏重复切换、滚动/焦点保留和主题切换体感仍需人工客户端确认。
 
 ## 环境
 
