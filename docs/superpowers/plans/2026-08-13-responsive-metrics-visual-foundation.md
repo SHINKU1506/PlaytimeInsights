@@ -674,10 +674,10 @@ Before committing, `git status --short` must still show `?? perf_test.ps1` and n
 **Interfaces:**
 - Consumes: `ResponsiveUniformPanel` and its eight public properties from Task 1.
 - Produces: Dashboard resources named exactly `TextOpacityPrimary`, `TextOpacitySecondary`, `TextOpacityTertiary`, and `TextOpacityDisabled`, typed as `sys:Double` with values `1`, `0.72`, `0.58`, and `0.45`.
-- Produces: a metric container declared as `controls:ResponsiveUniformPanel` with `MinItemWidth="204"`, `PreferredItemWidth="232"`, `MaxItemWidth="300"`, `MinColumns="1"`, `MaxColumns="4"`, `HorizontalSpacing="12"`, `VerticalSpacing="12"`, and `CenterIncompleteRow="True"`.
+- Produces: a named metric container `MetricCardsPanel` whose runtime type is `ResponsiveUniformPanel`, with `MinItemWidth=204`, `PreferredItemWidth=232`, `MaxItemWidth=300`, `MinColumns=1`, `MaxColumns=4`, `HorizontalSpacing=12`, `VerticalSpacing=12`, and `CenterIncompleteRow=true`.
 - Produces: metric cards with `MinHeight="154"`, no fixed `Width`, no fixed `Height`, and no card-level `Margin`.
 
-- [ ] **Step 1: Add a failing static XAML visual-foundation test**
+- [ ] **Step 1: Add a failing live WPF visual-foundation test**
 
 Register after the three Task 1 tests:
 
@@ -685,64 +685,62 @@ Register after the three Task 1 tests:
 Run("Dashboard metrics use responsive semantic visual foundation", TestResponsiveMetricVisualFoundation);
 ```
 
-Add this test next to `TestThemeAndResponsiveLayout`:
+Add `using PlaytimeInsights.Views;` and this test next to the other STA/WPF tests. It loads the compiled XAML, resolves the named visual element, applies parsed styles to real controls, and asserts their runtime properties; it must not read or regex-match the XAML source file.
 
 ```csharp
 private static void TestResponsiveMetricVisualFoundation()
 {
-    var sourceRoot = FindSourceRoot();
-    var dashboard = File.ReadAllText(Path.Combine(
-        sourceRoot,
-        "Views",
-        "PlaytimeInsightsDashboardView.xaml"));
-
-    Equal(true, dashboard.Contains(
-        "xmlns:sys=\"clr-namespace:System;assembly=mscorlib\""));
-    foreach (var resource in new[]
+    RunOnSta(() =>
     {
-        "<sys:Double x:Key=\"TextOpacityPrimary\">1</sys:Double>",
-        "<sys:Double x:Key=\"TextOpacitySecondary\">0.72</sys:Double>",
-        "<sys:Double x:Key=\"TextOpacityTertiary\">0.58</sys:Double>",
-        "<sys:Double x:Key=\"TextOpacityDisabled\">0.45</sys:Double>"
-    })
-    {
-        Equal(true, dashboard.Contains(resource));
-    }
+        var view = new PlaytimeInsightsDashboardView();
+        var panel = view.FindName("MetricCardsPanel") as
+            ResponsiveUniformPanel;
+        Equal(true, panel != null);
+        Equal(9, panel.Children.Count);
+        Equal(204d, panel.MinItemWidth);
+        Equal(232d, panel.PreferredItemWidth);
+        Equal(300d, panel.MaxItemWidth);
+        Equal(1, panel.MinColumns);
+        Equal(4, panel.MaxColumns);
+        Equal(12d, panel.HorizontalSpacing);
+        Equal(12d, panel.VerticalSpacing);
+        Equal(true, panel.CenterIncompleteRow);
 
-    Equal(true, dashboard.Contains("<controls:ResponsiveUniformPanel"));
-    Equal(true, dashboard.Contains("MinItemWidth=\"204\""));
-    Equal(true, dashboard.Contains("PreferredItemWidth=\"232\""));
-    Equal(true, dashboard.Contains("MaxItemWidth=\"300\""));
-    Equal(true, dashboard.Contains("MaxColumns=\"4\""));
-    Equal(true, dashboard.Contains("CenterIncompleteRow=\"True\""));
-    var metricStyle = Regex.Match(
-        dashboard,
-        @"<Style x:Key=""MetricCardStyle""[\s\S]*?</Style>",
-        RegexOptions.CultureInvariant).Value;
-    Equal(true, metricStyle.Length > 0);
-    Equal(false, metricStyle.Contains("<Setter Property=\"Width\""));
-    Equal(false, metricStyle.Contains("<Setter Property=\"Height\""));
-    Equal(true, dashboard.Contains(
-        "<Setter Property=\"MinHeight\" Value=\"154\" />"));
-    Equal(false, dashboard.Contains("#FF8A8A8A"));
-    Equal(true, Regex.Matches(
-        dashboard,
-        @"\{StaticResource TextOpacityPrimary\}",
-        RegexOptions.CultureInvariant).Count >= 3);
-    Equal(true, Regex.Matches(
-        dashboard,
-        @"\{StaticResource TextOpacitySecondary\}",
-        RegexOptions.CultureInvariant).Count >= 6);
-    Equal(true, Regex.Matches(
-        dashboard,
-        @"\{StaticResource TextOpacityTertiary\}",
-        RegexOptions.CultureInvariant).Count >= 7);
-    Equal(true, dashboard.Contains(
-        "Value=\"{StaticResource TextOpacityDisabled}\""));
-    Equal(9, Regex.Matches(
-        dashboard,
-        @"<Border Style=""\{StaticResource MetricCardStyle\}""",
-        RegexOptions.CultureInvariant).Count);
+        Equal(1d, (double)view.Resources["TextOpacityPrimary"]);
+        Equal(0.72d, (double)view.Resources["TextOpacitySecondary"]);
+        Equal(0.58d, (double)view.Resources["TextOpacityTertiary"]);
+        Equal(0.45d, (double)view.Resources["TextOpacityDisabled"]);
+
+        var card = new Border
+        {
+            Style = (Style)view.Resources["MetricCardStyle"]
+        };
+        Equal(154d, card.MinHeight);
+        Equal(true, double.IsNaN(card.Width));
+        Equal(true, double.IsNaN(card.Height));
+        Equal(new Thickness(0), card.Margin);
+
+        var header = new TextBlock
+        {
+            Style = (Style)view.Resources["MetricHeaderStyle"]
+        };
+        var icon = new TextBlock
+        {
+            Style = (Style)view.Resources["MetricIconStyle"]
+        };
+        var helper = new TextBlock
+        {
+            Style = (Style)view.Resources["MetricHelperTextStyle"]
+        };
+        Equal(0.72d, header.Opacity);
+        Equal(0.58d, icon.Opacity);
+        Equal(0.58d, helper.Opacity);
+
+        LayoutMetricPanel(panel, 1200);
+        var ninth = GetLayoutSlot(panel.Children[8]);
+        Equal(true,
+            Math.Abs(ninth.Left - ((1200 - ninth.Width) / 2)) < 0.01);
+    });
 }
 ```
 
@@ -755,7 +753,7 @@ dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release --no-restore
 & .\Tests\bin\Release\net462\PlaytimeInsightsRegression.exe
 ```
 
-Expected: only `Dashboard metrics use responsive semantic visual foundation` fails because the XAML still uses `WrapPanel`, fixed dimensions, and fixed gray helper text.
+Expected: `Dashboard metrics use responsive semantic visual foundation` fails because `FindName("MetricCardsPanel")` returns null before the metric container is migrated and named. If view construction exposes a missing test-only theme resource, add only the minimum resource setup in the test harness and keep the production XAML unchanged.
 
 - [ ] **Step 3: Add semantic opacity resources and migrate relevant text**
 
@@ -819,7 +817,8 @@ Change `MetricCardStyle` to:
 Replace only the `WrapPanel` that directly contains the nine metric cards with:
 
 ```xml
-<controls:ResponsiveUniformPanel Margin="0,0,0,18"
+<controls:ResponsiveUniformPanel x:Name="MetricCardsPanel"
+                                 Margin="0,0,0,18"
                                  MinItemWidth="204"
                                  PreferredItemWidth="232"
                                  MaxItemWidth="300"
