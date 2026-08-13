@@ -2997,12 +2997,17 @@ namespace PlaytimeInsights.Tests
                 {
                     Width = 1200
                 };
+                var testTextBrush = new SolidColorBrush(Colors.White);
+                view.Resources["TextBrush"] = testTextBrush;
                 view.Measure(new Size(1200, double.PositiveInfinity));
                 view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
                 view.UpdateLayout();
-                var panel = FindVisualDescendant<ResponsiveUniformPanel>(view);
-                Equal(true, panel != null);
+                var panels = FindVisualDescendants<ResponsiveUniformPanel>(view);
+                Equal(1, panels.Count);
+                var panel = panels[0];
                 Equal(9, panel.Children.Count);
+                Equal(true, panel.Children.Cast<UIElement>().All(
+                    child => child is Border));
                 Equal(204d, panel.MinItemWidth);
                 Equal(232d, panel.PreferredItemWidth);
                 Equal(300d, panel.MaxItemWidth);
@@ -3022,6 +3027,7 @@ namespace PlaytimeInsights.Tests
                     Style = (Style)view.Resources["MetricCardStyle"]
                 };
                 Equal(154d, card.MinHeight);
+                Equal(new Thickness(16), card.Padding);
                 Equal(true, double.IsNaN(card.Width));
                 Equal(true, double.IsNaN(card.Height));
                 Equal(new Thickness(0), card.Margin);
@@ -3041,6 +3047,19 @@ namespace PlaytimeInsights.Tests
                 Equal(0.72d, header.Opacity);
                 Equal(0.58d, icon.Opacity);
                 Equal(0.58d, helper.Opacity);
+
+                var textBrush = view.FindResource("TextBrush");
+                var helperHost = new Border
+                {
+                    Child = helper
+                };
+                panel.Children.Add(helperHost);
+                helperHost.Measure(new Size(240, double.PositiveInfinity));
+                helperHost.Arrange(new Rect(0, 0, 240, helperHost.DesiredSize.Height));
+                view.UpdateLayout();
+                helper.UpdateLayout();
+                Equal(textBrush, helper.Foreground);
+                panel.Children.Remove(helperHost);
 
                 LayoutMetricPanel(panel, 1200);
                 panel.Arrange(new Rect(0, 0, 1200, panel.DesiredSize.Height));
@@ -3071,14 +3090,24 @@ namespace PlaytimeInsights.Tests
             return panel;
         }
 
-        private static T FindVisualDescendant<T>(DependencyObject root)
+        private static List<T> FindVisualDescendants<T>(DependencyObject root)
             where T : DependencyObject
         {
+            var matches = new List<T>();
             if (root == null)
             {
-                return null;
+                return matches;
             }
 
+            CollectVisualDescendants(root, matches);
+            return matches;
+        }
+
+        private static void CollectVisualDescendants<T>(
+            DependencyObject root,
+            IList<T> matches)
+            where T : DependencyObject
+        {
             for (var index = 0;
                 index < VisualTreeHelper.GetChildrenCount(root);
                 index++)
@@ -3087,17 +3116,11 @@ namespace PlaytimeInsights.Tests
                 var match = child as T;
                 if (match != null)
                 {
-                    return match;
+                    matches.Add(match);
                 }
 
-                match = FindVisualDescendant<T>(child);
-                if (match != null)
-                {
-                    return match;
-                }
+                CollectVisualDescendants(child, matches);
             }
-
-            return null;
         }
 
         private static void LayoutMetricPanel(
