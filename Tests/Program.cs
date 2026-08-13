@@ -90,6 +90,7 @@ namespace PlaytimeInsights.Tests
             Run("Responsive metric panel selects expected columns", TestResponsiveMetricPanelColumns);
             Run("Responsive metric panel centers and equalizes rows", TestResponsiveMetricPanelArrangement);
             Run("Responsive metric panel contains invalid inputs", TestResponsiveMetricPanelEdgeCases);
+            Run("Responsive metric panel remeasures for arrange width", TestResponsiveMetricPanelRemeasuresForArrangeWidth);
             Run("Dashboard metrics use responsive semantic visual foundation", TestResponsiveMetricVisualFoundation);
             Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
             Run("Nested dashboard scrollers hand wheel input to page boundaries", TestDashboardMouseWheelRouting);
@@ -2989,6 +2990,27 @@ namespace PlaytimeInsights.Tests
             });
         }
 
+        private static void TestResponsiveMetricPanelRemeasuresForArrangeWidth()
+        {
+            RunOnSta(() =>
+            {
+                var panel = new ResponsiveUniformPanel();
+                var child = new WidthSensitiveElement(295, 20, 100);
+                panel.Children.Add(child);
+                panel.Children.Add(new WidthSensitiveElement(295, 20, 100));
+                panel.Children.Add(new WidthSensitiveElement(295, 20, 100));
+
+                panel.Measure(new Size(640, double.PositiveInfinity));
+                Equal(20d, child.DesiredSize.Height);
+
+                panel.Arrange(new Rect(0, 0, 900, 300));
+                panel.UpdateLayout();
+
+                Equal(292d, GetLayoutSlot(child).Width);
+                Equal(100d, GetLayoutSlot(child).Height);
+            });
+        }
+
         private static void TestResponsiveMetricVisualFoundation()
         {
             RunOnSta(() =>
@@ -3142,6 +3164,31 @@ namespace PlaytimeInsights.Tests
             return !double.IsNaN(value) &&
                 !double.IsInfinity(value) &&
                 value >= 0;
+        }
+
+        private sealed class WidthSensitiveElement : FrameworkElement
+        {
+            private readonly double widthThreshold;
+            private readonly double wideHeight;
+            private readonly double narrowHeight;
+
+            public WidthSensitiveElement(
+                double widthThreshold,
+                double wideHeight,
+                double narrowHeight)
+            {
+                this.widthThreshold = widthThreshold;
+                this.wideHeight = wideHeight;
+                this.narrowHeight = narrowHeight;
+            }
+
+            protected override Size MeasureOverride(Size availableSize)
+            {
+                var height = availableSize.Width < widthThreshold
+                    ? narrowHeight
+                    : wideHeight;
+                return new Size(0, height);
+            }
         }
 
         private static void TestDashboardFilterRefreshReasons()

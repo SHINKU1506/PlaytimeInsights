@@ -7,6 +7,8 @@ namespace PlaytimeInsights.Controls
 {
     public sealed class ResponsiveUniformPanel : Panel
     {
+        private double measuredItemWidth = double.NaN;
+
         public static readonly DependencyProperty MinItemWidthProperty =
             DependencyProperty.Register(
                 nameof(MinItemWidth),
@@ -153,6 +155,7 @@ namespace PlaytimeInsights.Controls
                 visibleChildren.Count,
                 settings);
             var itemWidth = CalculateItemWidth(layoutWidth, columns, settings);
+            measuredItemWidth = itemWidth;
 
             foreach (var child in visibleChildren)
             {
@@ -193,6 +196,17 @@ namespace PlaytimeInsights.Controls
                 visibleChildren.Count,
                 settings);
             var itemWidth = CalculateItemWidth(layoutWidth, columns, settings);
+            if (!IsFinite(measuredItemWidth) ||
+                Math.Abs(measuredItemWidth - itemWidth) >= 0.01)
+            {
+                foreach (var child in visibleChildren)
+                {
+                    child.Measure(new Size(itemWidth, double.PositiveInfinity));
+                }
+
+                measuredItemWidth = itemWidth;
+            }
+
             var rowHeights = GetRowHeights(visibleChildren, columns);
             var gridWidth = CalculateGridWidth(itemWidth, columns, settings);
             var gridStart = Math.Max(0, (layoutWidth - gridWidth) / 2);
