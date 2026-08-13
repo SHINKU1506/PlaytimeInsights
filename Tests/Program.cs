@@ -17,6 +17,8 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Xml.Linq;
@@ -84,6 +86,9 @@ namespace PlaytimeInsights.Tests
             Run("Weekday labels follow plugin resources instead of Windows culture", TestLocalizedWeekdayLabels);
             Run("Dialog sizing stays inside high-DPI work areas", TestResponsiveWindowSizing);
             Run("Native views use portable theme brushes and responsive overflow", TestThemeAndResponsiveLayout);
+            Run("Responsive metric panel selects expected columns", TestResponsiveMetricPanelColumns);
+            Run("Responsive metric panel centers and equalizes rows", TestResponsiveMetricPanelArrangement);
+            Run("Responsive metric panel contains invalid inputs", TestResponsiveMetricPanelEdgeCases);
             Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
             Run("Nested dashboard scrollers hand wheel input to page boundaries", TestDashboardMouseWheelRouting);
             Run("Architecture refactor baseline keeps boundaries documented", TestArchitectureRefactorBaseline);
@@ -2778,6 +2783,148 @@ namespace PlaytimeInsights.Tests
                 RenderTrendChart(chart);
                 Equal(3, GetPrivateListCount(chart, "renderedItems"));
             });
+        }
+
+        private static void TestResponsiveMetricPanelColumns()
+        {
+            RunOnSta(() =>
+            {
+                foreach (var sample in new[]
+                {
+                    new { Width = 320d, Columns = 1 },
+                    new { Width = 360d, Columns = 1 },
+                    new { Width = 640d, Columns = 2 },
+                    new { Width = 900d, Columns = 3 },
+                    new { Width = 1200d, Columns = 4 }
+                })
+                {
+                    var panel = CreateMetricPanel(9, 154);
+                    LayoutMetricPanel(panel, sample.Width);
+                    var firstTop = GetLayoutSlot(panel.Children[0]).Top;
+                    var columns = panel.Children
+                        .Cast<UIElement>()
+                        .TakeWhile(child =>
+                            Math.Abs(GetLayoutSlot(child).Top - firstTop) < 0.01)
+                        .Count();
+                    Equal(sample.Columns, columns);
+                }
+            });
+        }
+
+        private static void TestResponsiveMetricPanelArrangement()
+        {
+            RunOnSta(() =>
+            {
+                var panel = CreateMetricPanel(9, 154);
+                ((Border)panel.Children[1]).MinHeight = 190;
+                LayoutMetricPanel(panel, 1200);
+
+                var first = GetLayoutSlot(panel.Children[0]);
+                var second = GetLayoutSlot(panel.Children[1]);
+                var fourth = GetLayoutSlot(panel.Children[3]);
+                var ninth = GetLayoutSlot(panel.Children[8]);
+
+                Equal(true, Math.Abs(first.Width - second.Width) < 0.01);
+                Equal(true, Math.Abs(first.Height - second.Height) < 0.01);
+                Equal(true, first.Width >= 204 && first.Width <= 300);
+                Equal(true, fourth.Right <= 1200);
+                Equal(true, Math.Abs(ninth.Left - ((1200 - ninth.Width) / 2)) < 0.01);
+            });
+        }
+
+        private static void TestResponsiveMetricPanelEdgeCases()
+        {
+            RunOnSta(() =>
+            {
+                foreach (var count in new[] { 0, 1, 9, 10 })
+                {
+                    var panel = CreateMetricPanel(count, 154);
+                    LayoutMetricPanel(panel, 640);
+                    Equal(true, IsFiniteNonNegative(panel.DesiredSize.Width));
+                    Equal(true, IsFiniteNonNegative(panel.DesiredSize.Height));
+                    foreach (UIElement child in panel.Children)
+                    {
+                        var slot = GetLayoutSlot(child);
+                        Equal(true, IsFiniteNonNegative(slot.X));
+                        Equal(true, IsFiniteNonNegative(slot.Y));
+                        Equal(true, IsFiniteNonNegative(slot.Width));
+                        Equal(true, IsFiniteNonNegative(slot.Height));
+                    }
+
+                    var slots = panel.Children
+                        .Cast<UIElement>()
+                        .Select(GetLayoutSlot)
+                        .Where(slot => slot.Width > 0 && slot.Height > 0)
+                        .ToList();
+                    for (var left = 0; left < slots.Count; left++)
+                    {
+                        for (var right = left + 1; right < slots.Count; right++)
+                        {
+                            Equal(false, slots[left].IntersectsWith(slots[right]));
+                        }
+                    }
+                }
+
+                var collapsed = CreateMetricPanel(3, 154);
+                collapsed.Children[1].Visibility = Visibility.Collapsed;
+                LayoutMetricPanel(collapsed, 640);
+                Equal(new Rect(0, 0, 0, 0), GetLayoutSlot(collapsed.Children[1]));
+
+                var invalid = CreateMetricPanel(3, 154);
+                invalid.MinItemWidth = double.NaN;
+                invalid.PreferredItemWidth = double.PositiveInfinity;
+                invalid.MaxItemWidth = -1;
+                invalid.MinColumns = 0;
+                invalid.MaxColumns = -4;
+                invalid.HorizontalSpacing = -12;
+                invalid.VerticalSpacing = double.NaN;
+                LayoutMetricPanel(invalid, 0);
+                invalid.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                Equal(true, IsFiniteNonNegative(invalid.DesiredSize.Width));
+                Equal(true, IsFiniteNonNegative(invalid.DesiredSize.Height));
+            });
+        }
+
+        private static ResponsiveUniformPanel CreateMetricPanel(int count, double minHeight)
+        {
+            var panel = new ResponsiveUniformPanel();
+            for (var index = 0; index < count; index++)
+            {
+                panel.Children.Add(new Border
+                {
+                    MinHeight = minHeight,
+                    Child = new TextBlock
+                    {
+                        Text = index == 1
+                            ? "Long localized helper text that wraps onto another line"
+                            : "Metric " + index,
+                        TextWrapping = TextWrapping.Wrap
+                    }
+                });
+            }
+
+            return panel;
+        }
+
+        private static void LayoutMetricPanel(
+            ResponsiveUniformPanel panel,
+            double width)
+        {
+            panel.Measure(new Size(width, double.PositiveInfinity));
+            panel.Arrange(new Rect(0, 0, width, panel.DesiredSize.Height));
+            panel.UpdateLayout();
+        }
+
+        private static Rect GetLayoutSlot(UIElement element)
+        {
+            return LayoutInformation.GetLayoutSlot((FrameworkElement)element);
+        }
+
+        private static bool IsFiniteNonNegative(double value)
+        {
+            return !double.IsNaN(value) &&
+                !double.IsInfinity(value) &&
+                value >= 0;
         }
 
         private static void TestDashboardFilterRefreshReasons()
