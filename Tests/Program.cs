@@ -130,6 +130,7 @@ namespace PlaytimeInsights.Tests
             Run("Dashboard filters route selective refresh reasons", TestDashboardFilterRefreshReasons);
             Run("Dashboard refresh plans isolate dependencies", TestDashboardRefreshPlans);
             Run("Quick range selection emits at most one range refresh", TestQuickRangeRefreshPurity);
+            Run("Quick range command tracks valid options and refresh state", TestSelectRangeCommandBehavior);
             Run("Metadata filter summary counts active constraints", TestActiveMetadataFilterSummary);
             Run("Dashboard ranking tabs are view-only and keep both snapshots", TestRankingTabsStayViewOnly);
             Run("Dashboard analysis context reprojects trend without rescan", TestDashboardTrendProjectionReuse);
@@ -4000,33 +4001,64 @@ namespace PlaytimeInsights.Tests
                 new SessionQueryService(new TestGameMetadataAccessor()),
                 7,
                 null);
+            var activePropertyNames = new HashSet<string>
+            {
+                nameof(DashboardFilterViewModel.ActiveMetadataFilterCount),
+                nameof(DashboardFilterViewModel.ActiveMetadataFilterSummary),
+                nameof(DashboardFilterViewModel.ActiveMetadataFilterVisibility)
+            };
+            var activeNotifications = new List<string>();
+            viewModel.PropertyChanged += (sender, args) =>
+            {
+                if (activePropertyNames.Contains(args.PropertyName))
+                {
+                    activeNotifications.Add(args.PropertyName);
+                }
+            };
 
             Equal(0, viewModel.ActiveMetadataFilterCount);
             Equal(string.Empty, viewModel.ActiveMetadataFilterSummary);
             Equal(Visibility.Collapsed,
                 viewModel.ActiveMetadataFilterVisibility);
 
+            activeNotifications.Clear();
             viewModel.SelectedMetadataDimensionOption =
                 viewModel.MetadataDimensionOptions.First(
                     option => option.Value.HasValue);
+            AssertActiveMetadataNotifications(
+                activePropertyNames,
+                activeNotifications);
+            Equal(0, viewModel.ActiveMetadataFilterCount);
+            Equal(string.Empty, viewModel.ActiveMetadataFilterSummary);
+            Equal(Visibility.Collapsed,
+                viewModel.ActiveMetadataFilterVisibility);
+
+            activeNotifications.Clear();
             viewModel.SelectedMetadataValueOption =
                 new SelectionOption<string>
                 {
                     Value = "Steam",
                     Label = "Steam"
                 };
+            AssertActiveMetadataNotifications(
+                activePropertyNames,
+                activeNotifications);
 
             Equal(1, viewModel.ActiveMetadataFilterCount);
             Equal(true, viewModel.ActiveMetadataFilterSummary.Contains("1"));
             Equal(Visibility.Visible,
                 viewModel.ActiveMetadataFilterVisibility);
 
+            activeNotifications.Clear();
             viewModel.SelectedMetadataValueOption =
                 new SelectionOption<string>
                 {
                     Value = string.Empty,
                     Label = string.Empty
                 };
+            AssertActiveMetadataNotifications(
+                activePropertyNames,
+                activeNotifications);
 
             Equal(0, viewModel.ActiveMetadataFilterCount);
             Equal(string.Empty, viewModel.ActiveMetadataFilterSummary);
@@ -4034,28 +4066,137 @@ namespace PlaytimeInsights.Tests
                 viewModel.ActiveMetadataFilterVisibility);
         }
 
+        private static void TestSelectRangeCommandBehavior()
+        {
+            var settings =
+                (PlaytimeInsightsSettingsViewModel)
+                System.Runtime.Serialization.FormatterServices
+                    .GetUninitializedObject(
+                        typeof(PlaytimeInsightsSettingsViewModel));
+            settings.Settings = new PlaytimeInsightsSettings();
+            var viewModel = new DashboardViewModel(
+                null,
+                null,
+                new AnalyticsService(),
+                new SessionQueryService(new TestGameMetadataAccessor()),
+                settings);
+            var command = viewModel.SelectRangeCommand;
+            var invalidPreset = (DateRangePreset)int.MaxValue;
+
+            Equal(true, command.CanExecute(DateRangePreset.Last7Days));
+            Equal(false, command.CanExecute(invalidPreset));
+
+            var guardField = typeof(DashboardViewModel).GetField(
+                "refreshGuard",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            var raiseCommandStates = typeof(DashboardViewModel).GetMethod(
+                "RaiseCommandStates",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Equal(false, guardField == null);
+            Equal(false, raiseCommandStates == null);
+            var guard = (RefreshReentrancyGuard)guardField.GetValue(viewModel);
+            var canExecuteChangedCount = 0;
+            command.CanExecuteChanged +=
+                (sender, args) => canExecuteChangedCount++;
+
+            Equal(true, guard.TryEnter());
+            raiseCommandStates.Invoke(viewModel, null);
+            Equal(1, canExecuteChangedCount);
+            Equal(false, command.CanExecute(DateRangePreset.Last7Days));
+
+            guard.Exit();
+            raiseCommandStates.Invoke(viewModel, null);
+            Equal(2, canExecuteChangedCount);
+            Equal(true, command.CanExecute(DateRangePreset.Last7Days));
+        }
+
+        private static void AssertActiveMetadataNotifications(
+            ISet<string> expected,
+            IList<string> actual)
+        {
+            Equal(3, actual.Count);
+            Equal(true, expected.SetEquals(actual));
+        }
+
         private static void TestRankingTabsStayViewOnly()
         {
             var sourceRoot = FindSourceRoot();
-            var dashboard = File.ReadAllText(Path.Combine(
+            var dashboardPath = Path.Combine(
                 sourceRoot,
                 "Views",
-                "PlaytimeInsightsDashboardView.xaml"));
+                "PlaytimeInsightsDashboardView.xaml");
+            var dashboard = File.ReadAllText(dashboardPath);
+            var document = XDocument.Load(dashboardPath);
+            var xamlNamespace = XNamespace.Get(
+                "http://schemas.microsoft.com/winfx/2006/xaml");
             var dashboardViewModel = File.ReadAllText(Path.Combine(
                 sourceRoot,
                 "ViewModels",
                 "DashboardViewModel.cs"));
+            var buttons = document.Descendants()
+                .Where(element => element.Name.LocalName == "Button")
+                .ToList();
+            var quickRangeButtons = buttons
+                .Where(button =>
+                    (string)button.Attribute("Command") ==
+                    "{Binding SelectRangeCommand}")
+                .ToList();
+            var expectedParameters = new[]
+            {
+                "{x:Static services:DateRangePreset.Last7Days}",
+                "{x:Static services:DateRangePreset.Last30Days}",
+                "{x:Static services:DateRangePreset.ThisYear}",
+                "{x:Static services:DateRangePreset.AllSessions}"
+            };
 
-            Equal(1, Regex.Matches(
-                dashboard,
-                @"<TabControl\b",
-                RegexOptions.CultureInvariant).Count);
-            Equal(2, Regex.Matches(
-                dashboard,
-                @"<TabItem\b",
-                RegexOptions.CultureInvariant).Count);
+            Equal(4, quickRangeButtons.Count);
+            foreach (var expectedParameter in expectedParameters)
+            {
+                Equal(1, quickRangeButtons.Count(button =>
+                    (string)button.Attribute("CommandParameter") ==
+                    expectedParameter));
+            }
+
+            var expanders = document.Descendants()
+                .Where(element =>
+                    element.Name.LocalName == "Expander" &&
+                    (string)element.Attribute(xamlNamespace + "Name") ==
+                    "AdvancedFilterExpander")
+                .ToList();
+            Equal(1, expanders.Count);
+            var advancedFilterExpander = expanders[0];
+            Equal("True",
+                (string)advancedFilterExpander.Attribute("IsExpanded"));
+            Equal(false,
+                ((string)advancedFilterExpander.Attribute("IsExpanded"))
+                    .Contains("Binding"));
+            Equal(1, advancedFilterExpander.DescendantsAndSelf()
+                .Attributes()
+                .Count(attribute => attribute.Value ==
+                    "{Binding Filter.ActiveMetadataFilterVisibility}"));
+            Equal(1, advancedFilterExpander.DescendantsAndSelf()
+                .Attributes()
+                .Count(attribute => attribute.Value ==
+                    "{Binding Filter.ActiveMetadataFilterSummary}"));
+
+            var tabControls = document.Descendants()
+                .Where(element => element.Name.LocalName == "TabControl")
+                .ToList();
+            Equal(1, tabControls.Count);
+            var tabControl = tabControls[0];
+            var tabItems = tabControl.Descendants()
+                .Where(element => element.Name.LocalName == "TabItem")
+                .ToList();
+
+            Equal(2, tabItems.Count);
             Equal(true, dashboard.Contains("RangeGameRankings"));
             Equal(true, dashboard.Contains("LifetimeGameRankings"));
+            Equal(false, tabControl.DescendantsAndSelf()
+                .Attributes()
+                .Any(attribute =>
+                    attribute.Name.LocalName == "SelectedIndex" ||
+                    attribute.Name.LocalName == "SelectionChanged" ||
+                    attribute.Name.LocalName == "Command"));
             Equal(false, dashboardViewModel.Contains("SelectedRankingTab"));
             Equal(false, dashboardViewModel.Contains("RankingTab"));
         }
