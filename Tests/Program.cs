@@ -107,6 +107,7 @@ namespace PlaytimeInsights.Tests
             Run("Responsive metric panel remeasures for arrange width", TestResponsiveMetricPanelRemeasuresForArrangeWidth);
             Run("Dashboard metrics use responsive semantic visual foundation", TestResponsiveMetricVisualFoundation);
             Run("Dashboard recomposition keeps hero tier two and adaptive modules", TestDashboardVisualRefactorStaticContract);
+            Run("Dashboard visual refactor keeps final architecture guards", TestDashboardVisualRefactorContract);
             Run("Anomaly module review title stays localized and unique", TestAnomalyModuleReviewTitleLocalization);
             Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
             Run("Nested dashboard scrollers hand wheel input to page boundaries", TestDashboardMouseWheelRouting);
@@ -4360,6 +4361,179 @@ namespace PlaytimeInsights.Tests
                 "IsCompactHeroLayout = e.NewSize.Width < 640d;"));
             Equal(false, sizeChangedBlock.Contains("Command"));
             Equal(false, sizeChangedBlock.Contains("Execute"));
+        }
+
+        private static void TestDashboardVisualRefactorContract()
+        {
+            var sourceRoot = FindSourceRoot();
+            var xamlNamespace = XNamespace.Get(
+                "http://schemas.microsoft.com/winfx/2006/xaml");
+            var dashboardPath = Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml");
+            var dashboardSource = File.ReadAllText(dashboardPath);
+            var dashboard = XDocument.Load(dashboardPath);
+            var sessionManagement = XDocument.Load(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml"));
+            var app = XDocument.Load(Path.Combine(
+                sourceRoot,
+                "App.xaml"));
+            var pluginSource = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "PlaytimeInsights.cs"));
+            var dashboardViewModelSource = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+            var adaptiveTrendChartSource = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Controls",
+                "AdaptiveTrendChart.cs"));
+
+            var adaptivePanels = dashboard.Descendants()
+                .Where(element =>
+                    element.Name.LocalName == "AdaptiveDashboardPanel")
+                .ToList();
+            var responsivePanels = dashboard.Descendants()
+                .Where(element =>
+                    element.Name.LocalName == "ResponsiveUniformPanel")
+                .ToList();
+            Equal(1, adaptivePanels.Count);
+            Equal(1, responsivePanels.Count);
+
+            var tier2Cards = responsivePanels[0].Elements().ToList();
+            Equal(7, tier2Cards.Count);
+            Equal(true, tier2Cards.All(element =>
+                element.Name.LocalName == "Border"));
+
+            foreach (var rankingBinding in new[]
+            {
+                "{Binding RangeGameRankings}",
+                "{Binding LifetimeGameRankings}"
+            })
+            {
+                Equal(1, dashboard.Root.DescendantsAndSelf()
+                    .Attributes()
+                    .Count(attribute =>
+                        attribute.Name.LocalName == "ItemsSource" &&
+                        attribute.Value == rankingBinding));
+            }
+
+            const string sharedDictionarySource =
+                "../Resources/PlaytimeInsightsVisualResources.xaml";
+            foreach (var viewDocument in new[]
+            {
+                dashboard,
+                sessionManagement
+            })
+            {
+                Equal(1, viewDocument.Descendants()
+                    .Count(element =>
+                        element.Name.LocalName == "ResourceDictionary" &&
+                        (string)element.Attribute("Source") ==
+                        sharedDictionarySource));
+            }
+            Equal(0, app.Descendants()
+                .Count(element =>
+                    element.Name.LocalName == "ResourceDictionary" &&
+                    (string)element.Attribute("Source") ==
+                    sharedDictionarySource));
+
+            foreach (var deferredNavigationToken in new[]
+            {
+                "IDashboardNavigation",
+                "NavigateToDashboard",
+                "VisualTreeHelper",
+                "MouseButtonEventArgs"
+            })
+            {
+                Equal(false, pluginSource.Contains(
+                    deferredNavigationToken));
+            }
+
+            foreach (var forbiddenViewModelState in new[]
+            {
+                "IsWideLayout",
+                "IsCompactHeroLayout",
+                "LayoutWidth",
+                "DashboardWidth",
+                "ColumnWidth",
+                "IsFilterExpanded",
+                "FilterExpansion",
+                "ExpandedWidth"
+            })
+            {
+                Equal(false, dashboardViewModelSource.Contains(
+                    forbiddenViewModelState));
+            }
+
+            RunOnSta(() =>
+            {
+                var adaptivePanel = new AdaptiveDashboardPanel();
+                Equal(1200d, adaptivePanel.EnterWideWidth);
+                Equal(1160d, adaptivePanel.ExitWideWidth);
+                Equal(18d, adaptivePanel.ColumnSpacing);
+                Equal(18d, adaptivePanel.VerticalSpacing);
+                Equal(0.38d, adaptivePanel.SecondaryColumnRatio);
+            });
+
+            var drilldownList = dashboard.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "ListView" &&
+                    (string)element.Attribute("ItemsSource") ==
+                    "{Binding SessionDetails}");
+            Equal("True", (string)drilldownList.Attributes()
+                .Single(attribute =>
+                    attribute.Name.LocalName ==
+                    "VirtualizingPanel.IsVirtualizing"));
+            Equal("Recycling", (string)drilldownList.Attributes()
+                .Single(attribute =>
+                    attribute.Name.LocalName ==
+                    "VirtualizingPanel.VirtualizationMode"));
+            Equal("True", (string)drilldownList.Attributes()
+                .Single(attribute =>
+                    attribute.Name.LocalName ==
+                    "ScrollViewer.CanContentScroll"));
+            Equal(1, drilldownList.Descendants()
+                .Count(element =>
+                    element.Name.LocalName ==
+                    "VirtualizingStackPanel"));
+
+            var rootScrollViewer = dashboard.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "ScrollViewer" &&
+                    (string)element.Attribute(xamlNamespace + "Name") ==
+                    "DashboardScrollViewer");
+            Equal("Disabled", (string)rootScrollViewer.Attribute(
+                "HorizontalScrollBarVisibility"));
+
+            Equal(0, dashboard.Root.DescendantsAndSelf()
+                .Attributes()
+                .Count(attribute =>
+                    attribute.Value == "#FF2A2A2E" ||
+                    attribute.Value.Contains("HeatmapEmptyBrush")));
+            Equal(2, dashboard.Descendants()
+                .Count(element =>
+                    element.Name.LocalName == "Border" &&
+                    (string)element.Attribute("Background") ==
+                    "{DynamicResource TextBrush}" &&
+                    (string)element.Attribute("Opacity") == "0.06"));
+            Equal(false, adaptiveTrendChartSource.Contains(
+                "Color.FromArgb(220, 35, 37, 44)"));
+            var quote = ((char)34).ToString();
+            foreach (var themeBrush in new[]
+            {
+                "ResolveBrush(" + quote + "PopupBackgroundBrush" + quote,
+                "ResolveBrush(" + quote + "PanelSeparatorBrush" + quote,
+                "ResolveBrush(" + quote + "GlyphBrush" + quote,
+                "ResolveBrush(" + quote + "ControlBackgroundBrush" + quote
+            })
+            {
+                Equal(true, adaptiveTrendChartSource.Contains(themeBrush));
+            }
         }
 
         private static void TestAnomalyModuleReviewTitleLocalization()

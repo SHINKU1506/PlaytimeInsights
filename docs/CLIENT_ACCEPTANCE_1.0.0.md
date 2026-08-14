@@ -46,11 +46,11 @@
 
 ### Automated Gate
 
-- [ ] Release plugin build: 0 warning / 0 error
-- [ ] Release test build: 0 warning / 0 error
-- [ ] Full regression suite passes
-- [ ] 100k-session analytics <= 750 ms
-- [ ] schema 4 load <= 1400 ms
+- [x] Release plugin build: 0 warning / 0 error (2026-08-14: 0 warning, 0 error)
+- [x] Release test build: 0 warning / 0 error (2026-08-14: 0 warning, 0 error)
+- [x] Full regression suite passes (2026-08-14: 128/128)
+- [x] 100k-session analytics <= 750 ms (2026-08-14: 628 ms)
+- [x] schema 4 load <= 1400 ms (2026-08-14: 1,073 ms)
 
 ### Visual Evidence Matrix
 
@@ -59,3 +59,17 @@
 - [ ] DPI: 100%, 125%, 150%, 175%, 200%
 - [ ] Widths: 400, 640, 900, 1159, 1160, 1199, 1200, 1600, 2400 DIP
 - [ ] Data: empty, normal, long English names, large duration, comparison states, anomaly states, 100+ drilldown rows, ranking counts below 3 and above 10
+
+截图目录和实际主题名将在完整矩阵执行后记录；当前没有满足上述整行覆盖要求的实机证据。
+
+### Running Client Interaction Purity
+
+- [ ] Quick range click: exactly one reason=Range
+- [ ] Aggregation change: reason=Aggregation and no data reload
+- [ ] Ranking metric change: reason=Ranking and no data reload
+- [ ] Ranking Tab switch: no refresh trace
+- [ ] Filter Expander toggle: no refresh trace
+- [ ] 1199/1200 and 1160/1159 layout transition: no refresh trace
+- [ ] Clear drilldown: no analysis refresh
+
+以上项目仍需在运行中的 Playnite 客户端使用 refresh Trace 留存证据。
