@@ -46,14 +46,70 @@
         <Style x:Key="MetricCardStyle"
                TargetType="Border"
                BasedOn="{StaticResource PanelStyle}">
+            <Setter Property="Background" Value="{StaticResource MetricCardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource MetricCardRimLightBorderBrush}" />
             <Setter Property="MinHeight" Value="154" />
             <Setter Property="Padding" Value="16" />
         </Style>
         <Style x:Key="HeroMetricCardStyle"
                TargetType="Border"
                BasedOn="{StaticResource PanelStyle}">
+            <Setter Property="Background" Value="{StaticResource MetricCardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource MetricCardRimLightBorderBrush}" />
             <Setter Property="MinHeight" Value="176" />
             <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style x:Key="ModulePanelStyle"
+               TargetType="Border"
+               BasedOn="{StaticResource PanelStyle}">
+            <Setter Property="Background" Value="{StaticResource ModuleBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource ModuleRimLightBorderBrush}" />
+        </Style>
+        <Style x:Key="DrilldownCardStyle"
+               TargetType="Border"
+               BasedOn="{StaticResource PanelStyle}">
+            <Setter Property="Background" Value="{StaticResource DrilldownCardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource MetricCardRimLightBorderBrush}" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style x:Key="RankingItemCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource RankingHoverBackgroundBrush}" />
+                </Trigger>
+                <DataTrigger Binding="{Binding Position}" Value="1">
+                    <Setter Property="Background" Value="{StaticResource RankingGoldGlowBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Position}" Value="2">
+                    <Setter Property="Background" Value="{StaticResource RankingSilverGlowBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Position}" Value="3">
+                    <Setter Property="Background" Value="{StaticResource RankingBronzeGlowBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="RankingTopHighlightStyle" TargetType="Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Position}" Value="1">
+                    <Setter Property="Background" Value="{StaticResource RankingGoldTopHighlightBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="DrilldownSessionItemStyle" TargetType="Border">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource DrilldownSessionHoverBackgroundBrush}" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="HeroMetricValueStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="34" />
@@ -296,11 +352,9 @@
         <DataTemplate x:Key="GameRankingItemTemplate">
             <Border Height="64"
                     Margin="0,2"
-                    Background="Transparent"
-                    BorderBrush="{DynamicResource PanelSeparatorBrush}"
-                    BorderThickness="0,0,0,1"
-                    ToolTip="{Binding ProgressTooltipText}"
-                    SnapsToDevicePixels="True">
+                    Style="{StaticResource RankingItemCardStyle}"
+                    ToolTip="{Binding ProgressTooltipText}">
+                <Grid>
                 <Grid Margin="8,5">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="38" />
@@ -352,6 +406,12 @@
                                Margin="12,0,4,0"
                                FontWeight="SemiBold"
                                Opacity="{StaticResource TextOpacityPrimary}" />
+                </Grid>
+                    <Border Style="{StaticResource RankingTopHighlightStyle}"
+                            Height="1"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Stretch"
+                            SnapsToDevicePixels="True" />
                 </Grid>
             </Border>
         </DataTemplate>
@@ -1043,7 +1103,7 @@
                 VerticalSpacing="18">
 
             <Border x:Name="TrendModule"
-                    Style="{StaticResource PanelStyle}"
+                    Style="{StaticResource ModulePanelStyle}"
                     controls:AdaptiveDashboardPanel.Zone="Primary">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,12">
@@ -1084,7 +1144,7 @@
             </Border>
 
             <Border x:Name="RankingModule"
-                    Style="{StaticResource PanelStyle}"
+                    Style="{StaticResource ModulePanelStyle}"
                     controls:AdaptiveDashboardPanel.Zone="Secondary">
                 <TabControl>
                     <TabItem Header="{DynamicResource LOCPlaytimeInsightsRangeRankingTab}"
@@ -1107,7 +1167,7 @@
             </Border>
 
             <Border x:Name="DistributionModule"
-                    Style="{StaticResource PanelStyle}"
+                    Style="{StaticResource ModulePanelStyle}"
                     controls:AdaptiveDashboardPanel.Zone="Primary">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
@@ -1358,7 +1418,7 @@
             </Border>
 
             <Border x:Name="AnomalyModule"
-                    Style="{StaticResource PanelStyle}"
+                    Style="{StaticResource ModulePanelStyle}"
                     controls:AdaptiveDashboardPanel.Zone="Secondary"
                     Visibility="{Binding AnomalyVisibility}">
                 <StackPanel>
@@ -1414,12 +1474,22 @@
             </Border>
 
             <Border x:Name="DrilldownModule"
-                    Style="{StaticResource PanelStyle}"
+                    Style="{StaticResource DrilldownCardStyle}"
                     controls:AdaptiveDashboardPanel.Zone="Primary"
                     IsVisibleChanged="DrilldownModule_IsVisibleChanged"
                     Visibility="{Binding SessionDetailVisibility}">
-                <StackPanel>
-                    <Grid Margin="0,0,0,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0"
+                            Background="{StaticResource DrilldownAccentBrush}"
+                            CornerRadius="4,0,0,4"
+                            SnapsToDevicePixels="True"
+                            IsHitTestVisible="False" />
+                    <StackPanel Grid.Column="1" Margin="15,18,18,18">
+                        <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -1470,10 +1540,7 @@
                                 <Border Height="66"
                                         Margin="0,0,0,8"
                                         Padding="10"
-                                        Background="{DynamicResource PopupBackgroundBrush}"
-                                        BorderBrush="{DynamicResource PanelSeparatorBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="6">
+                                        Style="{StaticResource DrilldownSessionItemStyle}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="36" />
@@ -1484,9 +1551,7 @@
                                                 Height="50"
                                                 HorizontalAlignment="Left"
                                                 VerticalAlignment="Center"
-                                                Background="{DynamicResource PopupBackgroundBrush}"
-                                                BorderBrush="{DynamicResource PanelSeparatorBrush}"
-                                                BorderThickness="1"
+                                                Background="Transparent"
                                                 CornerRadius="4"
                                                 ClipToBounds="True">
                                             <Image Source="{Binding CoverImagePath,
@@ -1541,7 +1606,8 @@
                             Padding="20,7"
                             Margin="0,10,0,0"
                             Command="{Binding LoadMoreSessionDetailsCommand}" />
-                </StackPanel>
+                    </StackPanel>
+                </Grid>
             </Border>
 
             </controls:AdaptiveDashboardPanel>
