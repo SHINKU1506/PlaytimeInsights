@@ -144,11 +144,15 @@ namespace PlaytimeInsights.ViewModels
 
         public string LifetimeDurationText => Metrics.LifetimeDurationText;
 
+        public DurationDisplayViewModel LifetimeDurationDisplay => Metrics.LifetimeDurationDisplay;
+
         public string TrackedDurationText => Metrics.TrackedDurationText;
 
         public string TrackedDurationSummaryText => Metrics.TrackedDurationSummaryText;
 
         public string RangeDurationText => Metrics.RangeDurationText;
+
+        public DurationDisplayViewModel RangeDurationDisplay => Metrics.RangeDurationDisplay;
 
         public string SessionCountText => Metrics.SessionCountText;
 
@@ -156,7 +160,11 @@ namespace PlaytimeInsights.ViewModels
 
         public string AverageSessionText => Metrics.AverageSessionText;
 
+        public DurationDisplayViewModel AverageSessionDisplay => Metrics.AverageSessionDisplay;
+
         public string LongestSessionText => Metrics.LongestSessionText;
+
+        public DurationDisplayViewModel LongestSessionDisplay => Metrics.LongestSessionDisplay;
 
         public string RangeText => Metrics.RangeText;
 

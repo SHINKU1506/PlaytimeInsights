@@ -232,12 +232,16 @@ namespace PlaytimeInsights.Services
             var snapshot = new DashboardSnapshot
             {
                 LifetimeDurationText = FormatDuration(lifetimeSeconds),
+                LifetimeDurationDisplay = CreateDurationDisplay(lifetimeSeconds),
                 TrackedDurationText = FormatDurationPrecise(trackedSeconds),
                 RangeDurationText = FormatDurationPrecise(rangeSeconds),
+                RangeDurationDisplay = CreateDurationDisplay(rangeSeconds),
                 SessionCountText = rangeSessionCount.ToString("N0"),
                 ActiveDaysText = activeDays.ToString("N0"),
                 AverageSessionText = FormatDurationPrecise(averageSessionSeconds),
+                AverageSessionDisplay = CreateDurationDisplay(averageSessionSeconds),
                 LongestSessionText = FormatDurationPrecise(longestSessionSeconds),
+                LongestSessionDisplay = CreateDurationDisplay(longestSessionSeconds),
                 RangeText = LocalizationService.Format(
                     "LOCPlaytimeInsightsPreciseRangeFormat",
                     "{0} · 精确会话",
@@ -619,6 +623,49 @@ namespace PlaytimeInsights.Services
             }
 
             return FormatDuration(seconds);
+        }
+
+        public static DurationDisplayViewModel CreateDurationDisplay(ulong seconds)
+        {
+            if (seconds < 3600)
+            {
+                var minutes = seconds / 60;
+                var remainingSeconds = seconds % 60;
+                return new DurationDisplayViewModel(
+                    minutes.ToString("N0"),
+                    LocalizationService.Get(
+                        "LOCPlaytimeInsightsMinuteUnitShort",
+                        "分"),
+                    remainingSeconds == 0
+                        ? string.Empty
+                        : remainingSeconds.ToString("N0"),
+                    remainingSeconds == 0
+                        ? string.Empty
+                        : LocalizationService.Get(
+                            "LOCPlaytimeInsightsSecondUnitShort",
+                            "秒"),
+                    FormatDurationPrecise(seconds));
+            }
+
+            var totalMinutes = Math.Max(
+                1UL,
+                (ulong)Math.Round(
+                    seconds / 60d,
+                    MidpointRounding.AwayFromZero));
+            var hours = totalMinutes / 60;
+            var minutesPart = totalMinutes % 60;
+            return new DurationDisplayViewModel(
+                hours.ToString("N0"),
+                LocalizationService.Get(
+                    "LOCPlaytimeInsightsHourUnitShort",
+                    "小时"),
+                minutesPart == 0 ? string.Empty : minutesPart.ToString("N0"),
+                minutesPart == 0
+                    ? string.Empty
+                    : LocalizationService.Get(
+                        "LOCPlaytimeInsightsMinuteUnitShort",
+                        "分"),
+                FormatDurationPrecise(seconds));
         }
 
         private static DayOfWeek GetFirstDayOfWeek(bool useIsoWeekStart)

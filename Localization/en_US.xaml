@@ -176,6 +176,9 @@
     <sys:String x:Key="LOCPlaytimeInsightsHoursFormat">{0:N0} hr</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsHoursMinutesFormat">{0:N0} hr {1} min</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsMinutesSecondsFormat">{0} min {1} sec</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHourUnitShort">h</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsMinuteUnitShort">m</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsSecondUnitShort">s</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsChartTooltipFormat">{0}: {1} (select to inspect sessions)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRankingDetailFormat">{0} · {1:N0} sessions · {2:N0} active days · average {3} · longest {4}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsShareOfTotalFormat">{0:P1} of total playtime</sys:String>

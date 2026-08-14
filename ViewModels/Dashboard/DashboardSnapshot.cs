@@ -67,9 +67,13 @@ namespace PlaytimeInsights.ViewModels
     {
         public string LifetimeDurationText { get; set; }
 
+        public DurationDisplayViewModel LifetimeDurationDisplay { get; set; }
+
         public string TrackedDurationText { get; set; }
 
         public string RangeDurationText { get; set; }
+
+        public DurationDisplayViewModel RangeDurationDisplay { get; set; }
 
         public string SessionCountText { get; set; }
 
@@ -77,7 +81,11 @@ namespace PlaytimeInsights.ViewModels
 
         public string AverageSessionText { get; set; }
 
+        public DurationDisplayViewModel AverageSessionDisplay { get; set; }
+
         public string LongestSessionText { get; set; }
+
+        public DurationDisplayViewModel LongestSessionDisplay { get; set; }
 
         public string RangeText { get; set; }
 

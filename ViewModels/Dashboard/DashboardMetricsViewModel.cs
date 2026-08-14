@@ -12,12 +12,16 @@ namespace PlaytimeInsights.ViewModels
     {
         private readonly IPlayniteAPI playniteApi;
         private string lifetimeDurationText;
+        private DurationDisplayViewModel lifetimeDurationDisplay;
         private string trackedDurationText;
         private string rangeDurationText;
+        private DurationDisplayViewModel rangeDurationDisplay;
         private string sessionCountText;
         private string activeDaysText;
         private string averageSessionText;
+        private DurationDisplayViewModel averageSessionDisplay;
         private string longestSessionText;
+        private DurationDisplayViewModel longestSessionDisplay;
         private string rangeText;
         private string periodTitleText;
         private string rangeRankingTitleText;
@@ -41,6 +45,8 @@ namespace PlaytimeInsights.ViewModels
 
         public string LifetimeDurationText { get => lifetimeDurationText; private set => SetValue(ref lifetimeDurationText, value); }
 
+        public DurationDisplayViewModel LifetimeDurationDisplay { get => lifetimeDurationDisplay; private set => SetValue(ref lifetimeDurationDisplay, value); }
+
         public string TrackedDurationText
         {
             get => trackedDurationText;
@@ -58,13 +64,19 @@ namespace PlaytimeInsights.ViewModels
 
         public string RangeDurationText { get => rangeDurationText; private set => SetValue(ref rangeDurationText, value); }
 
+        public DurationDisplayViewModel RangeDurationDisplay { get => rangeDurationDisplay; private set => SetValue(ref rangeDurationDisplay, value); }
+
         public string SessionCountText { get => sessionCountText; private set => SetValue(ref sessionCountText, value); }
 
         public string ActiveDaysText { get => activeDaysText; private set => SetValue(ref activeDaysText, value); }
 
         public string AverageSessionText { get => averageSessionText; private set => SetValue(ref averageSessionText, value); }
 
+        public DurationDisplayViewModel AverageSessionDisplay { get => averageSessionDisplay; private set => SetValue(ref averageSessionDisplay, value); }
+
         public string LongestSessionText { get => longestSessionText; private set => SetValue(ref longestSessionText, value); }
+
+        public DurationDisplayViewModel LongestSessionDisplay { get => longestSessionDisplay; private set => SetValue(ref longestSessionDisplay, value); }
 
         public string RangeText { get => rangeText; private set => SetValue(ref rangeText, value); }
 
@@ -113,12 +125,16 @@ namespace PlaytimeInsights.ViewModels
             ApplyRankingCoverImages(snapshot.RangeGameRankings, gamesById);
             ApplyRankingCoverImages(snapshot.LifetimeGameRankings, gamesById);
             LifetimeDurationText = snapshot.LifetimeDurationText;
+            LifetimeDurationDisplay = snapshot.LifetimeDurationDisplay;
             TrackedDurationText = snapshot.TrackedDurationText;
             RangeDurationText = snapshot.RangeDurationText;
+            RangeDurationDisplay = snapshot.RangeDurationDisplay;
             SessionCountText = snapshot.SessionCountText;
             ActiveDaysText = snapshot.ActiveDaysText;
             AverageSessionText = snapshot.AverageSessionText;
+            AverageSessionDisplay = snapshot.AverageSessionDisplay;
             LongestSessionText = snapshot.LongestSessionText;
+            LongestSessionDisplay = snapshot.LongestSessionDisplay;
             RangeText = snapshot.RangeText;
             PeriodTitleText = snapshot.PeriodTitleText;
             RangeRankingTitleText = snapshot.RangeRankingTitleText;

@@ -38,6 +38,7 @@ namespace PlaytimeInsights.Tests
         {
             Run("Playnite-style minute rounding", TestMinuteRounding);
             Run("Precise short duration display", TestPreciseDuration);
+            Run("Duration display separates values units and automation text", TestDurationDisplayProjection);
             Run("Cross-midnight allocation", TestCrossMidnightAllocation);
             Run("Allocation preserves total seconds", TestAllocationPreservesTotal);
             Run("Cross-hour allocation preserves total and hour buckets", TestHourlyAllocation);
@@ -166,6 +167,24 @@ namespace PlaytimeInsights.Tests
         {
             Equal("1 分 31 秒", AnalyticsService.FormatDurationPrecise(91));
             Equal("6 分 28 秒", AnalyticsService.FormatDurationPrecise(388));
+        }
+
+        private static void TestDurationDisplayProjection()
+        {
+            var shortValue = AnalyticsService.CreateDurationDisplay(91);
+            Equal("1", shortValue.MajorValue);
+            Equal("31", shortValue.MinorValue);
+            Equal("1 分 31 秒", shortValue.AutomationText);
+
+            var exactHour = AnalyticsService.CreateDurationDisplay(3600);
+            Equal("1", exactHour.MajorValue);
+            Equal(string.Empty, exactHour.MinorValue);
+            Equal("1 小时", exactHour.AutomationText);
+
+            var mixed = AnalyticsService.CreateDurationDisplay(45300);
+            Equal("12", mixed.MajorValue);
+            Equal("35", mixed.MinorValue);
+            Equal("12 小时 35 分", mixed.AutomationText);
         }
 
         private static void TestCrossMidnightAllocation()
