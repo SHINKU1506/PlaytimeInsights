@@ -407,6 +407,7 @@ namespace PlaytimeInsights.Services
                             : currentName,
                         StartedText = localStarted.ToString("yyyy/M/d HH:mm"),
                         DurationText = FormatDurationPrecise(includedSeconds),
+                        Source = session.Source,
                         SourceText = GetSessionSourceLabel(session.Source)
                     }));
             }

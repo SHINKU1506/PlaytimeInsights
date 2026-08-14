@@ -48,6 +48,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsPeriodChartHint">The area trend fits the available width. Hover for period, games, and duration; click to inspect sessions.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsTrendLine">Playtime trend</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLoadMore100">Load 100 _more</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsClearSelection">Clear selection</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLifetimeRanking">All games lifetime playtime ranking</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLifetimeRankingScope">Playnite library playtime; unaffected by the selected date range or ranking metric.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLifetimeRankingTab">Playnite lifetime</sys:String>

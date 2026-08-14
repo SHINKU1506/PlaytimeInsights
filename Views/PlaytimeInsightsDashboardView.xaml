@@ -1344,19 +1344,42 @@
                     controls:AdaptiveDashboardPanel.Zone="Primary"
                     Visibility="{Binding SessionDetailVisibility}">
                 <StackPanel>
-                    <TextBlock Text="{Binding SelectedDetailTitle}"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,4" />
-                    <TextBlock Text="{Binding SessionDetailCountText}"
-                               FontSize="11"
-                               Opacity="{StaticResource TextOpacityTertiary}"
-                               Margin="0,0,0,8" />
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding SelectedDetailTitle}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,4"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding SessionDetailCountText}"
+                                       FontSize="11"
+                                       Opacity="{StaticResource TextOpacityTertiary}" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Width="30"
+                                Height="30"
+                                Margin="12,0,0,0"
+                                Padding="0"
+                                VerticalAlignment="Top"
+                                Command="{Binding ClearDrilldownSelectionCommand}"
+                                ToolTip="{DynamicResource LOCPlaytimeInsightsClearSelection}"
+                                AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsClearSelection}">
+                            <TextBlock Text="&#xE711;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="12"
+                                       IsHitTestVisible="False" />
+                        </Button>
+                    </Grid>
                     <ListView ItemsSource="{Binding SessionDetails}"
-                              MaxHeight="380"
-                              PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
-                              ScrollViewer.VerticalScrollBarVisibility="Auto"
-                              ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                               MaxHeight="380"
+                               HorizontalContentAlignment="Stretch"
+                               PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
+                               ScrollViewer.VerticalScrollBarVisibility="Auto"
+                               ScrollViewer.HorizontalScrollBarVisibility="Auto"
                               ScrollViewer.CanContentScroll="True"
                               VirtualizingPanel.IsVirtualizing="True"
                               VirtualizingPanel.VirtualizationMode="Recycling">
@@ -1365,83 +1388,73 @@
                                 <VirtualizingStackPanel />
                             </ItemsPanelTemplate>
                         </ListView.ItemsPanel>
-                        <ListView.View>
-                            <GridView AllowsColumnReorder="False">
-                                <GridViewColumn Header="{DynamicResource LOCPlaytimeInsightsGameLabel}"
-                                                Width="260">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Grid Height="38">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,0,0,8"
+                                        Padding="10"
+                                        Background="{DynamicResource PopupBackgroundBrush}"
+                                        BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="36"
+                                                Height="50"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                Background="{DynamicResource PopupBackgroundBrush}"
+                                                BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                ClipToBounds="True">
+                                            <Image Source="{Binding CoverImagePath,
+                                                Converter={StaticResource CoverImageConverter}}"
+                                                   Stretch="UniformToFill"
+                                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                                   Focusable="False"
+                                                   IsHitTestVisible="False" />
+                                        </Border>
+                                        <Grid Grid.Column="2">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="*" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Text="{Binding GameName}"
+                                                       FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Grid Grid.Row="1" Margin="0,7,0,0">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="28" />
                                                     <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
-                                                <Border Width="24"
-                                                        Height="34"
-                                                        HorizontalAlignment="Left"
-                                                        VerticalAlignment="Center"
-                                                        Background="{DynamicResource PopupBackgroundBrush}"
-                                                        BorderBrush="{DynamicResource PanelSeparatorBrush}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="3"
-                                                        ClipToBounds="True">
-                                                    <Image Source="{Binding CoverImagePath,
-                                                        Converter={StaticResource CoverImageConverter}}"
-                                                           Stretch="UniformToFill"
-                                                           RenderOptions.BitmapScalingMode="HighQuality"
-                                                           Focusable="False"
-                                                           IsHitTestVisible="False" />
-                                                </Border>
-                                                <TextBlock Grid.Column="1"
-                                                           Text="{Binding GameName}"
-                                                           VerticalAlignment="Center"
-                                                           FontWeight="SemiBold"
-                                                           TextTrimming="CharacterEllipsis" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="{DynamicResource LOCPlaytimeInsightsStartTime}"
-                                                Width="170">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Grid Height="38">
                                                 <TextBlock Text="{Binding StartedText}"
                                                            VerticalAlignment="Center"
-                                                           Opacity="{StaticResource TextOpacitySecondary}" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="{DynamicResource LOCPlaytimeInsightsDuration}"
-                                                Width="120">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Grid Height="38">
-                                                <TextBlock Text="{Binding DurationText}"
-                                                           VerticalAlignment="Center"
-                                                           HorizontalAlignment="Right"
-                                                           TextAlignment="Right"
-                                                           Opacity="{StaticResource TextOpacitySecondary}" />
-                                            </Grid>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="{DynamicResource LOCPlaytimeInsightsSessionSource}"
-                                                Width="110">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Grid Height="38">
-                                                <TextBlock Text="{Binding SourceText}"
-                                                           VerticalAlignment="Center"
                                                            TextTrimming="CharacterEllipsis"
-                                                           Opacity="{StaticResource TextOpacityTertiary}" />
+                                                           Opacity="{StaticResource TextOpacitySecondary}" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding DurationText}"
+                                                           Margin="12,0,0,0"
+                                                           VerticalAlignment="Center"
+                                                           Opacity="{StaticResource TextOpacitySecondary}" />
+                                                <Border Grid.Column="2"
+                                                        Margin="12,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        Style="{StaticResource SessionSourceTagStyle}"
+                                                        AutomationProperties.Name="{Binding SourceText}">
+                                                    <TextBlock Text="{Binding SourceText}"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </Border>
                                             </Grid>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
                     </ListView>
                     <Button Content="{DynamicResource LOCPlaytimeInsightsLoadMore100}"
                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsLoadMore100}"

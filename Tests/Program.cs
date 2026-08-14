@@ -69,6 +69,8 @@ namespace PlaytimeInsights.Tests
             Run("Period drilldown bounds clip to range", TestPeriodBoundsClipToRange);
             Run("Session drilldown clips duration and labels recovery", TestSessionDrilldown);
             Run("Session detail pager loads fixed-size batches", TestSessionDetailPager);
+            Run("Dashboard clear command resets drilldown selection", TestClearDrilldownSelectionCommand);
+            Run("Dashboard drilldown cards retain recycling virtualization", TestDrilldownVirtualizationContract);
             Run("Automatic aggregation follows range defaults", TestAutomaticAggregationDefaults);
             Run("Manual aggregation overrides automatic rules", TestManualAggregationOverride);
             Run("Session query combines search source and metadata", TestSessionQueryFilters);
@@ -1105,6 +1107,7 @@ namespace PlaytimeInsights.Tests
             Equal(1, details.Count);
             Equal(session.GameId, details[0].GameId);
             Equal("0 分 30 秒", details[0].DurationText);
+            Equal(SessionSource.Recovered, details[0].Source);
             Equal("异常恢复", details[0].SourceText);
         }
 
@@ -1126,6 +1129,72 @@ namespace PlaytimeInsights.Tests
             Equal(250, pager.VisibleCount);
             Equal(false, pager.HasMore);
             Equal(0, pager.AppendNextPage());
+        }
+
+        private static void TestClearDrilldownSelectionCommand()
+        {
+            var sourceRoot = FindSourceRoot();
+            var dashboardViewModel = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+            var normalizedSource = Regex.Replace(
+                dashboardViewModel,
+                @"\s+",
+                string.Empty);
+
+            Equal(true, normalizedSource.Contains(
+                "ClearDrilldownSelectionCommand=newRelayCommand(" +
+                "Drilldown.ResetSelection," +
+                "()=>!refreshGuard.IsActive&&" +
+                "Drilldown.SessionDetailVisibility==Visibility.Visible);"));
+            Equal(true, dashboardViewModel.Contains(
+                "public RelayCommand ClearDrilldownSelectionCommand { get; }"));
+            Equal(true, Regex.Matches(
+                dashboardViewModel,
+                Regex.Escape(
+                    "ClearDrilldownSelectionCommand?.RaiseCanExecuteChanged();"))
+                .Count >= 2);
+            Equal(true, normalizedSource.Contains(
+                "if(args.PropertyName==nameof(" +
+                "DashboardDrilldownViewModel.SessionDetailVisibility))" +
+                "{ClearDrilldownSelectionCommand?.RaiseCanExecuteChanged();}"));
+        }
+
+        private static void TestDrilldownVirtualizationContract()
+        {
+            var sourceRoot = FindSourceRoot();
+            var xamlNamespace = XNamespace.Get(
+                "http://schemas.microsoft.com/winfx/2006/xaml");
+            var document = XDocument.Load(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var drilldownModule = document.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "Border" &&
+                    (string)element.Attribute(xamlNamespace + "Name") ==
+                    "DrilldownModule");
+            var detailList = drilldownModule.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "ListView" &&
+                    (string)element.Attribute("ItemsSource") ==
+                    "{Binding SessionDetails}");
+
+            Equal("True", (string)detailList.Attributes()
+                .Single(attribute =>
+                    attribute.Name.LocalName ==
+                    "VirtualizingPanel.IsVirtualizing"));
+            Equal("Recycling", (string)detailList.Attributes()
+                .Single(attribute =>
+                    attribute.Name.LocalName ==
+                    "VirtualizingPanel.VirtualizationMode"));
+            Equal("True", (string)detailList.Attributes()
+                .Single(attribute =>
+                    attribute.Name.LocalName ==
+                    "ScrollViewer.CanContentScroll"));
+            Equal(false, detailList.Descendants()
+                .Any(element => element.Name.LocalName == "GridView"));
         }
 
         private static void TestAutomaticAggregationDefaults()
@@ -2762,28 +2831,25 @@ namespace PlaytimeInsights.Tests
             var sessionDetailsStart = dashboard.IndexOf(
                 "<ListView ItemsSource=\"{Binding SessionDetails}\"",
                 StringComparison.Ordinal);
-            var sessionStartTimeColumn = dashboard.IndexOf(
-                "GridViewColumn Header=\"{DynamicResource LOCPlaytimeInsightsStartTime}\"",
+            var sessionDetailsEnd = dashboard.IndexOf(
+                "</ListView>",
                 sessionDetailsStart,
                 StringComparison.Ordinal);
             Equal(true, sessionDetailsStart >= 0);
-            Equal(true, sessionStartTimeColumn > sessionDetailsStart);
+            Equal(true, sessionDetailsEnd > sessionDetailsStart);
+            var sessionDetailsList = dashboard.Substring(
+                sessionDetailsStart,
+                sessionDetailsEnd - sessionDetailsStart);
             Equal(
                 true,
-                dashboard.Substring(
-                    sessionDetailsStart,
-                    sessionStartTimeColumn - sessionDetailsStart)
-                    .Contains("Image Source=\"{Binding CoverImagePath,"));
-            Equal(true, dashboard.Contains(
-                "<GridView AllowsColumnReorder=\"False\">"));
-            Equal(true, dashboard.Contains(
-                "GridViewColumn Header=\"{DynamicResource LOCPlaytimeInsightsGameLabel}\""));
-            Equal(true, dashboard.Contains(
-                "GridViewColumn Header=\"{DynamicResource LOCPlaytimeInsightsStartTime}\""));
-            Equal(true, dashboard.Contains(
-                "GridViewColumn Header=\"{DynamicResource LOCPlaytimeInsightsDuration}\""));
-            Equal(true, dashboard.Contains(
-                "GridViewColumn Header=\"{DynamicResource LOCPlaytimeInsightsSessionSource}\""));
+                sessionDetailsList.Contains(
+                    "Image Source=\"{Binding CoverImagePath,"));
+            Equal(true, sessionDetailsList.Contains("<ListView.ItemTemplate>"));
+            Equal(true, sessionDetailsList.Contains("Width=\"36\""));
+            Equal(true, sessionDetailsList.Contains("Height=\"50\""));
+            Equal(true, sessionDetailsList.Contains(
+                "Style=\"{StaticResource SessionSourceTagStyle}\""));
+            Equal(false, sessionDetailsList.Contains("<GridView"));
             Equal(false, dashboard.Contains("RankingBackgroundProgressStyle"));
             Equal(false, dashboard.Contains("Grid.ColumnSpan=\"4\""));
             Equal(false, dashboard.Contains("Margin=\"-8,-5\""));

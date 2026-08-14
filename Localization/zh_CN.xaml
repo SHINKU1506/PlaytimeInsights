@@ -48,6 +48,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsPeriodChartHint">面积趋势图自适应当前宽度；悬停查看周期、游戏与时长，点击下钻会话。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsTrendLine">游玩趋势</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLoadMore100">加载更多 100 条(_M)</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsClearSelection">清除选中</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLifetimeRanking">所有游戏累计游玩时长排名</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLifetimeRankingScope">Playnite 游戏库累计时长；不受当前日期范围和排名依据影响。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLifetimeRankingTab">Playnite 累计时长</sys:String>

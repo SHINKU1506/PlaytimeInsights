@@ -65,6 +65,10 @@ namespace PlaytimeInsights.ViewModels
             LoadMoreSessionDetailsCommand = new RelayCommand(
                 LoadMoreSessionDetails,
                 () => !refreshGuard.IsActive && Drilldown.HasMore);
+            ClearDrilldownSelectionCommand = new RelayCommand(
+                Drilldown.ResetSelection,
+                () => !refreshGuard.IsActive &&
+                    Drilldown.SessionDetailVisibility == Visibility.Visible);
             SelectWeekdayCommand = new RelayCommand<DistributionBarViewModel>(
                 SelectWeekdayDistribution,
                 CanSelectWeekday);
@@ -240,6 +244,8 @@ namespace PlaytimeInsights.ViewModels
         public RelayCommand RefreshCommand { get; }
 
         public RelayCommand LoadMoreSessionDetailsCommand { get; }
+
+        public RelayCommand ClearDrilldownSelectionCommand { get; }
 
         public RelayCommand<DistributionBarViewModel> SelectWeekdayCommand { get; }
 
@@ -470,6 +476,7 @@ namespace PlaytimeInsights.ViewModels
         {
             RefreshCommand?.RaiseCanExecuteChanged();
             LoadMoreSessionDetailsCommand?.RaiseCanExecuteChanged();
+            ClearDrilldownSelectionCommand?.RaiseCanExecuteChanged();
             SelectWeekdayCommand?.RaiseCanExecuteChanged();
             SelectHeatmapDateCommand?.RaiseCanExecuteChanged();
             SelectPeriodCommand?.RaiseCanExecuteChanged();
@@ -487,6 +494,12 @@ namespace PlaytimeInsights.ViewModels
             if (args.PropertyName == nameof(DashboardDrilldownViewModel.HasMore))
             {
                 LoadMoreSessionDetailsCommand?.RaiseCanExecuteChanged();
+            }
+
+            if (args.PropertyName == nameof(
+                DashboardDrilldownViewModel.SessionDetailVisibility))
+            {
+                ClearDrilldownSelectionCommand?.RaiseCanExecuteChanged();
             }
         }
 

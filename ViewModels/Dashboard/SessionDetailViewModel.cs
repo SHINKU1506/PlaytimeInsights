@@ -1,3 +1,4 @@
+using PlaytimeInsights.Models;
 using System;
 
 namespace PlaytimeInsights.ViewModels
@@ -13,6 +14,8 @@ namespace PlaytimeInsights.ViewModels
         public string StartedText { get; set; }
 
         public string DurationText { get; set; }
+
+        public SessionSource Source { get; set; }
 
         public string SourceText { get; set; }
     }
