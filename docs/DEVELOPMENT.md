@@ -2,6 +2,22 @@
 
 更新日期：2026-08-14
 
+## 1.0.0 发布候选
+
+1.0.0 将已完成并验收的架构重构、Dashboard 选择性刷新、响应式指标卡、语义文本层级、
+Dashboard View 复用和共享封面缓存合并为首个稳定候选。当前版本元数据统一为 1.0.0 / 1.0.0.0，
+通用发布顺序见 `docs\PRE_RELEASE_WORKFLOW.md`，实际证据见 `docs\RELEASE_CHECKLIST.md`。
+
+两轮独立 clean Release 的 DLL 均为 315,904 字节，SHA-256 均为
+`6ACFACDA528398A263219511B737A6C9699FE7D8D21CAD43EC4CAB86B7EF2790`；两轮确定性 PEXT 均为
+147,824 字节，SHA-256 均为
+`EBA048A7F71943B22E2566D899E81BB99BFD5570D0F26A65439789A3E081AB34`。包内 9 个条目与 Release
+逐项一致，路径安全，含 LICENSE，不含 PDB 或 Playnite SDK DLL。构建和打包前后 7 个用户数据文件
+联合指纹保持 `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`。
+
+用户已确认 2026-08-14 侧边栏 View 复用与共享封面缓存性能优化客户端验收通过。1.0.0 PEXT
+从 0.9.8 原位升级及完整主题/DPI/语言视觉矩阵仍按 `docs\CLIENT_ACCEPTANCE_1.0.0.md` 执行。
+
 ## 架构重构准备
 
 架构重构在 `refactor/architecture-preparation` 分支独立进行，不与视觉计划混合。执行依据：
@@ -121,8 +137,8 @@ Dashboard 筛选进一步采用选择性刷新，具体依赖表和 TDD 路线�
 详细 RED/GREEN 记录见
 `artifacts\sdd\2026-08-14-sidebar-view-and-cover-cache\final-fix-report.md`（忽略目录，
 不进入源码历史）。Playnite 于 2026-08-14 03:12:25 成功加载插件 `0.9.8`，进程响应正常。
-当前自动化环境无法初始化 computer-use，且 Playnite 未向 Windows UI Automation 暴露后代控件；因此
-未执行坐标猜测式点击。真实侧边栏重复切换、滚动/焦点保留和主题切换体感仍需人工客户端确认。
+当时自动化环境无法初始化 computer-use，且 Playnite 未向 Windows UI Automation 暴露后代控件，
+因此没有执行坐标猜测式点击；用户随后确认本轮侧边栏重复切换、滚动/焦点和主题切换性能验收通过。
 
 ## 环境
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.0 — 2026-08-14
+
+- 完成原生 WPF 架构重构 A–E：ViewModel 不再直接编排具体窗口、文件对话框或 MessageBox，
+  会话工作流统一经 Interaction/Coordinator 边界执行，Dashboard 只生成一次一致分析快照；
+- Dashboard 筛选采用依赖感知的选择性刷新，聚合与排名切换复用既有分析上下文，避免无关数据重载；
+- 新增 `ResponsiveUniformPanel`，九张指标卡按 1–4 列响应式排列，同排等宽等高、12 像素间距、
+  不完整末行居中，并允许长本地化文本增高；
+- Dashboard 关键文字改用主题 `TextBrush` 和 Primary/Secondary/Tertiary/Disabled 语义层级，
+  不为不可点击指标卡增加 Hover 或点击暗示；
+- 侧边栏重复进入复用单一 Dashboard View，并在重新挂载时恢复 Loaded 刷新边界，避免视觉树持续增长；
+- 封面解码统一使用容量 512 的共享 LRU 缓存，按规范化路径、目标宽度和文件状态失效，缓存图像全部冻结；
+- 保持 schema 1–4 无损升级、原子存储、导入预览/回滚、备份恢复、诊断隐私、中英文资源和
+  10 万会话发布预算；
+- 版本、程序集、README、Installer manifest 和发布元数据回归统一升级为 1.0.0 / 1.0.0.0。
+
 ## 0.9.8 — 2026-08-11
 
 - 清单和程序集版本统一升级为 0.9.8 / 0.9.8.0；

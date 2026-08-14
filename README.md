@@ -4,7 +4,7 @@ Playtime Insights 是一个面向 Playnite Desktop 的本地游玩时间分析�
 
 插件完全本地运行：不包含遥测，不上传游戏库或会话数据，也不依赖远程网页。
 
-**当前版本：`0.9.8`** · 作者：[SHINKU1506](https://github.com/SHINKU1506) · [GitHub Releases](https://github.com/SHINKU1506/PlaytimeInsights/releases) · [变更日志](CHANGELOG.md) · [隐私说明](PRIVACY.md)
+**当前版本：`1.0.0`** · 作者：[SHINKU1506](https://github.com/SHINKU1506) · [GitHub Releases](https://github.com/SHINKU1506/PlaytimeInsights/releases) · [变更日志](CHANGELOG.md) · [隐私说明](PRIVACY.md)
 
 ## 目录
 
@@ -162,9 +162,12 @@ dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release `
 - [当前实现状态](docs/IMPLEMENTATION_STATUS.md)
 - [架构重构计划](docs/ARCHITECTURE_OPTIMIZATION_PLAN.md)
 - [架构重构行为基线](docs/ARCHITECTURE_REFACTOR_BASELINE.md)
+- [新版本预发布流程](docs/PRE_RELEASE_WORKFLOW.md)
 - [发布检查清单](docs/RELEASE_CHECKLIST.md)
 - [0.9.8 客户端验收](docs/CLIENT_ACCEPTANCE_0.9.8.md)
-- [1.0 正式发布就绪审查](docs/RELEASE_READINESS_1.0.md)
+- [1.0.0 客户端验收](docs/CLIENT_ACCEPTANCE_1.0.0.md)
+- [1.0.0 正式发布就绪审查](docs/RELEASE_READINESS_1.0.md)
+- [1.0.0 发布说明](docs/RELEASE_NOTES_1.0.0.md)
 - [0.9.8 发布说明](docs/RELEASE_NOTES_0.9.8.md)
 - [变更日志](CHANGELOG.md)
 

@@ -1,6 +1,6 @@
 # Playtime Insights Architecture
 
-状态：阶段 E 架构基线
+状态：1.0.0 发布候选架构基线（阶段 E + 选择性刷新 + Dashboard View/封面缓存性能修正）
 
 更新日期：2026-08-14
 
@@ -146,6 +146,8 @@ the ViewModel from `PlacementTarget.DataContext`.
 | Session workflow boundary | Coordinator cancellation, success and exception-path tests |
 | Dashboard composition | Stage D one-snapshot and runtime filter-lifetime tests |
 | Navigation performance | single automatic refresh and refresh-snapshot count tests |
+| Dashboard View lifetime | cached View reuse, reattach Loaded semantics and stable visual-tree tests |
+| Cover thumbnail cache | normalized-path reuse, file invalidation, width/LRU separation and frozen image tests |
 | View event ownership | Stage E dynamic handler/source symmetry test |
 
 Release completion additionally requires two clean deterministic builds, two Toolbox PEXT packages with identical

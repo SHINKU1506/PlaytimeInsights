@@ -1,8 +1,30 @@
 # Playtime Insights 实现状态
 
-最后更新：2026-08-13
+最后更新：2026-08-14
 
-当前阶段：0.9.8 已正式发布；架构重构 A–E 与 Dashboard 选择性刷新客户端验收通过
+当前阶段：1.0.0 发布候选；架构、响应式视觉和侧边栏性能优化已整合，等待版本专属客户端复验与远程发布激活
+
+## 2026-08-14 1.0.0 发布候选整合
+
+- 版本、程序集、README、CHANGELOG、installer manifest 和发布元数据回归统一为
+  1.0.0 / 1.0.0.0；installer manifest 保留 0.9.8 历史 package；
+- 架构重构 A–E、Dashboard 选择性刷新、响应式指标卡、Dashboard 语义文本、单一 Dashboard View
+  和共享 512 条目封面缓存均纳入 1.0.0；
+- 用户确认侧边栏 View 复用与封面缓存性能优化客户端验收通过；架构 A–E 与选择性刷新已有验收；
+- 当前完整自动化为 108/108；两个 Release 项目为 0 warning / 0 error；
+- 两轮独立 clean DLL 均为 315,904 字节，SHA-256：
+  `6ACFACDA528398A263219511B737A6C9699FE7D8D21CAD43EC4CAB86B7EF2790`；
+- 两轮确定性 PEXT 均为 147,824 字节，SHA-256：
+  `EBA048A7F71943B22E2566D899E81BB99BFD5570D0F26A65439789A3E081AB34`；
+- PEXT 严格含 9 个与 Release 一致的安全条目，含 LICENSE，不含 PDB/Playnite SDK DLL；
+  DLL 程序集版本 1.0.0.0，敏感路径扫描 0 命中；
+- 构建打包前后 7 个用户数据文件联合指纹均为
+  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`；
+- 通用流程见 `docs\PRE_RELEASE_WORKFLOW.md`；版本证据和剩余门禁见
+  `docs\RELEASE_CHECKLIST.md`、`docs\RELEASE_READINESS_1.0.md` 和
+  `docs\CLIENT_ACCEPTANCE_1.0.0.md`；
+- 尚未在本记录时点执行的外部动作：1.0.0 PEXT 原位升级/完整视觉矩阵、标签、GitHub Release
+  上传、正式公网 Toolbox 校验和远端 `main` 自动更新激活。
 
 ## 2026-08-13 响应式指标卡与 Dashboard 语义文本基础
 
@@ -10,16 +32,17 @@
 - `ResponsiveUniformPanel` 使用 204/232/300 像素宽度约束、1–4 列、12 像素横纵间距、同排等宽等高和不完整末行居中；指标卡移除固定 218 × 154，保留 `MinHeight=154`；
 - 自动化覆盖 320/360/640/900/1200 内容宽度、0/1/9/10 子元素、长本地化文本、无限约束和无效属性值；真实 Dashboard 运行时测试通过视觉树类型定位 `ResponsiveUniformPanel`；
 - Panel 无 `x:Name`。根类型 `PlaytimeInsights` 遮蔽 `PlaytimeInsights.Controls` 命名空间；给自定义 Panel 添加 `x:Name` 后，WPF 临时项目生成字段声明时触发 `CS0426`。已移除 `x:Name`，测试按真实视觉树 runtime type 定位；
-- 最终回归：`Tests\bin\Release\net462\PlaytimeInsightsRegression.exe` 输出 99/99，所有项目均为 `[PASS]`，并以 `All Playtime Insights tests passed.` 结束；
+- 该批次最终在补充 Arrange 宽度变化测试后为 100/100；当前 1.0.0 完整回归为 108/108，所有项目均为 `[PASS]`，并以 `All Playtime Insights tests passed.` 结束；
 - 测试项目 Release：`dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release --no-restore`，0 警告、0 错误；生产项目 Release：`dotnet build PlaytimeInsights.csproj -c Release --no-restore`，0 警告、0 错误；
 - Dashboard 已加入四个命名语义透明度资源：`TextOpacityPrimary`、`TextOpacitySecondary`、`TextOpacityTertiary`、`TextOpacityDisabled`；Sessions/settings 跨页面抽取仍待后续；
 - 本轮未部署、未打包、未启动 Playnite，未修改主题、配置或用户数据；未触碰任何安装目录或用户数据文件；
 - `perf_test.ps1` 是主工作区用户保留的未跟踪文件；隔离工作树中不出现属于正常状态，本任务未触碰它，也不会将其加入提交；
 - 本批次完成范围仅为响应式指标卡和 Dashboard 语义文本基础；空状态、跨页面 token 共享、微交互和会话列宽治理仍是后续工作。
 
-### 客户端视觉验收（待用户在 Playnite 中执行）
+### 客户端视觉验收（1.0.0 发布前待复验）
 
-以下步骤分别用中文和英文执行；客户端验收尚未通过，仍是唯一外部未完成项：
+以下步骤分别用中文和英文执行；自动化不能替代该矩阵，完整状态以
+`docs\CLIENT_ACCEPTANCE_1.0.0.md` 为准：
 
 #### 中文
 

@@ -1,5 +1,14 @@
 AddonId: PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd
 Packages:
+  - Version: 1.0.0
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: 2026-08-14
+    PackageUrl: https://github.com/SHINKU1506/PlaytimeInsights/releases/download/v1.0.0/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_0_0.pext
+    Changelog:
+      - Completed the native WPF architecture refactor with explicit interaction and refresh boundaries.
+      - Added responsive metric cards and theme-aware semantic text hierarchy on the dashboard.
+      - Reduced sidebar re-entry latency by reusing the dashboard view and sharing a bounded frozen cover cache.
+      - Preserved local-only analytics, schema compatibility, import/export safety, and bilingual resources.
   - Version: 0.9.8
     RequiredApiVersion: 6.16.0
     ReleaseDate: 2026-08-11

@@ -1,87 +1,56 @@
 # Playtime Insights 发布检查清单
 
-更新日期：2026-08-11
+更新日期：2026-08-14
 
-## 当前候选
+通用顺序、命令、安全激活和 AddonDatabase 判定见 `PRE_RELEASE_WORKFLOW.md`。本文件只记录
+1.0.0 的实际证据；0.9.8 历史证据保留在 `RELEASE_NOTES_0.9.8.md` 和 Git 历史中。
 
-- 插件版本：0.9.8；
-- 程序集版本：0.9.8.0；
+## 1.0.0 候选
+
+- 插件版本：1.0.0；
+- 程序集版本：1.0.0.0；
+- AddonId：`PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd`；
 - 目标框架：.NET Framework 4.6.2；
-- Playnite SDK：6.16.x；
-- Release 构建：0 警告、0 错误；
-- 自动化回归：61/61；
-- 中英文资源：各 271 个键；
-- 发布包：`dist\PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_8.pext`。
-- DLL SHA-256：`9BEFE2370DA5BA3E21F5E5E55862B59497EC6DA8CE6840BD268942F900DB5AB4`；
-- DLL 大小：282,112 字节；
-- PEXT SHA-256：`09ACBD2CE1B62346AC658C4FE3C2539FA456394C7CC6773EAE46BBAA3BAB4B82`；
-- PEXT 大小：134,031 字节；
-- PEXT 内容：9 个预期文件。
-- Release 隐私：无 PDB，DLL 敏感路径扫描通过，MIT LICENSE 已入包。
-- 可复现性：连续两轮干净构建 DLL SHA-256 一致，未生成 staging BAML。
+- Playnite SDK / Required API：6.16.0；
+- 自动化回归：108/108；
+- DLL：315,904 字节；
+- DLL SHA-256：`6ACFACDA528398A263219511B737A6C9699FE7D8D21CAD43EC4CAB86B7EF2790`；
+- PEXT：147,824 字节；
+- PEXT SHA-256：`EBA048A7F71943B22E2566D899E81BB99BFD5570D0F26A65439789A3E081AB34`；
+- PEXT 文件名：
+  `PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_0_0.pext`；
+- 两轮独立 clean Release 的 DLL 与 PEXT 哈希分别一致；
+- PEXT 严格包含 9 个与 Release 逐项相同的安全条目，含 LICENSE，不含 PDB 或 Playnite SDK DLL；
+- DLL 程序集版本为 1.0.0.0，未发现用户名、开发目录、Playnite 安装路径或 PDB 字符串；
+- 构建和打包前后用户数据均为 7 个文件，联合指纹保持
+  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`。
+
+## 已通过门禁
+
+- [x] `extension.yaml`、程序集、README、CHANGELOG、installer manifest 和自动化断言版本一致；
+- [x] installer manifest 顶部为 1.0.0，并保留 0.9.8 package；
+- [x] 测试项目 Release 构建 0 warning / 0 error；
+- [x] 108/108 回归通过并输出最终 all-pass marker；
+- [x] 主项目两轮 clean Release 构建 0 warning / 0 error；
+- [x] 两轮确定性打包哈希一致；
+- [x] 九文件、路径安全、许可证、版本、AddonId 和依赖边界检查通过；
+- [x] 用户确认侧边栏 View 复用与共享封面缓存性能优化客户端验收通过；
+- [x] 架构重构 A–E 和 Dashboard 选择性刷新已有客户端验收记录；
+- [x] Add-on Database PR #626 已合并，稳定 installer URL 无需为 package-only release 修改。
+
+## 发布动作门禁
+
+- [ ] 完成 `CLIENT_ACCEPTANCE_1.0.0.md` 中 1.0.0 PEXT 原位升级与视觉矩阵；
+- [ ] 提交发布候选并创建注释标签 `v1.0.0`；
+- [ ] 推送标签但暂不推进远端 `main`；
+- [ ] 创建 GitHub Release 并上传精确名称的 PEXT；
+- [ ] 匿名 PackageUrl 返回 HTTP 200，大小和 SHA-256 与本文件一致；
+- [ ] Toolbox 对正式公网 installer/addon manifest 完整校验通过；
+- [ ] 以上通过后才推送 `main`，激活 Add-on Browser 更新；
+- [ ] 远端激活后从 0.9.8 检测并完成 1.0.0 更新；
+- [ ] 决定保留 0.9.8 目录截图，或另提 AddonDatabase 截图/描述 PR。
 
 ## Git 边界
 
-项目根目录的 `.gitignore` 排除：
-
-- `bin`、`obj`、测试结果和覆盖率文件；
-- `dist` 和 `staging` 生成物；
-- `.pext`、NuGet 生成包和 IDE 用户设置；
-- 日志、转储、临时文件；
-- 意外复制进源码树的 `ExtensionsData`、会话数据、导出和备份。
-
-以下内容应纳入源码：
-
-- C#、XAML、项目和解决方案文件；
-- `extension.yaml`、`PRIVACY.md`、README、CHANGELOG；
-- `Localization`；
-- 正式图标和 `Assets` 设计源文件；
-- `docs` 与 `docs\audit` 审查证据。
-
-## 发布前必须执行
-
-1. 确认 `extension.yaml` 与程序集版本一致；
-2. 完全退出 Playnite；
-3. 执行 Release 构建和完整测试；
-4. 确认 Release 目录只有 9 个预期发布文件，包含 LICENSE 且不含 PDB；
-5. 将同一 Release 文件部署到 `staging\<version>` 和安装目录；
-6. 使用 `scripts\Pack-Deterministic.ps1` 从 Release 目录调用 Playnite Toolbox 打包；
-7. 核对 Release、staging、安装目录逐文件 SHA-256；
-8. 连续两轮打包哈希应一致，并核对 PEXT 只包含 9 个预期文件；
-9. 确认 `ExtensionsData` 文件数量、时间戳和内容未变化；
-10. 更新 DEVELOPMENT、ROADMAP、IMPLEMENTATION_STATUS 和 CHANGELOG。
-
-主看板滚轮手工检查：
-
-- 在星期分布、趋势图和排名区域滚动，确认整页移动；
-- 在 24 小时分布、星期 × 小时热力图和日历热力图区域滚动，确认纵向滚轮不会被横向容器吞掉；
-- 在异常列表和会话钻取列表内部滚动，确认列表可滚时优先滚列表；
-- 当内部列表到达顶部或底部时继续同方向滚动，确认滚轮自动接力给外层页面。
-
-0.9.8 完整客户端验收步骤见 `docs\CLIENT_ACCEPTANCE_0.9.8.md`。
-
-## 公共发布完成状态
-
-- Git 仓库、MIT LICENSE、`origin/main` 和上游跟踪已建立；
-- 0.9.8 最终发布提交 `8e19718` 已推送并与 `origin/main` 同步；
-- 0.9.8 已冻结版本、移除界面候选字样并清理公开 README；
-- DLL/PDB 本机路径和许可证阻塞已解决：正式包无 PDB，LICENSE 已纳入 PEXT；
-- 公开 README 已重写，并已接入 0.9.8 中文/英文正式截图；
-- 现有配置下的 0.9.4 → 0.9.8 原位升级及主要客户端交互已于 2026-07-30 验收通过；
-- 2026-08-11 客户端复验通过，按日/热力图下钻封面和星期选中态未发现问题；
-- 中文/英文分析页和中文设置页三张正式截图已归档并接入发布元数据；会话管理页截图不附加；
-- 公开 Author 已统一确认为 `SHINKU1506`；
-- 独立 Playnite Portable 环境的安装和卸载验收已完成；
-- GitHub 仓库已设为 Public；匿名 HTTP 已确认仓库、图标、Add-on 和 installer URL 返回 200；
-- `v0.9.8` Git 标签和 GitHub Release 已创建，PEXT 已作为 Release 附件上传；
-- 两层 manifest 已通过本机 HTTP 和正式公网 URL 的 Toolbox 完整联动校验；
-- 已向 `JosefNemec/PlayniteAddonDatabase` 提交 Add-on manifest
-  [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626)，等待上游审核；
-- 完整审查见 `docs\RELEASE_READINESS_1.0.md`。
-
-## 2026-07-28 忽略规则验证
-
-- 已在一次性临时 Git 仓库中加载项目根 `.gitignore`；
-- `bin`、`obj`、`dist`、`staging`、`.pext`、`sessions.json` 和 `ExtensionsData` 样例均被忽略；
-- README、XAML、正式图标和 `docs\audit` 样例保持可跟踪；
-- 临时仓库验证后已删除；此项完成后项目已另行初始化为正式 Git 仓库。
+发布提交不得包含 `bin`、`obj`、`dist`、`staging`、PEXT、测试结果、IDE 设置、日志、转储、
+`perf_test.ps1`、`ExtensionsData`、会话、导出或备份。发布附件只上传 GitHub Release，不进入源码历史。

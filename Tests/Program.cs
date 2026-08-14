@@ -4683,8 +4683,12 @@ namespace PlaytimeInsights.Tests
             var license = File.ReadAllText(Path.Combine(
                 sourceRoot,
                 "LICENSE"));
+            var preReleaseWorkflow = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "docs",
+                "PRE_RELEASE_WORKFLOW.md"));
 
-            Equal(true, manifest.Contains("Version: 0.9.8"));
+            Equal(true, manifest.Contains("Version: 1.0.0"));
             Equal(true, manifest.Contains("Author: SHINKU1506"));
             Equal(true, manifest.Contains(
                 "https://github.com/SHINKU1506/PlaytimeInsights"));
@@ -4693,9 +4697,9 @@ namespace PlaytimeInsights.Tests
             Equal(true, manifest.Contains(
                 "https://github.com/SHINKU1506/PlaytimeInsights/blob/main/CHANGELOG.md"));
             Equal(true, assemblyInfo.Contains(
-                "AssemblyVersion(\"0.9.8.0\")"));
+                "AssemblyVersion(\"1.0.0.0\")"));
             Equal(true, assemblyInfo.Contains(
-                "AssemblyFileVersion(\"0.9.8.0\")"));
+                "AssemblyFileVersion(\"1.0.0.0\")"));
             Equal(true, assemblyInfo.Contains(
                 "AssemblyCompany(\"SHINKU1506\")"));
             Equal(true, assemblyInfo.Contains(
@@ -4716,7 +4720,7 @@ namespace PlaytimeInsights.Tests
             Equal(false, chinese.Contains(
                 "LOCPlaytimeInsightsSessionsSubtitle"));
 
-            Equal(true, readme.Contains("当前版本：`0.9.8`"));
+            Equal(true, readme.Contains("当前版本：`1.0.0`"));
             Equal(true, readme.Contains(
                 "作者：[SHINKU1506](https://github.com/SHINKU1506)"));
             Equal(true, readme.Contains("## 界面预览"));
@@ -4726,6 +4730,7 @@ namespace PlaytimeInsights.Tests
             Equal(true, readme.Contains("## 从源码构建"));
             Equal(true, readme.Contains("## 问题反馈"));
             Equal(true, readme.Contains("## License"));
+            Equal(true, readme.Contains("docs/PRE_RELEASE_WORKFLOW.md"));
             Equal(false, readme.Contains("当前开发版本：`0.9.2`"));
             Equal(false, readme.Contains("原生柱形图与折线趋势"));
             Equal(false, readme.Contains("按日聚合柱形"));
@@ -4745,11 +4750,18 @@ namespace PlaytimeInsights.Tests
 
             Equal(true, installerManifest.Contains(
                 "AddonId: PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd"));
+            Equal(true, installerManifest.Contains("Version: 1.0.0"));
             Equal(true, installerManifest.Contains("Version: 0.9.8"));
             Equal(true, installerManifest.Contains(
                 "RequiredApiVersion: 6.16.0"));
             Equal(true, installerManifest.Contains(
-                "/releases/download/v0.9.8/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_0_9_8.pext"));
+                "/releases/download/v1.0.0/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_0_0.pext"));
+            Equal(true, preReleaseWorkflow.Contains(
+                "PEXT URL returns HTTP 200"));
+            Equal(true, preReleaseWorkflow.Contains(
+                "Package-only release"));
+            Equal(true, preReleaseWorkflow.Contains(
+                "git push origin v1.0.0"));
             Equal(true, addonManifest.Contains("Type: Generic"));
             Equal(true, addonManifest.Contains("Author: SHINKU1506"));
             Equal(true, addonManifest.Contains(

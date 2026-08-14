@@ -1,10 +1,23 @@
 # Playtime Insights 主体架构优化计划
 
-状态：阶段 A–E 与 Dashboard 选择性刷新客户端验收完成；后续完整刷新性能阶段待设计
+状态：阶段 A–E、Dashboard 选择性刷新、Dashboard View 复用与共享封面缓存已完成并进入 1.0.0 发布候选
 
 规划日期：2026-08-11
 
 来源：`implementation_plan.md` 架构部分及现有代码复审
+
+## 1.0.0 汇总状态（2026-08-14）
+
+- 阶段 A–E 已完成：会话工作流通过 Interaction/Coordinator 边界执行，标准操作使用 RelayCommand，
+  Dashboard 由 Filter/Metrics/Distribution/Drilldown 四个子状态组合且只生成一次一致快照；
+- Dashboard 选择性刷新已通过用户客户端验收，聚合与排名切换复用 `DashboardAnalysisContext`；
+- Dashboard View 与 ViewModel 现在按 Playnite 进程生命周期各缓存一份；重挂载仍触发 Loaded 刷新，
+  关闭页面不会持续增长视觉树；
+- `CoverImageConverter` 统一使用容量 512 的共享 `CoverImageCache`，按路径、解码宽度、文件长度和
+  `LastWriteTimeUtc` 失效，返回冻结图像且不锁定媒体文件；
+- 用户于 2026-08-14 确认本轮侧边栏性能优化客户端验收通过；
+- 当前 1.0.0 候选为 108/108 回归，双 clean DLL 与确定性 PEXT 哈希分别一致；后续异步可取消
+  完整刷新仍是 1.1+ 独立路线，不属于 1.0.0 发布阻塞。
 
 ## 重构准备状态
 
@@ -104,7 +117,8 @@
 “消灭 Code-behind”或追求形式上的纯 MVVM。文件选择、Window Owner、焦点、滚轮、动画和
 自定义控件事件适配仍属于合理的 View 层职责。
 
-本计划不阻塞 0.9.8 发布。所有阶段应在独立版本中小步实施，不与大规模视觉重构合并。
+“本计划不阻塞 0.9.8”是 2026-08-11 的原始范围约束。阶段 A–E 与后续性能修正现已完成，并与
+已实施的响应式视觉基础一起纳入 1.0.0；历史提交仍保持可独立审查，没有把实现阶段压成单次重写。
 
 ## 当前基线
 
@@ -113,7 +127,8 @@
 - `SessionManagementViewModel.cs`：681 行，业务操作独立于窗口，绑定 getter 不读取 Repository；
 - `DashboardViewModel.cs`：354 行，组合 Filter、Metrics、Distribution 和 Drilldown 四个子状态；
 - 插件自有 `RelayCommand` / `RelayCommand<T>` 已接入标准命令，不含第三方 MVVM 运行时依赖；
-- 当前共 85 项自动化回归，包含工作流取消/失败、命令状态、单快照、导航性能和事件对称性护栏。
+- 当前共 108 项自动化回归，包含工作流取消/失败、命令状态、单快照、导航性能、事件对称性、
+  Dashboard View 重挂载和共享封面缓存护栏。
 
 ## 优化目标
 

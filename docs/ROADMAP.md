@@ -529,21 +529,26 @@ Playnite 插件程序集版本冲突。
   三张公开截图归档，会话管理页截图不附加；公开 Author 统一为 `SHINKU1506`，GitHub 仓库已
   可匿名访问；
 - 最终提交 `8e19718`、`v0.9.8` Release、PEXT 上传及 Toolbox 远程 URL 校验均已完成；
-- Add-on Database [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626) 已提交，
-  等待上游审核合并。
+- Add-on Database [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626) 已于
+  2026-08-13 合并，目录条目稳定指向本仓库 `main/manifests/installer.yaml`。
 
-### 1.0 — 首次公开发布
+### 1.0.0 — 稳定版发布候选
 
-- Toolbox 清单校验；
-- `.pext` 打包；
-- 复核已接入的独立侧边栏图标和星期—小时联动；
-- README、截图、变更日志；
-- Playnite Add-on Database 发布元数据；
-- 从 0.x 数据无损升级。
-- 2026-07-29 正式发布审查结论：核心实现已达到候选质量，但仍需完成未提交源码、1.0.0
-  版本冻结、PDB 本机路径清理、LICENSE 入包、最终客户端验收、GitHub Release、Installer
-  manifest 和 Add-on manifest；
-- 完整阻塞项与执行顺序见 `docs\RELEASE_READINESS_1.0.md`。
+- 版本、程序集、README、CHANGELOG、测试和 installer manifest 已冻结为 1.0.0 / 1.0.0.0；
+- 架构重构 A–E、Dashboard 选择性刷新、响应式指标卡与语义文本层级已整合；
+- Dashboard View 与 ViewModel 在进程内复用，重新挂载保持 Loaded 刷新边界且视觉树不增长；
+- 封面缩略图统一使用容量 512 的共享 LRU 缓存，支持路径/宽度隔离和文件状态失效；
+- 用户已确认侧边栏性能优化客户端验收通过；架构与选择性刷新已有客户端验收记录；
+- 当前 108/108 回归通过，两个 Release 构建为 0 warning / 0 error；
+- 两轮 clean DLL 均为 315,904 字节、SHA-256
+  `6ACFACDA528398A263219511B737A6C9699FE7D8D21CAD43EC4CAB86B7EF2790`；
+- 两轮确定性 PEXT 均为 147,824 字节、SHA-256
+  `EBA048A7F71943B22E2566D899E81BB99BFD5570D0F26A65439789A3E081AB34`，严格包含 9 个安全条目；
+- 仍需执行 1.0.0 PEXT 从 0.9.8 原位升级、完整主题/DPI/语言视觉矩阵、标签、GitHub Release
+  上传、正式公网 Toolbox 校验和远端 `main` 激活；
+- AddonDatabase 的 package-only 更新不需要新 PR；如更新 0.9.8 目录截图或描述，再单独提交元数据 PR；
+- 完整顺序见 `docs\PRE_RELEASE_WORKFLOW.md`，证据与门禁见 `docs\RELEASE_CHECKLIST.md`、
+  `docs\RELEASE_READINESS_1.0.md` 和 `docs\CLIENT_ACCEPTANCE_1.0.0.md`。
 
 后续优化已按职责拆分为两份独立执行计划：
 
@@ -571,8 +576,8 @@ Drilldown 组合拆分；根对象继续只生成一次一致快照，子对象�
 81/81 回归与性能预算通过。下一步进入阶段 E 清理和最终架构验证。
 
 同日阶段 E 工程验收完成：事件双向审计确认没有孤立处理器，最终架构、View 边界和测试证据已
-落盘；当前 85/85 回归通过。两轮独立干净构建的 DLL 与确定性 PEXT 哈希分别一致，包内严格为
-9 个预期文件，部署未改变用户数据。阶段 E 现只待客户端复验。
+落盘；后续 Dashboard 选择性刷新、单一 View 生命周期和共享封面缓存继续扩展回归至 108/108。
+2026-08-14 用户确认侧边栏性能优化客户端验收通过，阶段 E 与性能修正共同纳入 1.0.0 候选。
 
 ### 1.1+
 
