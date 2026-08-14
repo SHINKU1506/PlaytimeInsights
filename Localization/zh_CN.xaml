@@ -35,6 +35,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsCurrentStreakHint">以区间结束日或今天为准</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyHints">异常会话提示</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyReadOnly">仅提示，不自动修改数据</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAnomalyReviewTitle">异常会话</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsDurationComparison">时长对比</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyDescription">以下项目仅用于人工核对，不会自动删除或修改会话；最多显示最近 50 条。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsTimeDistribution">游玩时间分布</sys:String>

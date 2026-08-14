@@ -12,8 +12,31 @@ namespace PlaytimeInsights.Views
         public PlaytimeInsightsDashboardView()
         {
             InitializeComponent();
+            SizeChanged += PlaytimeInsightsDashboardView_SizeChanged;
             // Loaded is the sole automatic refresh boundary for sidebar activation.
             Loaded += PlaytimeInsightsDashboardView_Loaded;
+        }
+
+        private void PlaytimeInsightsDashboardView_SizeChanged(
+            object sender,
+            SizeChangedEventArgs e)
+        {
+            IsCompactHeroLayout = e.NewSize.Width < 640d;
+        }
+
+        public static readonly DependencyProperty IsCompactHeroLayoutProperty =
+            DependencyProperty.Register(
+                nameof(IsCompactHeroLayout),
+                typeof(bool),
+                typeof(PlaytimeInsightsDashboardView),
+                new PropertyMetadata(false));
+
+        public bool IsCompactHeroLayout
+        {
+            get => (bool)GetValue(IsCompactHeroLayoutProperty);
+            private set => SetValue(
+                IsCompactHeroLayoutProperty,
+                value);
         }
 
         private void PlaytimeInsightsDashboardView_Loaded(object sender, RoutedEventArgs e)

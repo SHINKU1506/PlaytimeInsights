@@ -35,6 +35,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsCurrentStreakHint">Anchored to range end or today</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyHints">Suspicious session hints</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyReadOnly">Hints only; data is never changed automatically</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAnomalyReviewTitle">Suspicious sessions</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsDurationComparison">Playtime comparison</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyDescription">For manual review only. No session is changed or deleted automatically. Shows the latest 50 items.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsTimeDistribution">Playtime distribution</sys:String>

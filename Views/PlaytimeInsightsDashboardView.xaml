@@ -49,6 +49,31 @@
             <Setter Property="MinHeight" Value="154" />
             <Setter Property="Padding" Value="16" />
         </Style>
+        <Style x:Key="HeroMetricCardStyle"
+               TargetType="Border"
+               BasedOn="{StaticResource PanelStyle}">
+            <Setter Property="MinHeight" Value="176" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <Style x:Key="HeroMetricValueStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="34" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="HeroMetricMinorValueStyle"
+               TargetType="TextBlock"
+               BasedOn="{StaticResource HeroMetricValueStyle}">
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="Margin" Value="10,0,0,2" />
+        </Style>
+        <Style x:Key="HeroMetricUnitStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="4,0,0,5" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="Opacity" Value="{StaticResource TextOpacitySecondary}" />
+        </Style>
         <Style x:Key="MetricHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -474,14 +499,6 @@
                             </StackPanel>
                         </WrapPanel>
                         <StackPanel Margin="0,0,16,8">
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsChartGranularity}" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox ItemsSource="{Binding AggregationOptions}"
-                                      AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsChartGranularity}"
-                                      SelectedItem="{Binding SelectedAggregationOption, Mode=TwoWay}"
-                                      DisplayMemberPath="Label"
-                                      Width="110" />
-                        </StackPanel>
-                        <StackPanel Margin="0,0,16,8">
                             <TextBlock Text="{DynamicResource LOCPlaytimeInsightsRankingMetric}" Style="{StaticResource FieldLabelStyle}" />
                             <ComboBox ItemsSource="{Binding RankingMetricOptions}"
                                       AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRankingMetric}"
@@ -531,38 +548,64 @@
                 </StackPanel>
             </Border>
 
-            <controls:ResponsiveUniformPanel
-                                             Margin="0,0,0,18"
-                                             MinItemWidth="204"
-                                             PreferredItemWidth="232"
-                                             MaxItemWidth="300"
-                                             MinColumns="1"
-                                             MaxColumns="4"
-                                             HorizontalSpacing="12"
-                                             VerticalSpacing="12"
-                                             CenterIncompleteRow="True">
-                <Border Style="{StaticResource MetricCardStyle}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Grid>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsRangeDuration}"
-                                       Style="{StaticResource MetricHeaderStyle}" />
-                            <TextBlock Text="&#xE916;"
-                                       Style="{StaticResource MetricIconStyle}" />
+            <Grid Margin="0,0,0,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border x:Name="RangeDurationHeroCard">
+                    <Border.Style>
+                        <Style TargetType="Border"
+                               BasedOn="{StaticResource HeroMetricCardStyle}">
+                            <Setter Property="Grid.Row" Value="0" />
+                            <Setter Property="Grid.Column" Value="0" />
+                            <Setter Property="Grid.ColumnSpan" Value="1" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCompactHeroLayout, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                             Value="True">
+                                    <Setter Property="Grid.Row" Value="0" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsRangeDuration}"
+                                   Style="{StaticResource MetricHeaderStyle}" />
+                        <Grid Margin="0,12,0,0"
+                              ToolTip="{Binding RangeDurationDisplay.AutomationText}"
+                              AutomationProperties.Name="{Binding RangeDurationDisplay.AutomationText}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       MinWidth="0"
+                                       Text="{Binding RangeDurationDisplay.MajorValue}"
+                                       Style="{StaticResource HeroMetricValueStyle}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding RangeDurationDisplay.MajorUnit}"
+                                       Style="{StaticResource HeroMetricUnitStyle}" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding RangeDurationDisplay.MinorValue}"
+                                       Style="{StaticResource HeroMetricMinorValueStyle}" />
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding RangeDurationDisplay.MinorUnit}"
+                                       Style="{StaticResource HeroMetricUnitStyle}" />
                         </Grid>
-                        <TextBlock Grid.Row="1"
-                                   Text="{Binding RangeDurationText}"
-                                   Style="{StaticResource MetricValueStyle}" />
-                        <TextBlock Grid.Row="2"
-                                   Text="{DynamicResource LOCPlaytimeInsightsPreciseSessionBasis}"
+                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsPreciseSessionBasis}"
                                    Style="{StaticResource MetricHelperTextStyle}" />
-                        <StackPanel Grid.Row="3"
-                                    VerticalAlignment="Bottom"
+                        <StackPanel VerticalAlignment="Bottom"
+                                    Margin="0,10,0,0"
                                     Visibility="{Binding ComparisonVisibility}">
                             <Border Style="{StaticResource TrendTagStyle}"
                                     DataContext="{Binding PreviousPeriodComparison}"
@@ -577,23 +620,72 @@
                                            Style="{StaticResource TrendTagTextStyle}" />
                             </Border>
                         </StackPanel>
-                    </Grid>
-                </Border>
-                <Border Style="{StaticResource MetricCardStyle}">
-                    <StackPanel>
-                        <Grid>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsRangeSessions}" Style="{StaticResource MetricHeaderStyle}" />
-                            <TextBlock Text="&#xE768;" Style="{StaticResource MetricIconStyle}" />
-                        </Grid>
-                        <TextBlock Text="{Binding SessionCountText}" Style="{StaticResource MetricValueStyle}" />
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsOverlappingSessions}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
+                <Border x:Name="SessionCountHeroCard">
+                    <Border.Style>
+                        <Style TargetType="Border"
+                               BasedOn="{StaticResource HeroMetricCardStyle}">
+                            <Setter Property="Grid.Row" Value="0" />
+                            <Setter Property="Grid.Column" Value="2" />
+                            <Setter Property="Grid.ColumnSpan" Value="1" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCompactHeroLayout, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                             Value="True">
+                                    <Setter Property="Grid.Row" Value="2" />
+                                    <Setter Property="Grid.Column" Value="0" />
+                                    <Setter Property="Grid.ColumnSpan" Value="3" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsSessionCount}"
+                                   Style="{StaticResource MetricHeaderStyle}" />
+                        <TextBlock Text="{Binding SessionCountText}"
+                                   Margin="0,12,0,0"
+                                   Style="{StaticResource HeroMetricValueStyle}"
+                                   AutomationProperties.Name="{Binding SessionCountText}" />
+                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsOverlappingSessions}"
+                                   Style="{StaticResource MetricHelperTextStyle}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <controls:ResponsiveUniformPanel
+                                             Margin="0,0,0,18"
+                                             MinItemWidth="204"
+                                             PreferredItemWidth="232"
+                                             MaxItemWidth="300"
+                                             MinColumns="1"
+                                             MaxColumns="4"
+                                             HorizontalSpacing="12"
+                                             VerticalSpacing="12"
+                                             CenterIncompleteRow="True">
                 <Border Style="{StaticResource MetricCardStyle}">
                     <StackPanel>
                         <Grid>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsActiveDays}" Style="{StaticResource MetricHeaderStyle}" />
-                            <TextBlock Text="&#xE787;" Style="{StaticResource MetricIconStyle}" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricActivityBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE787;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricActivityForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsActiveDays}"
+                                       Style="{StaticResource MetricHeaderStyle}" />
                         </Grid>
                         <TextBlock Text="{Binding ActiveDaysText}" Style="{StaticResource MetricValueStyle}" />
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsActiveNaturalDays}" Style="{StaticResource MetricHelperTextStyle}" />
@@ -602,38 +694,207 @@
                 <Border Style="{StaticResource MetricCardStyle}">
                     <StackPanel>
                         <Grid>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAverageSession}" Style="{StaticResource MetricHeaderStyle}" />
-                            <TextBlock Text="&#xE8EF;" Style="{StaticResource MetricIconStyle}" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricSessionBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE8EF;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricSessionForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsAverageSession}"
+                                       Style="{StaticResource MetricHeaderStyle}" />
                         </Grid>
-                        <TextBlock Text="{Binding AverageSessionText}" Style="{StaticResource MetricValueStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       MinWidth="0"
+                                       Text="{Binding AverageSessionDisplay.MajorValue}"
+                                       Style="{StaticResource MetricValueStyle}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding AverageSessionDisplay.MajorUnit}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Bottom"
+                                       Margin="4,0,0,5"
+                                       Opacity="{StaticResource TextOpacitySecondary}" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding AverageSessionDisplay.MinorValue}"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Bottom"
+                                       Margin="10,0,0,2" />
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding AverageSessionDisplay.MinorUnit}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Bottom"
+                                       Margin="4,0,0,5"
+                                       Opacity="{StaticResource TextOpacitySecondary}" />
+                        </Grid>
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAverageFormula}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource MetricCardStyle}">
                     <StackPanel>
                         <Grid>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsLongestSession}" Style="{StaticResource MetricHeaderStyle}" />
-                            <TextBlock Text="&#xE740;" Style="{StaticResource MetricIconStyle}" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricDurationBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE740;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricDurationForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsLongestSession}"
+                                       Style="{StaticResource MetricHeaderStyle}" />
                         </Grid>
-                        <TextBlock Text="{Binding LongestSessionText}" Style="{StaticResource MetricValueStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       MinWidth="0"
+                                       Text="{Binding LongestSessionDisplay.MajorValue}"
+                                       Style="{StaticResource MetricValueStyle}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding LongestSessionDisplay.MajorUnit}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Bottom"
+                                       Margin="4,0,0,5"
+                                       Opacity="{StaticResource TextOpacitySecondary}" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding LongestSessionDisplay.MinorValue}"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Bottom"
+                                       Margin="10,0,0,2" />
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding LongestSessionDisplay.MinorUnit}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Bottom"
+                                       Margin="4,0,0,5"
+                                       Opacity="{StaticResource TextOpacitySecondary}" />
+                        </Grid>
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsClippedToRange}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource MetricCardStyle}">
                     <StackPanel>
                         <Grid>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsLifetimeDuration}" Style="{StaticResource MetricHeaderStyle}" />
-                            <TextBlock Text="&#xE81C;" Style="{StaticResource MetricIconStyle}" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricDurationBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE81C;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricDurationForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsLifetimeDuration}"
+                                       Style="{StaticResource MetricHeaderStyle}" />
                         </Grid>
-                        <TextBlock Text="{Binding LifetimeDurationText}" Style="{StaticResource MetricValueStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       MinWidth="0"
+                                       Text="{Binding LifetimeDurationDisplay.MajorValue}"
+                                       Style="{StaticResource MetricValueStyle}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding LifetimeDurationDisplay.MajorUnit}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Bottom"
+                                       Margin="4,0,0,5"
+                                       Opacity="{StaticResource TextOpacitySecondary}" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding LifetimeDurationDisplay.MinorValue}"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Bottom"
+                                       Margin="10,0,0,2" />
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding LifetimeDurationDisplay.MinorUnit}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Bottom"
+                                       Margin="4,0,0,5"
+                                       Opacity="{StaticResource TextOpacitySecondary}" />
+                        </Grid>
                         <TextBlock Text="{Binding TrackedDurationSummaryText}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource MetricCardStyle}">
                     <StackPanel>
                         <Grid>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsLongestStreak}" Style="{StaticResource MetricHeaderStyle}" />
-                            <TextBlock Text="&#xE8EE;" Style="{StaticResource MetricIconStyle}" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricActivityBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE8EE;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricActivityForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsLongestStreak}"
+                                       Style="{StaticResource MetricHeaderStyle}" />
                         </Grid>
                         <TextBlock Text="{Binding LongestStreakText}" Style="{StaticResource MetricValueStyle}" />
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsLongestStreakHint}" Style="{StaticResource MetricHelperTextStyle}" />
@@ -642,8 +903,27 @@
                 <Border Style="{StaticResource MetricCardStyle}">
                     <StackPanel>
                         <Grid>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsCurrentStreak}" Style="{StaticResource MetricHeaderStyle}" />
-                            <TextBlock Text="&#xE72C;" Style="{StaticResource MetricIconStyle}" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricActivityBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE72C;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricActivityForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsCurrentStreak}"
+                                       Style="{StaticResource MetricHeaderStyle}" />
                         </Grid>
                         <TextBlock Text="{Binding CurrentStreakText}" Style="{StaticResource MetricValueStyle}" />
                         <TextBlock Text="{Binding CurrentStreakDateText}"
@@ -654,70 +934,107 @@
                 <Border Style="{StaticResource MetricCardStyle}">
                     <StackPanel>
                         <Grid>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnomalyHints}" Style="{StaticResource MetricHeaderStyle}" />
-                            <TextBlock Text="&#xE7BA;" Style="{StaticResource MetricIconStyle}" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricAnomalyBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE7BA;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricAnomalyForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsAnomalyHints}"
+                                       Style="{StaticResource MetricHeaderStyle}" />
                         </Grid>
                         <TextBlock Text="{Binding AnomalyCountText}" Style="{StaticResource MetricValueStyle}" />
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnomalyReadOnly}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
             </controls:ResponsiveUniformPanel>
+            <controls:AdaptiveDashboardPanel
+                EnterWideWidth="1200"
+                ExitWideWidth="1160"
+                SecondaryColumnRatio="0.38"
+                ColumnSpacing="18"
+                VerticalSpacing="18">
 
-            <Border Style="{StaticResource PanelStyle}"
-                    Margin="0,0,0,18"
-                    Visibility="{Binding AnomalyVisibility}">
+            <Border x:Name="TrendModule"
+                    Style="{StaticResource PanelStyle}"
+                    controls:AdaptiveDashboardPanel.Zone="Primary">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnomalyHints}"
-                                   FontSize="18"
-                                   FontWeight="SemiBold" />
-                        <Button Content="?"
-                                Style="{StaticResource HelpIconButtonStyle}"
-                                AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsHelp}"
-                                ToolTip="{DynamicResource LOCPlaytimeInsightsAnomalyDescription}" />
-                    </StackPanel>
-                    <ListBox ItemsSource="{Binding Anomalies}"
-                             MaxHeight="300"
-                             HorizontalContentAlignment="Stretch"
-                             PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
-                             ScrollViewer.VerticalScrollBarVisibility="Auto"
-                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                             VirtualizingPanel.IsVirtualizing="True"
-                             VirtualizingPanel.VirtualizationMode="Recycling">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Height="42" MinWidth="760" Margin="0,1">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="145" />
-                                        <ColumnDefinition Width="120" />
-                                        <ColumnDefinition Width="260" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding GameName}"
-                                               VerticalAlignment="Center"
-                                               FontWeight="SemiBold"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding StartedText}"
-                                               VerticalAlignment="Center"
-                                               Opacity="{StaticResource TextOpacitySecondary}" />
-                                    <TextBlock Grid.Column="2"
-                                               Text="{Binding DurationText}"
-                                               VerticalAlignment="Center"
-                                               Opacity="{StaticResource TextOpacitySecondary}" />
-                                    <TextBlock Grid.Column="3"
-                                               Text="{Binding Reason}"
-                                               VerticalAlignment="Center"
-                                               Opacity="{StaticResource TextOpacityPrimary}"
-                                               TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <DockPanel Margin="0,0,0,12">
+                        <StackPanel Orientation="Horizontal"
+                                    DockPanel.Dock="Left">
+                            <TextBlock Text="{Binding PeriodTitleText}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <Button Content="?"
+                                    Style="{StaticResource HelpIconButtonStyle}"
+                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsHelp}"
+                                    ToolTip="{DynamicResource LOCPlaytimeInsightsPeriodChartHint}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsChartGranularity}"
+                                       Style="{StaticResource FieldLabelStyle}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+                            <ComboBox ItemsSource="{Binding AggregationOptions}"
+                                      AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsChartGranularity}"
+                                      SelectedItem="{Binding SelectedAggregationOption, Mode=TwoWay}"
+                                      DisplayMemberPath="Label"
+                                      Width="110"
+                                      VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DockPanel>
+                    <TextBlock Text="{DynamicResource LOCPlaytimeInsightsTrendLine}"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
+                    <controls:AdaptiveTrendChart ItemsSource="{Binding PeriodActivities}"
+                                                 Height="230"
+                                                 MinWidth="320"
+                                                 Cursor="Cross"
+                                                 PeriodSelected="AdaptiveTrendChart_PeriodSelected" />
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource PanelStyle}" Margin="0,0,0,18">
+            <Border x:Name="RankingModule"
+                    Style="{StaticResource PanelStyle}"
+                    controls:AdaptiveDashboardPanel.Zone="Secondary">
+                <TabControl>
+                    <TabItem Header="{DynamicResource LOCPlaytimeInsightsRangeRankingTab}"
+                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRangeRankingTab}">
+                        <ItemsControl ItemsSource="{Binding RangeGameRankings}"
+                                      ItemTemplate="{StaticResource GameRankingItemTemplate}" />
+                    </TabItem>
+                    <TabItem Header="{DynamicResource LOCPlaytimeInsightsLifetimeRankingTab}"
+                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsLifetimeRankingTab}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsLifetimeRankingScope}"
+                                       Margin="0,0,0,12"
+                                       TextWrapping="Wrap"
+                                       Opacity="{StaticResource TextOpacityTertiary}" />
+                            <ItemsControl ItemsSource="{Binding LifetimeGameRankings}"
+                                          ItemTemplate="{StaticResource GameRankingItemTemplate}" />
+                        </StackPanel>
+                    </TabItem>
+                </TabControl>
+            </Border>
+
+            <Border x:Name="DistributionModule"
+                    Style="{StaticResource PanelStyle}"
+                    controls:AdaptiveDashboardPanel.Zone="Primary">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsTimeDistribution}"
@@ -893,11 +1210,6 @@
                             </ItemsControl>
                         </Grid>
                     </ScrollViewer>
-                </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource PanelStyle}" Margin="0,0,0,18">
-                <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsCalendarHeatmap}"
                                    FontSize="18"
@@ -971,30 +1283,65 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource PanelStyle}" Margin="0,0,0,18">
+            <Border x:Name="AnomalyModule"
+                    Style="{StaticResource PanelStyle}"
+                    controls:AdaptiveDashboardPanel.Zone="Secondary"
+                    Visibility="{Binding AnomalyVisibility}">
                 <StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="{Binding PeriodTitleText}"
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnomalyReviewTitle}"
                                    FontSize="18"
-                                   FontWeight="SemiBold" />
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
                         <Button Content="?"
                                 Style="{StaticResource HelpIconButtonStyle}"
                                 AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsHelp}"
-                                ToolTip="{DynamicResource LOCPlaytimeInsightsPeriodChartHint}" />
+                                ToolTip="{DynamicResource LOCPlaytimeInsightsAnomalyDescription}" />
                     </StackPanel>
-                    <TextBlock Text="{DynamicResource LOCPlaytimeInsightsTrendLine}"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,8" />
-                    <controls:AdaptiveTrendChart ItemsSource="{Binding PeriodActivities}"
-                                                 Height="230"
-                                                 MinWidth="320"
-                                                 Cursor="Cross"
-                                                 PeriodSelected="AdaptiveTrendChart_PeriodSelected" />
+                    <ListBox ItemsSource="{Binding Anomalies}"
+                             MaxHeight="300"
+                             HorizontalContentAlignment="Stretch"
+                             PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Height="42" MinWidth="760" Margin="0,1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="145" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="260" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding GameName}"
+                                               VerticalAlignment="Center"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding StartedText}"
+                                               VerticalAlignment="Center"
+                                               Opacity="{StaticResource TextOpacitySecondary}" />
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding DurationText}"
+                                               VerticalAlignment="Center"
+                                               Opacity="{StaticResource TextOpacitySecondary}" />
+                                    <TextBlock Grid.Column="3"
+                                               Text="{Binding Reason}"
+                                               VerticalAlignment="Center"
+                                               Opacity="{StaticResource TextOpacityPrimary}"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource PanelStyle}"
-                    Margin="0,0,0,18"
+            <Border x:Name="DrilldownModule"
+                    Style="{StaticResource PanelStyle}"
+                    controls:AdaptiveDashboardPanel.Zone="Primary"
                     Visibility="{Binding SessionDetailVisibility}">
                 <StackPanel>
                     <TextBlock Text="{Binding SelectedDetailTitle}"
@@ -1106,28 +1453,9 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource PanelStyle}" Margin="0,0,0,18">
-                <TabControl>
-                    <TabItem Header="{DynamicResource LOCPlaytimeInsightsRangeRankingTab}"
-                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRangeRankingTab}">
-                        <ItemsControl ItemsSource="{Binding RangeGameRankings}"
-                                      ItemTemplate="{StaticResource GameRankingItemTemplate}" />
-                    </TabItem>
-                    <TabItem Header="{DynamicResource LOCPlaytimeInsightsLifetimeRankingTab}"
-                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsLifetimeRankingTab}">
-                        <StackPanel>
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsLifetimeRankingScope}"
-                                       Margin="0,0,0,12"
-                                       TextWrapping="Wrap"
-                                       Opacity="{StaticResource TextOpacityTertiary}" />
-                            <ItemsControl ItemsSource="{Binding LifetimeGameRankings}"
-                                          ItemTemplate="{StaticResource GameRankingItemTemplate}" />
-                        </StackPanel>
-                    </TabItem>
-                </TabControl>
-            </Border>
+            </controls:AdaptiveDashboardPanel>
 
-            <DockPanel>
+            <DockPanel Margin="0,18,0,0">
                 <Button DockPanel.Dock="Right"
                         Content="?"
                         Style="{StaticResource HelpIconButtonStyle}"
