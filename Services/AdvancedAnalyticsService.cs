@@ -21,7 +21,8 @@ namespace PlaytimeInsights.Services
             IEnumerable<GameSession> sessions,
             AnalyticsDateRange range,
             DayOfWeek firstDayOfWeek,
-            IDictionary<DateTime, ulong> rangeDailySeconds)
+            IDictionary<DateTime, ulong> rangeDailySeconds,
+            DateRangePreset rangePreset)
         {
             var gameList = (games ?? Enumerable.Empty<Game>()).ToList();
             var sessionList = (sessions ?? Enumerable.Empty<GameSession>()).ToList();
@@ -77,12 +78,21 @@ namespace PlaytimeInsights.Services
                 out longestStreak,
                 out currentStreak);
 
-            var previousRange = CreatePreviousPeriodRange(range);
-            var previousSeconds = CalculateRangeSeconds(
-                sessionList,
-                previousRange);
-            var yearRange = CreateYearOverYearRange(range);
-            var yearSeconds = CalculateRangeSeconds(sessionList, yearRange);
+            var comparisonsEnabled = rangePreset != DateRangePreset.AllSessions;
+            AnalyticsDateRange previousRange = null;
+            AnalyticsDateRange yearRange = null;
+            ulong previousSeconds = 0;
+            ulong yearSeconds = 0;
+            if (comparisonsEnabled)
+            {
+                previousRange = CreatePreviousPeriodRange(range);
+                previousSeconds = CalculateRangeSeconds(
+                    sessionList,
+                    previousRange);
+                yearRange = CreateYearOverYearRange(range);
+                yearSeconds = CalculateRangeSeconds(sessionList, yearRange);
+            }
+
             var currentSeconds = daily.Aggregate<KeyValuePair<DateTime, ulong>, ulong>(
                 0,
                 (current, value) => current + value.Value);
@@ -106,26 +116,33 @@ namespace PlaytimeInsights.Services
                     hourLabels),
                 WeekdayLabels = weekdayLabels,
                 HourLabels = hourLabels,
-                PreviousPeriodComparison = CreateComparison(
-                    LocalizationService.Get(
-                        "LOCPlaytimeInsightsPreviousPeriodComparison",
-                        "环比 · 上一等长区间"),
-                    LocalizationService.Get(
-                        "LOCPlaytimeInsightsPreviousPeriodShort",
-                        "环比"),
-                    currentSeconds,
-                    previousSeconds,
-                    previousRange),
-                YearOverYearComparison = CreateComparison(
-                    LocalizationService.Get(
-                        "LOCPlaytimeInsightsYearOverYearComparison",
-                        "同比 · 去年同期"),
-                    LocalizationService.Get(
-                        "LOCPlaytimeInsightsYearOverYearShort",
-                        "同比"),
-                    currentSeconds,
-                    yearSeconds,
-                    yearRange),
+                ComparisonVisibility = comparisonsEnabled
+                    ? Visibility.Visible
+                    : Visibility.Collapsed,
+                PreviousPeriodComparison = comparisonsEnabled
+                    ? CreateComparison(
+                        LocalizationService.Get(
+                            "LOCPlaytimeInsightsPreviousPeriodComparison",
+                            "环比 · 上一等长区间"),
+                        LocalizationService.Get(
+                            "LOCPlaytimeInsightsPreviousPeriodShort",
+                            "环比"),
+                        currentSeconds,
+                        previousSeconds,
+                        previousRange)
+                    : null,
+                YearOverYearComparison = comparisonsEnabled
+                    ? CreateComparison(
+                        LocalizationService.Get(
+                            "LOCPlaytimeInsightsYearOverYearComparison",
+                            "同比 · 去年同期"),
+                        LocalizationService.Get(
+                            "LOCPlaytimeInsightsYearOverYearShort",
+                            "同比"),
+                        currentSeconds,
+                        yearSeconds,
+                        yearRange)
+                    : null,
                 LongestStreakText = LocalizationService.Format(
                     "LOCPlaytimeInsightsCountDaysFormat",
                     "{0:N0} 天",

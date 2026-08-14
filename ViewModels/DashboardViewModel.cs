@@ -178,6 +178,8 @@ namespace PlaytimeInsights.ViewModels
 
         public Geometry TrendAreaGeometry => Distribution.TrendAreaGeometry;
 
+        public Visibility ComparisonVisibility => Metrics.ComparisonVisibility;
+
         public ComparisonMetricViewModel PreviousPeriodComparison => Metrics.PreviousPeriodComparison;
 
         public ComparisonMetricViewModel YearOverYearComparison => Metrics.YearOverYearComparison;

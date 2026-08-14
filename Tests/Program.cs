@@ -45,6 +45,8 @@ namespace PlaytimeInsights.Tests
             Run("Weekday selection filters the hourly distribution", TestWeekdayHourSelection);
             Run("Advanced streak finds longest consecutive run", TestAdvancedStreak);
             Run("Previous-period and year-over-year comparisons", TestAdvancedComparisons);
+            Run("All-sessions snapshot suppresses unstable comparisons", TestAllSessionsComparisonVisibility);
+            Run("Finite ranges keep period comparisons visible", TestFiniteRangeComparisonVisibility);
             Run("Year-over-year range handles leap day", TestYearOverYearLeapDay);
             Run("Anomaly hints flag suspicious sessions without mutation", TestAnomalyHints);
             Run("Ten-year 100k-session analytics stays within release budget", TestLargeTenYearAnalytics);
@@ -380,6 +382,44 @@ namespace PlaytimeInsights.Tests
                 true,
                 snapshot.Advanced.YearOverYearComparison.PreviousText
                     .Contains("2025/7/27"));
+        }
+
+        private static void TestAllSessionsComparisonVisibility()
+        {
+            var gameId = Guid.NewGuid();
+            var snapshot = new AnalyticsService().CreateSnapshot(
+                new Playnite.SDK.Models.Game[0],
+                new[]
+                {
+                    CreateSession(
+                        gameId,
+                        "History",
+                        DateTime.UtcNow.AddDays(-3),
+                        120)
+                },
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.AllSessions
+                });
+
+            Equal(Visibility.Collapsed, snapshot.Advanced.ComparisonVisibility);
+            Equal(null, snapshot.Advanced.PreviousPeriodComparison);
+            Equal(null, snapshot.Advanced.YearOverYearComparison);
+        }
+
+        private static void TestFiniteRangeComparisonVisibility()
+        {
+            var snapshot = new AnalyticsService().CreateSnapshot(
+                new Playnite.SDK.Models.Game[0],
+                new GameSession[0],
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Last7Days
+                });
+
+            Equal(Visibility.Visible, snapshot.Advanced.ComparisonVisibility);
+            Equal(true, snapshot.Advanced.PreviousPeriodComparison != null);
+            Equal(true, snapshot.Advanced.YearOverYearComparison != null);
         }
 
         private static void TestYearOverYearLeapDay()

@@ -544,7 +544,9 @@
                         <TextBlock Grid.Row="2"
                                    Text="{DynamicResource LOCPlaytimeInsightsPreciseSessionBasis}"
                                    Style="{StaticResource MetricHelperTextStyle}" />
-                        <StackPanel Grid.Row="3" VerticalAlignment="Bottom">
+                        <StackPanel Grid.Row="3"
+                                    VerticalAlignment="Bottom"
+                                    Visibility="{Binding ComparisonVisibility}">
                             <Border Style="{StaticResource TrendTagStyle}"
                                     DataContext="{Binding PreviousPeriodComparison}"
                                     ToolTip="{Binding TooltipText}">

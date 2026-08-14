@@ -4,6 +4,7 @@ using PlaytimeInsights.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 
 namespace PlaytimeInsights.ViewModels
 {
@@ -21,6 +22,7 @@ namespace PlaytimeInsights.ViewModels
         private string periodTitleText;
         private string rangeRankingTitleText;
         private string statusText;
+        private Visibility comparisonVisibility;
         private ComparisonMetricViewModel previousPeriodComparison;
         private ComparisonMetricViewModel yearOverYearComparison;
         private string longestStreakText;
@@ -72,6 +74,8 @@ namespace PlaytimeInsights.ViewModels
 
         public string StatusText { get => statusText; private set => SetValue(ref statusText, value); }
 
+        public Visibility ComparisonVisibility { get => comparisonVisibility; private set => SetValue(ref comparisonVisibility, value); }
+
         public ComparisonMetricViewModel PreviousPeriodComparison { get => previousPeriodComparison; private set => SetValue(ref previousPeriodComparison, value); }
 
         public ComparisonMetricViewModel YearOverYearComparison { get => yearOverYearComparison; private set => SetValue(ref yearOverYearComparison, value); }
@@ -119,6 +123,7 @@ namespace PlaytimeInsights.ViewModels
             PeriodTitleText = snapshot.PeriodTitleText;
             RangeRankingTitleText = snapshot.RangeRankingTitleText;
             StatusText = snapshot.StatusText;
+            ComparisonVisibility = snapshot.Advanced.ComparisonVisibility;
             PreviousPeriodComparison = snapshot.Advanced.PreviousPeriodComparison;
             YearOverYearComparison = snapshot.Advanced.YearOverYearComparison;
             LongestStreakText = snapshot.Advanced.LongestStreakText;

@@ -226,7 +226,8 @@ namespace PlaytimeInsights.Services
                 sessionList,
                 range,
                 firstDayOfWeek,
-                dailySeconds);
+                dailySeconds,
+                query.RangePreset);
 
             var snapshot = new DashboardSnapshot
             {

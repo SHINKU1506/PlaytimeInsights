@@ -44,6 +44,8 @@ namespace PlaytimeInsights.ViewModels
 
         public IList<string> HourLabels { get; set; }
 
+        public Visibility ComparisonVisibility { get; set; }
+
         public ComparisonMetricViewModel PreviousPeriodComparison { get; set; }
 
         public ComparisonMetricViewModel YearOverYearComparison { get; set; }
