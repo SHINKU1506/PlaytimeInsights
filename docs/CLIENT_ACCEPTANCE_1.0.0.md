@@ -32,3 +32,30 @@
 - [x] 远端 `main` raw installer manifest 已以 1.0.0 为首包；
 - [ ] Playnite Add-on Browser 实际检测并完成 0.9.8 → 1.0.0 更新；
 - [ ] 若采用新版目录截图，AddonDatabase 元数据 PR 已合并；否则明确保留 0.9.8 截图。
+
+## Dashboard Visual Refactor
+
+### Frozen Layout Contract
+
+- Enter wide layout: 1200 DIP
+- Exit wide layout: 1160 DIP
+- Column spacing: 18 DIP
+- Secondary column ratio: 0.38
+- KPI inventory: 2 Hero + 7 Tier 2 = 9
+- AllSessions comparison: hidden
+
+### Automated Gate
+
+- [ ] Release plugin build: 0 warning / 0 error
+- [ ] Release test build: 0 warning / 0 error
+- [ ] Full regression suite passes
+- [ ] 100k-session analytics <= 750 ms
+- [ ] schema 4 load <= 1400 ms
+
+### Visual Evidence Matrix
+
+- [ ] Languages: zh_CN, en_US
+- [ ] Themes: Default Dark, Default Light, Seaside Dark, third-party high contrast, Windows High Contrast
+- [ ] DPI: 100%, 125%, 150%, 175%, 200%
+- [ ] Widths: 400, 640, 900, 1159, 1160, 1199, 1200, 1600, 2400 DIP
+- [ ] Data: empty, normal, long English names, large duration, comparison states, anomaly states, 100+ drilldown rows, ranking counts below 3 and above 10
