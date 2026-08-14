@@ -2717,7 +2717,7 @@ namespace PlaytimeInsights.Tests
                 RegexOptions.CultureInvariant));
             Equal(true, Regex.Matches(
                 dashboard,
-                "HorizontalScrollBarVisibility=\"Auto\"").Count >= 5);
+                "HorizontalScrollBarVisibility=\"Auto\"").Count >= 4);
             Equal(true, management.Contains("MinWidth=\"960\""));
             Equal(true, management.Contains("ScrollViewer.HorizontalScrollBarVisibility=\"Auto\""));
             Equal(true, editor.Contains("ResizeMode=\"CanResizeWithGrip\""));
@@ -2788,10 +2788,10 @@ namespace PlaytimeInsights.Tests
             Equal(true, dashboard.Contains("CornerRadius=\"7,7,0,0\""));
             Equal(false, dashboard.Contains("HeatmapEmptyBrush"));
             Equal(false, dashboard.Contains("#FF2A2A2E"));
-            Equal(true, visualResources.Contains("Height=\"4\""));
-            Equal(true, visualResources.Contains("RankingEnergyBarStyle"));
+            Equal(false, visualResources.Contains("<Grid Height=\"4\""));
+            Equal(true, visualResources.Contains("RankingEnergyBackgroundBarStyle"));
             Equal(true, dashboard.Contains(
-                "Style=\"{StaticResource RankingEnergyBarStyle}\""));
+                "Style=\"{StaticResource RankingEnergyBackgroundBarStyle}\""));
             Equal(false, dashboard.Contains(
                 "Data=\"{Binding TrendAreaGeometry}\""));
             Equal(false, dashboard.Contains(
@@ -2852,11 +2852,22 @@ namespace PlaytimeInsights.Tests
                 "Style=\"{StaticResource SessionSourceTagStyle}\""));
             Equal(false, sessionDetailsList.Contains("<GridView"));
             Equal(false, dashboard.Contains("RankingBackgroundProgressStyle"));
-            Equal(false, dashboard.Contains("Grid.ColumnSpan=\"4\""));
+            Equal(true, dashboard.Contains("Grid.ColumnSpan=\"4\""));
             Equal(false, dashboard.Contains("Margin=\"-8,-5\""));
             Equal(true, visualResources.Contains("Opacity=\"0.10\""));
             Equal(true, visualResources.Contains("x:Name=\"PART_Track\""));
             Equal(true, visualResources.Contains("x:Name=\"PART_Indicator\""));
+            Equal(true, dashboard.Contains(
+                "Style=\"{StaticResource RankingEnergyBackgroundBarStyle}\""));
+            Equal(false, visualResources.Contains("<Grid Height=\"4\""));
+            Equal(true, dashboard.Contains(
+                "Style=\"{StaticResource AdvancedFilterExpanderStyle}\""));
+            Equal(true, dashboard.Contains(
+                "Property=\"Foreground\" Value=\"{StaticResource RankingEnergyBrush}\""));
+            Equal(true, dashboard.Contains(
+                "Property=\"BorderThickness\" Value=\"0,0,0,1\""));
+            Equal(true, dashboard.Contains(
+                "Margin=\"16,0,4,0\""));
             Equal(false, Regex.IsMatch(
                 dashboard,
                 @"<ProgressBar\b[^>]*Height=""5""",
@@ -4337,11 +4348,18 @@ namespace PlaytimeInsights.Tests
                 dashboard,
                 "PreviewMouseWheel=\"NestedScrollViewer_PreviewMouseWheel\"")
                 .Count);
+            Equal(true, dashboard.Contains(
+                "IsVisibleChanged=\"DrilldownModule_IsVisibleChanged\""));
+            Equal(true, dashboard.Contains(
+                "ScrollViewer.HorizontalScrollBarVisibility=\"Disabled\""));
 
             var dashboardCode = File.ReadAllText(Path.Combine(
                 sourceRoot,
                 "Views",
                 "PlaytimeInsightsDashboardView.xaml.cs"));
+            Equal(true, dashboardCode.Contains(
+                "DrilldownModule_IsVisibleChanged"));
+            Equal(true, dashboardCode.Contains("BringIntoView()"));
             Equal(true, dashboardCode.Contains(
                 "public static readonly DependencyProperty " +
                 "IsCompactHeroLayoutProperty"));

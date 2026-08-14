@@ -1,9 +1,11 @@
 using PlaytimeInsights.Controls;
 using PlaytimeInsights.ViewModels;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace PlaytimeInsights.Views
 {
@@ -95,6 +97,20 @@ namespace PlaytimeInsights.Views
                 Source = DashboardScrollViewer
             };
             DashboardScrollViewer.RaiseEvent(forwardedEvent);
+        }
+
+        private void DrilldownModule_IsVisibleChanged(
+            object sender,
+            DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is Visibility visibility &&
+                visibility == Visibility.Visible &&
+                sender is FrameworkElement element)
+            {
+                Dispatcher.BeginInvoke(
+                    new Action(() => element.BringIntoView()),
+                    DispatcherPriority.Loaded);
+            }
         }
 
         private static bool CanContinueVerticalScroll(

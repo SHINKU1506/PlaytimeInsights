@@ -176,6 +176,77 @@
             <Setter Property="ToolTipService.ShowDuration" Value="60000" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <Style x:Key="AdvancedFilterExpanderStyle"
+               TargetType="{x:Type Expander}">
+            <Setter Property="Foreground" Value="{StaticResource RankingEnergyBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="Padding" Value="0,8" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Expander}">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <ToggleButton x:Name="HeaderSite"
+                                              Background="Transparent"
+                                              BorderBrush="Transparent"
+                                              BorderThickness="0"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              HorizontalContentAlignment="Left"
+                                              Padding="{TemplateBinding Padding}"
+                                              IsChecked="{Binding IsExpanded,
+                                                  RelativeSource={RelativeSource TemplatedParent},
+                                                  Mode=TwoWay}"
+                                              Focusable="True">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="{x:Type ToggleButton}">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ContentPresenter Content="{TemplateBinding Header}"
+                                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                          VerticalAlignment="Center" />
+                                        <TextBlock Text="▾"
+                                                   Margin="6,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   IsHitTestVisible="False" />
+                                    </StackPanel>
+                                </ToggleButton>
+                                <ContentPresenter x:Name="ExpandSite"
+                                                  Grid.Row="1"
+                                                  ContentSource="Content"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite"
+                                        Property="Visibility"
+                                        Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="RankingBadgeStyle" TargetType="Border">
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="30" />
@@ -256,6 +327,13 @@
                                Focusable="False"
                                IsHitTestVisible="False" />
                     </Border>
+                    <ProgressBar Grid.ColumnSpan="4"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="{Binding ProgressPercent}"
+                                 VerticalAlignment="Stretch"
+                                 HorizontalAlignment="Stretch"
+                                 Style="{StaticResource RankingEnergyBackgroundBarStyle}" />
                     <StackPanel Grid.Column="2"
                                 Margin="12,0"
                                 VerticalAlignment="Center"
@@ -267,11 +345,6 @@
                                        FontSize="10"
                                        Opacity="{StaticResource TextOpacityTertiary}"
                                        TextTrimming="CharacterEllipsis" />
-                        <ProgressBar Minimum="0"
-                                     Maximum="100"
-                                     Value="{Binding ProgressPercent}"
-                                     Margin="0,5,0,0"
-                                     Style="{StaticResource RankingEnergyBarStyle}" />
                     </StackPanel>
                     <TextBlock Grid.Column="3"
                                Text="{Binding PrimaryValueText}"
@@ -437,7 +510,7 @@
                                 BorderThickness="1"
                                 CornerRadius="4"
                                 Padding="10,5"
-                                Margin="16,0,0,0">
+                                Margin="16,0,4,0">
                             <TextBlock Text="{Binding RangeText}"
                                        FontWeight="SemiBold"
                                        TextTrimming="CharacterEllipsis" />
@@ -508,6 +581,7 @@
                         </StackPanel>
                     </WrapPanel>
                     <Expander x:Name="AdvancedFilterExpander"
+                              Style="{StaticResource AdvancedFilterExpanderStyle}"
                               IsExpanded="True">
                         <Expander.Header>
                             <StackPanel Orientation="Horizontal">
@@ -1342,6 +1416,7 @@
             <Border x:Name="DrilldownModule"
                     Style="{StaticResource PanelStyle}"
                     controls:AdaptiveDashboardPanel.Zone="Primary"
+                    IsVisibleChanged="DrilldownModule_IsVisibleChanged"
                     Visibility="{Binding SessionDetailVisibility}">
                 <StackPanel>
                     <Grid Margin="0,0,0,8">
@@ -1379,7 +1454,7 @@
                                HorizontalContentAlignment="Stretch"
                                PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
                                ScrollViewer.VerticalScrollBarVisibility="Auto"
-                               ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                               ScrollViewer.CanContentScroll="True"
                               VirtualizingPanel.IsVirtualizing="True"
                               VirtualizingPanel.VirtualizationMode="Recycling">
@@ -1390,7 +1465,8 @@
                         </ListView.ItemsPanel>
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="0,0,0,8"
+                                <Border Height="66"
+                                        Margin="0,0,0,8"
                                         Padding="10"
                                         Background="{DynamicResource PopupBackgroundBrush}"
                                         BorderBrush="{DynamicResource PanelSeparatorBrush}"
