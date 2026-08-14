@@ -156,6 +156,9 @@ namespace PlaytimeInsights.Tests
             Run("Cover cache invalidates changed and missing files", TestCoverCacheInvalidatesFiles);
             Run("Cover cache separates widths and evicts LRU", TestCoverCacheWidthsAndLru);
             Run("Cover decoder returns frozen thumbnail", TestCoverDecoderReturnsFrozenThumbnail);
+            Run("Adaptive dashboard panel uses source order in narrow mode", TestAdaptiveDashboardPanelNarrow);
+            Run("Adaptive dashboard panel stacks columns independently", TestAdaptiveDashboardPanelWide);
+            Run("Adaptive dashboard panel applies 1200 and 1160 DIP hysteresis", TestAdaptiveDashboardPanelHysteresis);
 
             Console.WriteLine(failures == 0
                 ? "All Playtime Insights tests passed."
@@ -3630,6 +3633,148 @@ namespace PlaytimeInsights.Tests
                 Equal(292d, GetLayoutSlot(child).Width);
                 Equal(100d, GetLayoutSlot(child).Height);
             });
+        }
+
+        private static void TestAdaptiveDashboardPanelNarrow()
+        {
+            RunOnSta(() =>
+            {
+                var panel = new AdaptiveDashboardPanel();
+                var collapsed = CreateDashboardPanelChild(
+                    300,
+                    DashboardLayoutZone.Primary);
+                collapsed.Visibility = Visibility.Collapsed;
+                panel.Children.Add(collapsed);
+
+                var heights = new[] { 100d, 120d, 260d, 80d };
+                foreach (var height in heights)
+                {
+                    panel.Children.Add(
+                        CreateDashboardPanelChild(
+                            height,
+                            DashboardLayoutZone.Primary));
+                }
+
+                LayoutAdaptivePanel(panel, 900);
+
+                Equal(false, panel.IsWideLayout);
+                Equal(900d, panel.DesiredSize.Width);
+                Equal(614d, panel.DesiredSize.Height);
+                Equal(new Rect(0, 0, 0, 0), GetLayoutSlot(collapsed));
+
+                var expectedY = 0d;
+                for (var i = 1; i < panel.Children.Count; i++)
+                {
+                    var slot = GetLayoutSlot(panel.Children[i]);
+                    Equal(0d, slot.X);
+                    Equal(900d, slot.Width);
+                    Equal(expectedY, slot.Y);
+                    expectedY += slot.Height + 18d;
+                }
+
+                Equal(614d, expectedY - 18d);
+            });
+        }
+
+        private static void TestAdaptiveDashboardPanelWide()
+        {
+            RunOnSta(() =>
+            {
+                var panel = new AdaptiveDashboardPanel();
+                var collapsed = CreateDashboardPanelChild(
+                    300,
+                    DashboardLayoutZone.Primary);
+                collapsed.Visibility = Visibility.Collapsed;
+                panel.Children.Add(collapsed);
+                panel.Children.Add(
+                    CreateDashboardPanelChild(100, DashboardLayoutZone.Primary));
+                panel.Children.Add(
+                    CreateDashboardPanelChild(260, DashboardLayoutZone.Secondary));
+                panel.Children.Add(
+                    CreateDashboardPanelChild(120, DashboardLayoutZone.Primary));
+                panel.Children.Add(
+                    CreateDashboardPanelChild(80, DashboardLayoutZone.Secondary));
+
+                LayoutAdaptivePanel(panel, 1400);
+
+                Equal(true, panel.IsWideLayout);
+                Equal(358d, panel.DesiredSize.Height);
+                Equal(new Rect(0, 0, 0, 0), GetLayoutSlot(collapsed));
+
+                var primary0 = GetLayoutSlot(panel.Children[1]);
+                var secondary0 = GetLayoutSlot(panel.Children[2]);
+                var primary1 = GetLayoutSlot(panel.Children[3]);
+                var secondary1 = GetLayoutSlot(panel.Children[4]);
+
+                Equal(true, Math.Abs(primary0.X - 0d) < 0.01);
+                Equal(true, Math.Abs(primary0.Width - 856.84d) < 0.01);
+                Equal(true, Math.Abs(primary0.Height - 100d) < 0.01);
+                Equal(true, Math.Abs(primary0.Y - 0d) < 0.01);
+
+                Equal(true, Math.Abs(secondary0.X - 874.84d) < 0.01);
+                Equal(true, Math.Abs(secondary0.Width - 525.16d) < 0.01);
+                Equal(true, Math.Abs(secondary0.Height - 260d) < 0.01);
+                Equal(true, Math.Abs(secondary0.Y - 0d) < 0.01);
+
+                Equal(true, Math.Abs(primary1.X - 0d) < 0.01);
+                Equal(true, Math.Abs(primary1.Width - 856.84d) < 0.01);
+                Equal(true, Math.Abs(primary1.Height - 120d) < 0.01);
+                Equal(true, Math.Abs(primary1.Y - 118d) < 0.01);
+
+                Equal(true, Math.Abs(secondary1.X - 874.84d) < 0.01);
+                Equal(true, Math.Abs(secondary1.Width - 525.16d) < 0.01);
+                Equal(true, Math.Abs(secondary1.Height - 80d) < 0.01);
+                Equal(true, Math.Abs(secondary1.Y - 278d) < 0.01);
+
+                Equal(true, Math.Abs(primary0.X - secondary0.X) > 0.01);
+            });
+        }
+
+        private static void TestAdaptiveDashboardPanelHysteresis()
+        {
+            RunOnSta(() =>
+            {
+                var panel = new AdaptiveDashboardPanel();
+                panel.Children.Add(
+                    CreateDashboardPanelChild(100, DashboardLayoutZone.Primary));
+
+                Equal(1200d, panel.EnterWideWidth);
+                Equal(1160d, panel.ExitWideWidth);
+                Equal(0.38d, panel.SecondaryColumnRatio);
+                Equal(18d, panel.ColumnSpacing);
+                Equal(18d, panel.VerticalSpacing);
+                Equal(false, panel.IsWideLayout);
+
+                LayoutAdaptivePanel(panel, 1199);
+                Equal(false, panel.IsWideLayout);
+                LayoutAdaptivePanel(panel, 1200);
+                Equal(true, panel.IsWideLayout);
+                LayoutAdaptivePanel(panel, 1180);
+                Equal(true, panel.IsWideLayout);
+                LayoutAdaptivePanel(panel, 1159);
+                Equal(false, panel.IsWideLayout);
+            });
+        }
+
+        private static Border CreateDashboardPanelChild(
+            double height,
+            DashboardLayoutZone zone)
+        {
+            var child = new Border
+            {
+                Height = height
+            };
+            AdaptiveDashboardPanel.SetZone(child, zone);
+            return child;
+        }
+
+        private static void LayoutAdaptivePanel(
+            AdaptiveDashboardPanel panel,
+            double width)
+        {
+            panel.Measure(new Size(width, double.PositiveInfinity));
+            panel.Arrange(new Rect(0, 0, width, panel.DesiredSize.Height));
+            panel.UpdateLayout();
         }
 
         private static void TestResponsiveMetricVisualFoundation()
