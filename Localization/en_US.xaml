@@ -92,9 +92,12 @@
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyFiles">Session data stays in the plugin's Playnite ExtensionsData directory. Files elsewhere are written only when you explicitly export, back up, or save diagnostics.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyReport">Diagnostic reports contain versions, counts, file sizes, and storage state only—never game names, session times, user paths, or identifiers.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsToday">Today</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLast7Days">Last 7 days</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLast30Days">Last 30 days</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsThisWeek">This week</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsThisMonth">This month</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsThisYear">This year</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAllSessions">All sessions</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCustom">Custom</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAutoRecommended">Auto (recommended)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsDay">Day</sys:String>
@@ -162,9 +165,12 @@
     <sys:String x:Key="LOCPlaytimeInsightsNoRangeSessions">No precise sessions exist in this range. Playnite lifetime data remains available in the lifetime ranking below.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRangeStatusFormat">{0:N0} games and {1:N0} sessions in range · refreshed {2:HH:mm:ss}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsTodayRangeFormat">Today · {0:yyyy/M/d}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLast7DaysRangeFormat">Last 7 days · {0:M/d}–{1:M/d}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLast30DaysRangeFormat">Last 30 days · {0:M/d}–{1:M/d}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsWeekRangeFormat">This week · {0:M/d}–{1:M/d}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsYearRangeFormat">{0}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCustomRangeFormat">Custom · {0:yyyy/M/d}–{1:yyyy/M/d}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAllSessionsRangeFormat">All sessions · {0:yyyy/M/d}–{1:yyyy/M/d}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsMonthRangeFormat">{0:yyyy/M}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsMinutesFormat">{0} min</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsHoursFormat">{0:N0} hr</sys:String>

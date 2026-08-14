@@ -92,9 +92,12 @@
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyFiles">会话数据保存在 Playnite 的插件专属 ExtensionsData 目录。只有你主动选择导出、备份或保存诊断报告时，插件才会写入所选文件。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyReport">诊断报告只包含插件版本、schema、会话数量、文件大小和存储状态，不包含游戏名称、会话时间、用户路径或会话标识符。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsToday">今天</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLast7Days">近 7 天</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLast30Days">近 30 天</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsThisWeek">本周</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsThisMonth">本月</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsThisYear">本年</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAllSessions">全部记录</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCustom">自定义</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAutoRecommended">自动（推荐）</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsDay">日</sys:String>
@@ -162,9 +165,12 @@
     <sys:String x:Key="LOCPlaytimeInsightsNoRangeSessions">所选范围内没有精确会话；Playnite 累计数据仍保留在下方累计排名中。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRangeStatusFormat">所选范围包含 {0:N0} 个游戏、{1:N0} 次会话 · 最近刷新 {2:HH:mm:ss}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsTodayRangeFormat">今天 · {0:yyyy/M/d}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLast7DaysRangeFormat">近 7 天 · {0:M/d}–{1:M/d}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLast30DaysRangeFormat">近 30 天 · {0:M/d}–{1:M/d}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsWeekRangeFormat">本周 · {0:M/d}–{1:M/d}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsYearRangeFormat">{0} 年</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCustomRangeFormat">自定义 · {0:yyyy/M/d}–{1:yyyy/M/d}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAllSessionsRangeFormat">全部记录 · {0:yyyy/M/d}–{1:yyyy/M/d}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsMonthRangeFormat">{0:yyyy 年 M 月}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsMinutesFormat">{0} 分钟</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsHoursFormat">{0:N0} 小时</sys:String>

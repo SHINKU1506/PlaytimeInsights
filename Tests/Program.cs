@@ -54,6 +54,9 @@ namespace PlaytimeInsights.Tests
             Run("Corrupt primary recovers from backup", TestCorruptPrimaryRecoversFromBackup);
             Run("ISO week range boundary", TestIsoWeekRangeBoundary);
             Run("Custom range normalizes reversed dates", TestCustomRangeNormalizesReversedDates);
+            Run("Relative dashboard ranges use inclusive local dates", TestRelativeDashboardRanges);
+            Run("All-sessions range uses a supplied earliest local date", TestAllSessionsDateRange);
+            Run("All-sessions automatic aggregation follows actual span", TestAllSessionsAggregation);
             Run("Weekly aggregation and range metrics", TestWeeklyAggregationAndRangeMetrics);
             Run("Range clips cross-midnight duration", TestRangeClipsCrossMidnightDuration);
             Run("Range ranking supports session count", TestRangeRankingBySessionCount);
@@ -645,6 +648,62 @@ namespace PlaytimeInsights.Tests
 
             Equal(new DateTime(2026, 7, 27), range.StartDate);
             Equal(new DateTime(2026, 8, 9), range.EndDate);
+        }
+
+        private static void TestRelativeDashboardRanges()
+        {
+            var today = new DateTime(2026, 8, 14);
+            var last7 = AnalyticsService.ResolveDateRange(
+                new AnalyticsQuery { RangePreset = DateRangePreset.Last7Days },
+                today);
+            var last30 = AnalyticsService.ResolveDateRange(
+                new AnalyticsQuery { RangePreset = DateRangePreset.Last30Days },
+                today);
+
+            Equal(new DateTime(2026, 8, 8), last7.StartDate);
+            Equal(today, last7.EndDate);
+            Equal(new DateTime(2026, 7, 16), last30.StartDate);
+            Equal(today, last30.EndDate);
+        }
+
+        private static void TestAllSessionsDateRange()
+        {
+            var today = new DateTime(2026, 8, 14);
+            var query = new AnalyticsQuery
+            {
+                RangePreset = DateRangePreset.AllSessions
+            };
+
+            var supplied = AnalyticsService.ResolveDateRange(
+                query,
+                today,
+                new DateTime(2020, 2, 29));
+            var empty = AnalyticsService.ResolveDateRange(query, today, null);
+            var future = AnalyticsService.ResolveDateRange(
+                query,
+                today,
+                today.AddDays(3));
+
+            Equal(new DateTime(2020, 2, 29), supplied.StartDate);
+            Equal(today, supplied.EndDate);
+            Equal(today, empty.StartDate);
+            Equal(today, future.StartDate);
+        }
+
+        private static void TestAllSessionsAggregation()
+        {
+            Equal(
+                AggregationPeriod.Day,
+                ResolveAggregation(DateRangePreset.AllSessions, 62));
+            Equal(
+                AggregationPeriod.Week,
+                ResolveAggregation(DateRangePreset.AllSessions, 63));
+            Equal(
+                AggregationPeriod.Month,
+                ResolveAggregation(DateRangePreset.AllSessions, 731));
+            Equal(
+                AggregationPeriod.Year,
+                ResolveAggregation(DateRangePreset.AllSessions, 3651));
         }
 
         private static void TestWeeklyAggregationAndRangeMetrics()

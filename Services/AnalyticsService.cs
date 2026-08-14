@@ -13,9 +13,12 @@ namespace PlaytimeInsights.Services
     public enum DateRangePreset
     {
         Today,
+        Last7Days,
+        Last30Days,
         ThisWeek,
         ThisMonth,
         ThisYear,
+        AllSessions,
         Custom
     }
 
@@ -393,7 +396,10 @@ namespace PlaytimeInsights.Services
                 .ToList();
         }
 
-        public static AnalyticsDateRange ResolveDateRange(AnalyticsQuery query, DateTime today)
+        public static AnalyticsDateRange ResolveDateRange(
+            AnalyticsQuery query,
+            DateTime today,
+            DateTime? allSessionsStartDate = null)
         {
             query = query ?? new AnalyticsQuery();
             today = today.Date;
@@ -410,6 +416,24 @@ namespace PlaytimeInsights.Services
                         "LOCPlaytimeInsightsTodayRangeFormat",
                         "今天 · {0:yyyy/M/d}",
                         today);
+                    break;
+                case DateRangePreset.Last7Days:
+                    start = today.AddDays(-6);
+                    end = today;
+                    label = LocalizationService.Format(
+                        "LOCPlaytimeInsightsLast7DaysRangeFormat",
+                        "近 7 天 · {0:M/d}–{1:M/d}",
+                        start,
+                        end);
+                    break;
+                case DateRangePreset.Last30Days:
+                    start = today.AddDays(-29);
+                    end = today;
+                    label = LocalizationService.Format(
+                        "LOCPlaytimeInsightsLast30DaysRangeFormat",
+                        "近 30 天 · {0:M/d}–{1:M/d}",
+                        start,
+                        end);
                     break;
                 case DateRangePreset.ThisWeek:
                     var firstDayOfWeek = GetFirstDayOfWeek(query.UseIsoWeekStart);
@@ -428,6 +452,22 @@ namespace PlaytimeInsights.Services
                         "LOCPlaytimeInsightsYearRangeFormat",
                         "{0} 年",
                         today.Year);
+                    break;
+                case DateRangePreset.AllSessions:
+                    start = allSessionsStartDate.HasValue
+                        ? allSessionsStartDate.Value.Date
+                        : today;
+                    if (start > today)
+                    {
+                        start = today;
+                    }
+
+                    end = today;
+                    label = LocalizationService.Format(
+                        "LOCPlaytimeInsightsAllSessionsRangeFormat",
+                        "全部记录 · {0:yyyy/M/d}–{1:yyyy/M/d}",
+                        start,
+                        end);
                     break;
                 case DateRangePreset.Custom:
                     start = query.CustomStartDate.Date;
@@ -476,8 +516,12 @@ namespace PlaytimeInsights.Services
 
             switch (query.RangePreset)
             {
+                case DateRangePreset.Last7Days:
+                case DateRangePreset.Last30Days:
+                    return AggregationPeriod.Day;
                 case DateRangePreset.ThisYear:
                     return AggregationPeriod.Month;
+                case DateRangePreset.AllSessions:
                 case DateRangePreset.Custom:
                     var totalDays = Math.Max(
                         1,
