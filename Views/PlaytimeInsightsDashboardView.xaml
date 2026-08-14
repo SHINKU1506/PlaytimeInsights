@@ -1450,6 +1450,8 @@
                         </Button>
                     </Grid>
                     <ListView ItemsSource="{Binding SessionDetails}"
+                               ItemContainerStyle="{StaticResource PlaytimeInsightsDetailItemStyle}"
+                               MinHeight="160"
                                MaxHeight="380"
                                HorizontalContentAlignment="Stretch"
                                PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"

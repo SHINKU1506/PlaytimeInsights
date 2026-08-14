@@ -164,6 +164,8 @@ namespace PlaytimeInsights.Tests
             Run("Adaptive dashboard panel uses source order in narrow mode", TestAdaptiveDashboardPanelNarrow);
             Run("Adaptive dashboard panel stacks columns independently", TestAdaptiveDashboardPanelWide);
             Run("Adaptive dashboard panel applies 1200 and 1160 DIP hysteresis", TestAdaptiveDashboardPanelHysteresis);
+            Run("Visible drilldown module remeasures its session list", TestVisibleDrilldownModuleRemeasures);
+            Run("Bound dashboard drilldown expands after selection", TestBoundDashboardDrilldownExpands);
 
             Console.WriteLine(failures == 0
                 ? "All Playtime Insights tests passed."
@@ -1171,6 +1173,10 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Views",
                 "PlaytimeInsightsDashboardView.xaml"));
+            var visualResources = XDocument.Load(Path.Combine(
+                sourceRoot,
+                "Resources",
+                "PlaytimeInsightsVisualResources.xaml"));
             var drilldownModule = document.Descendants()
                 .Single(element =>
                     element.Name.LocalName == "Border" &&
@@ -1194,6 +1200,20 @@ namespace PlaytimeInsights.Tests
                 .Single(attribute =>
                     attribute.Name.LocalName ==
                     "ScrollViewer.CanContentScroll"));
+            Equal("{StaticResource PlaytimeInsightsDetailItemStyle}",
+                (string)detailList.Attribute("ItemContainerStyle"));
+            Equal("160", (string)detailList.Attribute("MinHeight"));
+            var detailItemStyle = visualResources.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "Style" &&
+                    (string)element.Attribute(xamlNamespace + "Key") ==
+                    "PlaytimeInsightsDetailItemStyle");
+            Equal("{x:Type ListViewItem}",
+                (string)detailItemStyle.Attribute("TargetType"));
+            Equal(true, detailItemStyle.Descendants()
+                .Any(element => element.Name.LocalName == "ContentPresenter"));
+            Equal(false, detailItemStyle.Descendants()
+                .Any(element => element.Name.LocalName == "GridViewRowPresenter"));
             Equal(false, detailList.Descendants()
                 .Any(element => element.Name.LocalName == "GridView"));
         }
@@ -3833,6 +3853,128 @@ namespace PlaytimeInsights.Tests
                 Equal(true, panel.IsWideLayout);
                 LayoutAdaptivePanel(panel, 1159);
                 Equal(false, panel.IsWideLayout);
+            });
+        }
+
+        private static void TestVisibleDrilldownModuleRemeasures()
+        {
+            RunOnSta(() =>
+            {
+                var panel = new AdaptiveDashboardPanel
+                {
+                    EnterWideWidth = 1200,
+                    ExitWideWidth = 1160
+                };
+                var module = new Border
+                {
+                    Visibility = Visibility.Collapsed,
+                    Padding = new Thickness(18)
+                };
+                AdaptiveDashboardPanel.SetZone(
+                    module,
+                    DashboardLayoutZone.Primary);
+                var content = new StackPanel();
+                content.Children.Add(new TextBlock
+                {
+                    Text = "Drilldown",
+                    Height = 32
+                });
+                var list = new ListView
+                {
+                    ItemsSource = new ObservableCollection<string>(
+                        Enumerable.Range(1, 100)
+                            .Select(index => "Session " + index)),
+                    MaxHeight = 380,
+                    HorizontalContentAlignment = HorizontalAlignment.Stretch
+                };
+                ScrollViewer.SetCanContentScroll(list, true);
+                VirtualizingPanel.SetIsVirtualizing(list, true);
+                VirtualizingPanel.SetVirtualizationMode(
+                    list,
+                    VirtualizationMode.Recycling);
+                content.Children.Add(list);
+                module.Child = content;
+                panel.Children.Add(module);
+
+                LayoutAdaptivePanel(panel, 1400);
+                module.Visibility = Visibility.Visible;
+                LayoutAdaptivePanel(panel, 1400);
+
+                Equal(true, module.DesiredSize.Height > 300);
+                Equal(true, list.DesiredSize.Height > 0);
+            });
+        }
+
+        private static void TestBoundDashboardDrilldownExpands()
+        {
+            RunOnSta(() =>
+            {
+                var settings =
+                    (PlaytimeInsightsSettingsViewModel)
+                    System.Runtime.Serialization.FormatterServices
+                        .GetUninitializedObject(
+                            typeof(PlaytimeInsightsSettingsViewModel));
+                settings.Settings = new PlaytimeInsightsSettings();
+                var viewModel = new DashboardViewModel(
+                    null,
+                    null,
+                    new AnalyticsService(),
+                    new SessionQueryService(new TestGameMetadataAccessor()),
+                    settings);
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 1400,
+                    DataContext = viewModel
+                };
+                view.Measure(new Size(1400, 680));
+                view.Arrange(new Rect(0, 0, 1400, 680));
+                view.UpdateLayout();
+
+                var session = new GameSession
+                {
+                    GameId = Guid.NewGuid(),
+                    GameName = "Drilldown Game",
+                    StartedAtUtc = new DateTime(
+                        2026,
+                        8,
+                        10,
+                        10,
+                        0,
+                        0,
+                        DateTimeKind.Utc),
+                    EndedAtUtc = new DateTime(
+                        2026,
+                        8,
+                        10,
+                        10,
+                        1,
+                        0,
+                        DateTimeKind.Utc),
+                    ElapsedSeconds = 60,
+                    StartUtcOffsetMinutes = 0,
+                    EndUtcOffsetMinutes = 0,
+                    TimeZoneId = "UTC",
+                    Source = SessionSource.Manual
+                };
+                viewModel.Drilldown.ResetContext(
+                    new Playnite.SDK.Models.Game[0],
+                    new[] { session });
+                viewModel.Drilldown.SelectPeriod(
+                    new PeriodActivityViewModel
+                    {
+                        PeriodStart = new DateTime(2026, 8, 10),
+                        PeriodEnd = new DateTime(2026, 8, 10),
+                        Label = "2026/8/10",
+                        DurationText = "1 分钟"
+                    });
+                view.UpdateLayout();
+
+                var module = (Border)view.FindName("DrilldownModule");
+                var list = FindVisualDescendants<ListView>(module).Single();
+                Equal(Visibility.Visible, module.Visibility);
+                Equal(true, module.ActualHeight > 100);
+                Equal(true, list.ActualHeight > 0);
+                Equal(1, list.Items.Count);
             });
         }
 
