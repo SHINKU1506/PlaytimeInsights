@@ -20,7 +20,9 @@
     <sys:String x:Key="LOCPlaytimeInsightsRangeSessions">区间会话数</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsOverlappingSessions">与范围有重叠的会话</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsActiveDays">活跃天数</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsActiveFilterCountFormat">已生效（{0}）</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsActiveNaturalDays">区间内有时长的自然日</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAdvancedFilters">高级筛选</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAverageSession">平均会话</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAverageFormula">区间时长 ÷ 会话数</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLongestSession">最长会话</sys:String>
@@ -46,6 +48,8 @@
     <sys:String x:Key="LOCPlaytimeInsightsTrendLine">游玩趋势</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLoadMore100">加载更多 100 条(_M)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLifetimeRanking">所有游戏累计游玩时长排名</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLifetimeRankingScope">Playnite 游戏库累计时长；不受当前日期范围和排名依据影响。</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLifetimeRankingTab">Playnite 累计时长</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsDataBasisNote">说明：时间范围、周期图和区间排名只使用插件捕获的精确会话；累计总时长与累计排名使用 Playnite 当前数据库值。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAddButton">补录(_A)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsEditButton">编辑(_E)</sys:String>
@@ -91,6 +95,10 @@
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyLocal">所有会话、统计、导入和诊断均在本机处理；插件不包含遥测、网络上传或远程网页。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyFiles">会话数据保存在 Playnite 的插件专属 ExtensionsData 目录。只有你主动选择导出、备份或保存诊断报告时，插件才会写入所选文件。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyReport">诊断报告只包含插件版本、schema、会话数量、文件大小和存储状态，不包含游戏名称、会话时间、用户路径或会话标识符。</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsQuick1Year">1Y</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsQuick30Days">30D</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsQuick7Days">7D</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsQuickAll">ALL</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsToday">今天</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLast7Days">近 7 天</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLast30Days">近 30 天</sys:String>
@@ -161,6 +169,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsPreciseRangeFormat">{0} · 精确会话</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAggregationTitleFormat">{0}聚合{1}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAutomaticSuffix"> · 自动</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsRangeRankingTab">本期排行</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRangeRankingTitleFormat">区间游戏排名 · {0}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsNoRangeSessions">所选范围内没有精确会话；Playnite 累计数据仍保留在下方累计排名中。</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRangeStatusFormat">所选范围包含 {0:N0} 个游戏、{1:N0} 次会话 · 最近刷新 {2:HH:mm:ss}</sys:String>

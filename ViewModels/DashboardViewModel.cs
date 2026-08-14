@@ -76,6 +76,10 @@ namespace PlaytimeInsights.ViewModels
             SelectPeriodCommand = new RelayCommand<PeriodActivityViewModel>(
                 SelectPeriod,
                 period => !refreshGuard.IsActive && period != null);
+            SelectRangeCommand = new RelayCommand<DateRangePreset>(
+                Filter.SelectRange,
+                preset => !refreshGuard.IsActive &&
+                    Filter.RangeOptions.Any(option => option.Value == preset));
         }
 
         public DashboardFilterViewModel Filter { get; }
@@ -242,6 +246,8 @@ namespace PlaytimeInsights.ViewModels
         public RelayCommand<HeatmapCellViewModel> SelectHeatmapDateCommand { get; }
 
         public RelayCommand<PeriodActivityViewModel> SelectPeriodCommand { get; }
+
+        public RelayCommand<DateRangePreset> SelectRangeCommand { get; }
 
         public string SessionDetailCountText => Drilldown.SessionDetailCountText;
 
@@ -467,6 +473,7 @@ namespace PlaytimeInsights.ViewModels
             SelectWeekdayCommand?.RaiseCanExecuteChanged();
             SelectHeatmapDateCommand?.RaiseCanExecuteChanged();
             SelectPeriodCommand?.RaiseCanExecuteChanged();
+            SelectRangeCommand?.RaiseCanExecuteChanged();
         }
 
         private void ForwardPropertyChanged(object sender, PropertyChangedEventArgs args)

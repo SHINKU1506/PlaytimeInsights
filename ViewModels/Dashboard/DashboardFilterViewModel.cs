@@ -40,9 +40,12 @@ namespace PlaytimeInsights.ViewModels
             RangeOptions = new ObservableCollection<SelectionOption<DateRangePreset>>
             {
                 new SelectionOption<DateRangePreset> { Value = DateRangePreset.Today, Label = LocalizationService.Get("LOCPlaytimeInsightsToday", "今天") },
+                new SelectionOption<DateRangePreset> { Value = DateRangePreset.Last7Days, Label = LocalizationService.Get("LOCPlaytimeInsightsLast7Days", "近 7 天") },
+                new SelectionOption<DateRangePreset> { Value = DateRangePreset.Last30Days, Label = LocalizationService.Get("LOCPlaytimeInsightsLast30Days", "近 30 天") },
                 new SelectionOption<DateRangePreset> { Value = DateRangePreset.ThisWeek, Label = LocalizationService.Get("LOCPlaytimeInsightsThisWeek", "本周") },
                 new SelectionOption<DateRangePreset> { Value = DateRangePreset.ThisMonth, Label = LocalizationService.Get("LOCPlaytimeInsightsThisMonth", "本月") },
                 new SelectionOption<DateRangePreset> { Value = DateRangePreset.ThisYear, Label = LocalizationService.Get("LOCPlaytimeInsightsThisYear", "本年") },
+                new SelectionOption<DateRangePreset> { Value = DateRangePreset.AllSessions, Label = LocalizationService.Get("LOCPlaytimeInsightsAllSessions", "全部记录") },
                 new SelectionOption<DateRangePreset> { Value = DateRangePreset.Custom, Label = LocalizationService.Get("LOCPlaytimeInsightsCustom", "自定义") }
             };
             AggregationOptions = new ObservableCollection<SelectionOption<AggregationPeriod>>
@@ -72,7 +75,8 @@ namespace PlaytimeInsights.ViewModels
                     CreateDimensionOption(MetadataFilterDimension.InstallationStatus, "LOCPlaytimeInsightsInstallationStatus", "安装状态")
                 };
             MetadataValueOptions = new ObservableCollection<SelectionOption<string>>();
-            selectedRangeOption = RangeOptions[2];
+            selectedRangeOption = RangeOptions.First(
+                option => option.Value == DateRangePreset.ThisMonth);
             selectedAggregationOption = AggregationOptions[0];
             selectedRankingMetricOption = RankingMetricOptions[0];
             selectedMetadataDimensionOption = MetadataDimensionOptions[0];
@@ -143,6 +147,9 @@ namespace PlaytimeInsights.ViewModels
                 {
                     SetValue(ref selectedMetadataDimensionOption, value);
                     OnPropertyChanged(nameof(MetadataValueVisibility));
+                    OnPropertyChanged(nameof(ActiveMetadataFilterCount));
+                    OnPropertyChanged(nameof(ActiveMetadataFilterSummary));
+                    OnPropertyChanged(nameof(ActiveMetadataFilterVisibility));
                     RequestRefresh(DashboardRefreshReason.MetadataDimension);
                 }
             }
@@ -156,6 +163,9 @@ namespace PlaytimeInsights.ViewModels
                 if (!ReferenceEquals(selectedMetadataValueOption, value))
                 {
                     SetValue(ref selectedMetadataValueOption, value);
+                    OnPropertyChanged(nameof(ActiveMetadataFilterCount));
+                    OnPropertyChanged(nameof(ActiveMetadataFilterSummary));
+                    OnPropertyChanged(nameof(ActiveMetadataFilterVisibility));
                     RequestRefresh(DashboardRefreshReason.MetadataValue);
                 }
             }
@@ -165,6 +175,25 @@ namespace PlaytimeInsights.ViewModels
             SelectedMetadataDimensionOption?.Value.HasValue == true
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+
+        public int ActiveMetadataFilterCount =>
+            SelectedMetadataDimensionOption?.Value.HasValue == true &&
+            !string.IsNullOrWhiteSpace(SelectedMetadataValueOption?.Value)
+                ? 1
+                : 0;
+
+        public string ActiveMetadataFilterSummary =>
+            ActiveMetadataFilterCount == 0
+                ? string.Empty
+                : LocalizationService.Format(
+                    "LOCPlaytimeInsightsActiveFilterCountFormat",
+                    "Active ({0})",
+                    ActiveMetadataFilterCount);
+
+        public Visibility ActiveMetadataFilterVisibility =>
+            ActiveMetadataFilterCount == 0
+                ? Visibility.Collapsed
+                : Visibility.Visible;
 
         public DateTime CustomStartDate
         {
@@ -203,6 +232,17 @@ namespace PlaytimeInsights.ViewModels
             SelectedAggregationOption != null &&
             SelectedRankingMetricOption != null &&
             SelectedMetadataDimensionOption != null;
+
+        public void SelectRange(DateRangePreset preset)
+        {
+            var option = RangeOptions.FirstOrDefault(
+                value => value.Value == preset);
+            if (option != null &&
+                !ReferenceEquals(option, SelectedRangeOption))
+            {
+                SelectedRangeOption = option;
+            }
+        }
 
         public void RefreshMetadataValueOptions(
             IReadOnlyDictionary<Guid, string> libraryNames = null)

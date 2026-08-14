@@ -20,7 +20,9 @@
     <sys:String x:Key="LOCPlaytimeInsightsRangeSessions">Range sessions</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsOverlappingSessions">Sessions overlapping the range</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsActiveDays">Active days</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsActiveFilterCountFormat">Active ({0})</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsActiveNaturalDays">Calendar days with playtime</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAdvancedFilters">Advanced filters</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAverageSession">Average session</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAverageFormula">Range duration ÷ session count</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLongestSession">Longest session</sys:String>
@@ -46,6 +48,8 @@
     <sys:String x:Key="LOCPlaytimeInsightsTrendLine">Playtime trend</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLoadMore100">Load 100 _more</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLifetimeRanking">All games lifetime playtime ranking</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLifetimeRankingScope">Playnite library playtime; unaffected by the selected date range or ranking metric.</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsLifetimeRankingTab">Playnite lifetime</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsDataBasisNote">Note: date ranges, period charts, and range rankings use captured precise sessions. Lifetime totals and rankings use the current Playnite database.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAddButton">_Add</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsEditButton">_Edit</sys:String>
@@ -91,6 +95,10 @@
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyLocal">All sessions, analytics, imports, and diagnostics are processed locally. The plugin contains no telemetry, uploads, or remote web pages.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyFiles">Session data stays in the plugin's Playnite ExtensionsData directory. Files elsewhere are written only when you explicitly export, back up, or save diagnostics.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPrivacyReport">Diagnostic reports contain versions, counts, file sizes, and storage state only—never game names, session times, user paths, or identifiers.</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsQuick1Year">1Y</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsQuick30Days">30D</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsQuick7Days">7D</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsQuickAll">ALL</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsToday">Today</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLast7Days">Last 7 days</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLast30Days">Last 30 days</sys:String>
@@ -161,6 +169,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsPreciseRangeFormat">{0} · precise sessions</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAggregationTitleFormat">{0} aggregation{1}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAutomaticSuffix"> · automatic</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsRangeRankingTab">Selected range</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRangeRankingTitleFormat">Range game ranking · {0}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsNoRangeSessions">No precise sessions exist in this range. Playnite lifetime data remains available in the lifetime ranking below.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRangeStatusFormat">{0:N0} games and {1:N0} sessions in range · refreshed {2:HH:mm:ss}</sys:String>

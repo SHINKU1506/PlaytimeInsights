@@ -129,6 +129,9 @@ namespace PlaytimeInsights.Tests
             Run("Trend chart follows source lifecycle changes", TestTrendChartSourceLifecycle);
             Run("Dashboard filters route selective refresh reasons", TestDashboardFilterRefreshReasons);
             Run("Dashboard refresh plans isolate dependencies", TestDashboardRefreshPlans);
+            Run("Quick range selection emits at most one range refresh", TestQuickRangeRefreshPurity);
+            Run("Metadata filter summary counts active constraints", TestActiveMetadataFilterSummary);
+            Run("Dashboard ranking tabs are view-only and keep both snapshots", TestRankingTabsStayViewOnly);
             Run("Dashboard analysis context reprojects trend without rescan", TestDashboardTrendProjectionReuse);
             Run("Dashboard analysis context reprojects ranking without rescan", TestDashboardRankingProjectionReuse);
             Run("Trend projection leaves unrelated dashboard state intact", TestDashboardTrendProjectionApplyBoundary);
@@ -3916,7 +3919,8 @@ namespace PlaytimeInsights.Tests
                 Value = "Steam",
                 Label = "Steam"
             };
-            viewModel.SelectedRangeOption = viewModel.RangeOptions[4];
+            viewModel.SelectedRangeOption = viewModel.RangeOptions.First(
+                option => option.Value == DateRangePreset.Custom);
             viewModel.CustomStartDate = viewModel.CustomStartDate.AddDays(-1);
             viewModel.CustomEndDate = viewModel.CustomEndDate.AddDays(-1);
 
@@ -3969,6 +3973,91 @@ namespace PlaytimeInsights.Tests
                 true);
             Equal(false, value.RefreshMetadataOptions);
             Equal(true, value.RebuildFilter);
+        }
+
+        private static void TestQuickRangeRefreshPurity()
+        {
+            var reasons = new List<DashboardRefreshReason>();
+            var viewModel = new DashboardFilterViewModel(
+                null,
+                new SessionQueryService(new TestGameMetadataAccessor()),
+                7,
+                reasons.Add);
+
+            viewModel.SelectRange(DateRangePreset.Last7Days);
+            viewModel.SelectRange(DateRangePreset.Last7Days);
+
+            Equal("Range", string.Join("|", reasons));
+            Equal(
+                DateRangePreset.Last7Days,
+                viewModel.SelectedRangeOption.Value);
+        }
+
+        private static void TestActiveMetadataFilterSummary()
+        {
+            var viewModel = new DashboardFilterViewModel(
+                null,
+                new SessionQueryService(new TestGameMetadataAccessor()),
+                7,
+                null);
+
+            Equal(0, viewModel.ActiveMetadataFilterCount);
+            Equal(string.Empty, viewModel.ActiveMetadataFilterSummary);
+            Equal(Visibility.Collapsed,
+                viewModel.ActiveMetadataFilterVisibility);
+
+            viewModel.SelectedMetadataDimensionOption =
+                viewModel.MetadataDimensionOptions.First(
+                    option => option.Value.HasValue);
+            viewModel.SelectedMetadataValueOption =
+                new SelectionOption<string>
+                {
+                    Value = "Steam",
+                    Label = "Steam"
+                };
+
+            Equal(1, viewModel.ActiveMetadataFilterCount);
+            Equal(true, viewModel.ActiveMetadataFilterSummary.Contains("1"));
+            Equal(Visibility.Visible,
+                viewModel.ActiveMetadataFilterVisibility);
+
+            viewModel.SelectedMetadataValueOption =
+                new SelectionOption<string>
+                {
+                    Value = string.Empty,
+                    Label = string.Empty
+                };
+
+            Equal(0, viewModel.ActiveMetadataFilterCount);
+            Equal(string.Empty, viewModel.ActiveMetadataFilterSummary);
+            Equal(Visibility.Collapsed,
+                viewModel.ActiveMetadataFilterVisibility);
+        }
+
+        private static void TestRankingTabsStayViewOnly()
+        {
+            var sourceRoot = FindSourceRoot();
+            var dashboard = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var dashboardViewModel = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+
+            Equal(1, Regex.Matches(
+                dashboard,
+                @"<TabControl\b",
+                RegexOptions.CultureInvariant).Count);
+            Equal(2, Regex.Matches(
+                dashboard,
+                @"<TabItem\b",
+                RegexOptions.CultureInvariant).Count);
+            Equal(true, dashboard.Contains("RangeGameRankings"));
+            Equal(true, dashboard.Contains("LifetimeGameRankings"));
+            Equal(false, dashboardViewModel.Contains("SelectedRankingTab"));
+            Equal(false, dashboardViewModel.Contains("RankingTab"));
         }
 
         private static void RunOnSta(Action action)

@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:PlaytimeInsights.Converters"
              xmlns:controls="clr-namespace:PlaytimeInsights.Controls"
+             xmlns:services="clr-namespace:PlaytimeInsights.Services"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d"
              d:DesignHeight="900"
@@ -427,6 +428,29 @@
                         </StackPanel>
                     </DockPanel>
                     <WrapPanel>
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,0,16,8"
+                                    VerticalAlignment="Bottom">
+                            <Button Content="{DynamicResource LOCPlaytimeInsightsQuick7Days}"
+                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick7Days}"
+                                    Margin="0,0,6,0"
+                                    Command="{Binding SelectRangeCommand}"
+                                    CommandParameter="{x:Static services:DateRangePreset.Last7Days}" />
+                            <Button Content="{DynamicResource LOCPlaytimeInsightsQuick30Days}"
+                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick30Days}"
+                                    Margin="0,0,6,0"
+                                    Command="{Binding SelectRangeCommand}"
+                                    CommandParameter="{x:Static services:DateRangePreset.Last30Days}" />
+                            <Button Content="{DynamicResource LOCPlaytimeInsightsQuick1Year}"
+                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick1Year}"
+                                    Margin="0,0,6,0"
+                                    Command="{Binding SelectRangeCommand}"
+                                    CommandParameter="{x:Static services:DateRangePreset.ThisYear}" />
+                            <Button Content="{DynamicResource LOCPlaytimeInsightsQuickAll}"
+                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuickAll}"
+                                    Command="{Binding SelectRangeCommand}"
+                                    CommandParameter="{x:Static services:DateRangePreset.AllSessions}" />
+                        </StackPanel>
                         <StackPanel Margin="0,0,16,8">
                             <TextBlock Text="{DynamicResource LOCPlaytimeInsightsDateRange}" Style="{StaticResource FieldLabelStyle}" />
                             <ComboBox ItemsSource="{Binding RangeOptions}"
@@ -465,25 +489,45 @@
                                       DisplayMemberPath="Label"
                                       Width="132" />
                         </StackPanel>
-                        <StackPanel Margin="0,0,16,8">
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsFilterDimension}" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox ItemsSource="{Binding MetadataDimensionOptions}"
-                                      AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsFilterDimension}"
-                                      SelectedItem="{Binding SelectedMetadataDimensionOption, Mode=TwoWay}"
-                                      DisplayMemberPath="Label"
-                                      Width="120" />
-                        </StackPanel>
-                        <StackPanel Margin="0,0,0,8"
-                                    Visibility="{Binding MetadataValueVisibility}">
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsFilterValue}" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox ItemsSource="{Binding MetadataValueOptions}"
-                                      AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsFilterValue}"
-                                      SelectedItem="{Binding SelectedMetadataValueOption, Mode=TwoWay}"
-                                      DisplayMemberPath="Label"
-                                      MinWidth="160"
-                                      MaxWidth="260" />
-                        </StackPanel>
                     </WrapPanel>
+                    <Expander x:Name="AdvancedFilterExpander"
+                              IsExpanded="True">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAdvancedFilters}" />
+                                <Border Margin="8,0,0,0"
+                                        Visibility="{Binding Filter.ActiveMetadataFilterVisibility}">
+                                    <TextBlock Text="{Binding Filter.ActiveMetadataFilterSummary}" />
+                                </Border>
+                            </StackPanel>
+                        </Expander.Header>
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{DynamicResource LOCPlaytimeInsightsFilterDimension}"
+                                           Style="{StaticResource FieldLabelStyle}" />
+                                <ComboBox ItemsSource="{Binding MetadataDimensionOptions}"
+                                          AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsFilterDimension}"
+                                          SelectedItem="{Binding SelectedMetadataDimensionOption, Mode=TwoWay}"
+                                          DisplayMemberPath="Label" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2"
+                                        Visibility="{Binding MetadataValueVisibility}">
+                                <TextBlock Text="{DynamicResource LOCPlaytimeInsightsFilterValue}"
+                                           Style="{StaticResource FieldLabelStyle}" />
+                                <ComboBox ItemsSource="{Binding MetadataValueOptions}"
+                                          AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsFilterValue}"
+                                          SelectedItem="{Binding SelectedMetadataValueOption, Mode=TwoWay}"
+                                          DisplayMemberPath="Label"
+                                          MinWidth="160"
+                                          MaxWidth="260" />
+                            </StackPanel>
+                        </Grid>
+                    </Expander>
                 </StackPanel>
             </Border>
 
@@ -1063,25 +1107,24 @@
             </Border>
 
             <Border Style="{StaticResource PanelStyle}" Margin="0,0,0,18">
-                <StackPanel>
-                    <TextBlock Text="{Binding RangeRankingTitleText}"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,12" />
-                    <ItemsControl ItemsSource="{Binding RangeGameRankings}"
-                                  ItemTemplate="{StaticResource GameRankingItemTemplate}" />
-                </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource PanelStyle}" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="{DynamicResource LOCPlaytimeInsightsLifetimeRanking}"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Margin="0,0,0,12" />
-                    <ItemsControl ItemsSource="{Binding LifetimeGameRankings}"
-                                  ItemTemplate="{StaticResource GameRankingItemTemplate}" />
-                </StackPanel>
+                <TabControl>
+                    <TabItem Header="{DynamicResource LOCPlaytimeInsightsRangeRankingTab}"
+                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRangeRankingTab}">
+                        <ItemsControl ItemsSource="{Binding RangeGameRankings}"
+                                      ItemTemplate="{StaticResource GameRankingItemTemplate}" />
+                    </TabItem>
+                    <TabItem Header="{DynamicResource LOCPlaytimeInsightsLifetimeRankingTab}"
+                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsLifetimeRankingTab}">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsLifetimeRankingScope}"
+                                       Margin="0,0,0,12"
+                                       TextWrapping="Wrap"
+                                       Opacity="{StaticResource TextOpacityTertiary}" />
+                            <ItemsControl ItemsSource="{Binding LifetimeGameRankings}"
+                                          ItemTemplate="{StaticResource GameRankingItemTemplate}" />
+                        </StackPanel>
+                    </TabItem>
+                </TabControl>
             </Border>
 
             <DockPanel>
