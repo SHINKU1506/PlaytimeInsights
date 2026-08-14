@@ -2626,6 +2626,10 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Controls",
                 "AdaptiveTrendChart.cs"));
+            var visualResources = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Resources",
+                "PlaytimeInsightsVisualResources.xaml"));
             Equal(true, Regex.IsMatch(
                 dashboard,
                 @"<ScrollViewer\s+x:Name=""DashboardScrollViewer""\s+" +
@@ -2703,8 +2707,12 @@ namespace PlaytimeInsights.Tests
             Equal(true, dashboard.Contains("TrendDecreaseBrush"));
             Equal(true, dashboard.Contains("ChartBarBrush"));
             Equal(true, dashboard.Contains("CornerRadius=\"7,7,0,0\""));
-            Equal(true, dashboard.Contains("HeatmapEmptyBrush"));
-            Equal(true, dashboard.Contains("Color=\"#FF2A2A2E\""));
+            Equal(false, dashboard.Contains("HeatmapEmptyBrush"));
+            Equal(false, dashboard.Contains("#FF2A2A2E"));
+            Equal(true, visualResources.Contains("Height=\"4\""));
+            Equal(true, visualResources.Contains("RankingEnergyBarStyle"));
+            Equal(true, dashboard.Contains(
+                "Style=\"{StaticResource RankingEnergyBarStyle}\""));
             Equal(false, dashboard.Contains(
                 "Data=\"{Binding TrendAreaGeometry}\""));
             Equal(false, dashboard.Contains(
@@ -2719,6 +2727,16 @@ namespace PlaytimeInsights.Tests
             Equal(false, dashboard.Contains(
                 "<ItemsControl ItemsSource=\"{Binding PeriodActivities}\">"));
             Equal(true, adaptiveTrendChart.Contains("DrawHover"));
+            Equal(false, adaptiveTrendChart.Contains(
+                "Color.FromArgb(220, 35, 37, 44)"));
+            Equal(true, adaptiveTrendChart.Contains(
+                "ResolveBrush(\"PopupBackgroundBrush\""));
+            Equal(true, adaptiveTrendChart.Contains(
+                "ResolveBrush(\"PanelSeparatorBrush\""));
+            Equal(true, adaptiveTrendChart.Contains(
+                "ResolveBrush(\"GlyphBrush\""));
+            Equal(true, adaptiveTrendChart.Contains(
+                "ResolveBrush(\"ControlBackgroundBrush\""));
             Equal(true, adaptiveTrendChart.Contains("DashStyles.Dash"));
             Equal(true, adaptiveTrendChart.Contains("maximumLabels"));
             Equal(true, adaptiveTrendChart.Contains(
@@ -2757,12 +2775,12 @@ namespace PlaytimeInsights.Tests
                 "GridViewColumn Header=\"{DynamicResource LOCPlaytimeInsightsDuration}\""));
             Equal(true, dashboard.Contains(
                 "GridViewColumn Header=\"{DynamicResource LOCPlaytimeInsightsSessionSource}\""));
-            Equal(true, dashboard.Contains("RankingBackgroundProgressStyle"));
-            Equal(true, dashboard.Contains("Opacity\" Value=\"0.12\""));
-            Equal(true, dashboard.Contains("x:Name=\"PART_Track\""));
-            Equal(true, dashboard.Contains("x:Name=\"PART_Indicator\""));
-            Equal(true, dashboard.Contains("Grid.ColumnSpan=\"4\""));
-            Equal(true, dashboard.Contains("Margin=\"-8,-5\""));
+            Equal(false, dashboard.Contains("RankingBackgroundProgressStyle"));
+            Equal(false, dashboard.Contains("Grid.ColumnSpan=\"4\""));
+            Equal(false, dashboard.Contains("Margin=\"-8,-5\""));
+            Equal(true, visualResources.Contains("Opacity=\"0.10\""));
+            Equal(true, visualResources.Contains("x:Name=\"PART_Track\""));
+            Equal(true, visualResources.Contains("x:Name=\"PART_Indicator\""));
             Equal(false, Regex.IsMatch(
                 dashboard,
                 @"<ProgressBar\b[^>]*Height=""5""",

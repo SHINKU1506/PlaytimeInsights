@@ -269,8 +269,16 @@ namespace PlaytimeInsights.Controls
             }
 
             var point = renderedPoints[hoverIndex];
+            var popupBackground = ResolveBrush("PopupBackgroundBrush",
+                Color.FromRgb(35, 37, 44));
+            var separator = ResolveBrush("PanelSeparatorBrush",
+                Color.FromArgb(150, 74, 144, 226));
+            var glyph = ResolveBrush("GlyphBrush",
+                Color.FromRgb(120, 177, 235));
+            var controlBackground = ResolveBrush("ControlBackgroundBrush",
+                Colors.Black);
             var crosshairPen = new Pen(
-                new SolidColorBrush(Color.FromArgb(170, 120, 177, 235)),
+                glyph,
                 1)
             {
                 DashStyle = DashStyles.Dash
@@ -280,8 +288,8 @@ namespace PlaytimeInsights.Controls
                 new Point(point.X, plot.Top),
                 new Point(point.X, plot.Bottom));
             context.DrawEllipse(
-                new SolidColorBrush(Color.FromRgb(74, 144, 226)),
-                new Pen(Brushes.White, 1),
+                glyph,
+                new Pen(controlBackground, 1),
                 point,
                 4.5,
                 4.5);
@@ -306,8 +314,8 @@ namespace PlaytimeInsights.Controls
             var top = Math.Max(8, Math.Min(point.Y - 70, plot.Bottom - 76));
             var card = new Rect(left, top, width, 66);
             context.DrawRoundedRectangle(
-                new SolidColorBrush(Color.FromArgb(220, 35, 37, 44)),
-                new Pen(new SolidColorBrush(Color.FromArgb(150, 74, 144, 226)), 1),
+                popupBackground,
+                new Pen(separator, 1),
                 card,
                 7,
                 7);
@@ -403,7 +411,8 @@ namespace PlaytimeInsights.Controls
 
         private Brush ResolveBrush(string key, Color fallback)
         {
-            return TryFindResource(key) as Brush ?? new SolidColorBrush(fallback);
+            return TryFindResource(key) as Brush ??
+                new SolidColorBrush(fallback);
         }
 
         private static FormattedText CreateText(

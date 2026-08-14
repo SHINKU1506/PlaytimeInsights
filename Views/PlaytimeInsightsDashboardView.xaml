@@ -93,7 +93,6 @@
             <GradientStop Color="#FF2457D6" Offset="0" />
             <GradientStop Color="#FFA45CFF" Offset="1" />
         </LinearGradientBrush>
-        <SolidColorBrush x:Key="HeatmapEmptyBrush" Color="#FF2A2A2E" />
         <Style x:Key="TrendTagStyle" TargetType="Border">
             <Setter Property="HorizontalAlignment" Value="Left" />
             <Setter Property="Background" Value="{DynamicResource PopupBackgroundBrush}" />
@@ -197,29 +196,6 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="RankingBackgroundProgressStyle"
-               TargetType="{x:Type ProgressBar}">
-            <Setter Property="Foreground" Value="#FF4A90E2" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Opacity" Value="0.12" />
-            <Setter Property="IsHitTestVisible" Value="False" />
-            <Setter Property="Focusable" Value="False" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type ProgressBar}">
-                        <Grid Background="{TemplateBinding Background}"
-                              ClipToBounds="True">
-                            <Grid x:Name="PART_Track">
-                                <Rectangle x:Name="PART_Indicator"
-                                           HorizontalAlignment="Left"
-                                           Fill="{TemplateBinding Foreground}" />
-                            </Grid>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
         <DataTemplate x:Key="GameRankingItemTemplate">
             <Border Height="64"
                     Margin="0,2"
@@ -235,12 +211,6 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <ProgressBar Grid.ColumnSpan="4"
-                                 Minimum="0"
-                                 Maximum="100"
-                                 Value="{Binding ProgressPercent}"
-                                 Margin="-8,-5"
-                                 Style="{StaticResource RankingBackgroundProgressStyle}" />
                     <Border Style="{StaticResource RankingBadgeStyle}">
                         <TextBlock Text="{Binding Position}"
                                    Style="{StaticResource RankingPositionTextStyle}" />
@@ -260,10 +230,10 @@
                                Focusable="False"
                                IsHitTestVisible="False" />
                     </Border>
-                    <Grid Grid.Column="2"
-                          Margin="12,0"
-                          ClipToBounds="True">
-                        <StackPanel VerticalAlignment="Center">
+                    <StackPanel Grid.Column="2"
+                                Margin="12,0"
+                                VerticalAlignment="Center"
+                                ClipToBounds="True">
                             <TextBlock Text="{Binding Name}"
                                        FontWeight="SemiBold"
                                        TextTrimming="CharacterEllipsis" />
@@ -271,8 +241,12 @@
                                        FontSize="10"
                                        Opacity="{StaticResource TextOpacityTertiary}"
                                        TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </Grid>
+                        <ProgressBar Minimum="0"
+                                     Maximum="100"
+                                     Value="{Binding ProgressPercent}"
+                                     Margin="0,5,0,0"
+                                     Style="{StaticResource RankingEnergyBarStyle}" />
+                    </StackPanel>
                     <TextBlock Grid.Column="3"
                                Text="{Binding PrimaryValueText}"
                                VerticalAlignment="Center"
@@ -856,13 +830,19 @@
                                                 Height="30"
                                                 Margin="1"
                                                 CornerRadius="3"
-                                                Background="{StaticResource HeatmapEmptyBrush}"
+                                                Background="Transparent"
                                                 BorderBrush="{DynamicResource PanelSeparatorBrush}"
                                                 BorderThickness="1"
                                                 ToolTip="{Binding TooltipText}">
-                                            <Border CornerRadius="2"
-                                                    Background="{StaticResource HeatmapActiveBrush}"
-                                                    Opacity="{Binding HeatOpacity}" />
+                                            <Grid>
+                                                <Border Background="{DynamicResource TextBrush}"
+                                                        Opacity="0.06"
+                                                        IsHitTestVisible="False" />
+                                                <Border CornerRadius="2"
+                                                        Background="{StaticResource HeatmapActiveBrush}"
+                                                        Opacity="{Binding HeatOpacity}"
+                                                        IsHitTestVisible="False" />
+                                            </Grid>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -922,17 +902,22 @@
                                                 Margin="1"
                                                 CornerRadius="3"
                                                 Visibility="{Binding CellVisibility}"
-                                                Background="{StaticResource HeatmapEmptyBrush}"
+                                                Background="Transparent"
                                                 BorderBrush="{DynamicResource PanelSeparatorBrush}"
                                                 BorderThickness="1"
                                                 ToolTip="{Binding TooltipText}"
                                                 Tag="{Binding}"
                                                 Cursor="Hand"
                                                 MouseLeftButtonUp="HeatmapCell_MouseLeftButtonUp">
-                                            <Border CornerRadius="2"
-                                                    Background="{StaticResource HeatmapActiveBrush}"
-                                                    Opacity="{Binding HeatOpacity}"
-                                                    IsHitTestVisible="False" />
+                                            <Grid>
+                                                <Border Background="{DynamicResource TextBrush}"
+                                                        Opacity="0.06"
+                                                        IsHitTestVisible="False" />
+                                                <Border CornerRadius="2"
+                                                        Background="{StaticResource HeatmapActiveBrush}"
+                                                        Opacity="{Binding HeatOpacity}"
+                                                        IsHitTestVisible="False" />
+                                            </Grid>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

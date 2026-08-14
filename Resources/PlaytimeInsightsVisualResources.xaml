@@ -9,6 +9,34 @@
     <SolidColorBrush x:Key="RankingBronzeBrush" Color="#FFC9824A" />
     <SolidColorBrush x:Key="RankingBronzeFillBrush" Color="#33C9824A" />
     <SolidColorBrush x:Key="RankingEnergyBrush" Color="#FF4A90E2" />
+    <Style x:Key="RankingEnergyBarStyle"
+           TargetType="{x:Type ProgressBar}">
+        <Setter Property="Height" Value="4" />
+        <Setter Property="Foreground" Value="{StaticResource RankingEnergyBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ProgressBar}">
+                    <Grid Height="4" ClipToBounds="True">
+                        <Border Background="{DynamicResource TextBrush}"
+                                Opacity="0.10"
+                                CornerRadius="2" />
+                        <Border x:Name="PART_Track"
+                                Background="Transparent"
+                                CornerRadius="2"
+                                ClipToBounds="True">
+                            <Rectangle x:Name="PART_Indicator"
+                                       HorizontalAlignment="Left"
+                                       Fill="{TemplateBinding Foreground}" />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <SolidColorBrush x:Key="MetricDurationForegroundBrush" Color="#FF60A5FA" />
     <SolidColorBrush x:Key="MetricDurationBackgroundBrush" Color="#203B82F6" />
