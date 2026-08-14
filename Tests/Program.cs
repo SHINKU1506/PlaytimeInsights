@@ -737,9 +737,27 @@ namespace PlaytimeInsights.Tests
                 {
                     RangePreset = DateRangePreset.AllSessions
                 });
+            var empty = new AnalyticsService().CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                new GameSession[0],
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.AllSessions
+                });
+            var invalidOnly = new AnalyticsService().CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                new[] { deleted, zero },
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.AllSessions
+                });
 
             Equal(new DateTime(2020, 1, 2), result.Context.Range.StartDate);
             Equal(DateTime.Today, result.Context.Range.EndDate);
+            Equal(DateTime.Today, empty.Context.Range.StartDate);
+            Equal(DateTime.Today, empty.Context.Range.EndDate);
+            Equal(DateTime.Today, invalidOnly.Context.Range.StartDate);
+            Equal(DateTime.Today, invalidOnly.Context.Range.EndDate);
         }
 
         private static void TestWeeklyAggregationAndRangeMetrics()
