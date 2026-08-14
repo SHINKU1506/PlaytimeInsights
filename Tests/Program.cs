@@ -57,6 +57,7 @@ namespace PlaytimeInsights.Tests
             Run("Relative dashboard ranges use inclusive local dates", TestRelativeDashboardRanges);
             Run("All-sessions range uses a supplied earliest local date", TestAllSessionsDateRange);
             Run("All-sessions automatic aggregation follows actual span", TestAllSessionsAggregation);
+            Run("All-sessions snapshot starts at earliest valid filtered local date", TestAllSessionsSnapshotStart);
             Run("Weekly aggregation and range metrics", TestWeeklyAggregationAndRangeMetrics);
             Run("Range clips cross-midnight duration", TestRangeClipsCrossMidnightDuration);
             Run("Range ranking supports session count", TestRangeRankingBySessionCount);
@@ -704,6 +705,41 @@ namespace PlaytimeInsights.Tests
             Equal(
                 AggregationPeriod.Year,
                 ResolveAggregation(DateRangePreset.AllSessions, 3651));
+        }
+
+        private static void TestAllSessionsSnapshotStart()
+        {
+            var gameId = Guid.NewGuid();
+            var valid = CreateSession(
+                gameId,
+                "Valid",
+                new DateTime(2020, 1, 1, 18, 30, 0, DateTimeKind.Utc),
+                600);
+            valid.StartUtcOffsetMinutes = 480;
+
+            var deleted = CreateSession(
+                gameId,
+                "Deleted",
+                new DateTime(2018, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                600);
+            deleted.IsDeleted = true;
+
+            var zero = CreateSession(
+                gameId,
+                "Zero",
+                new DateTime(2019, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                0);
+
+            var result = new AnalyticsService().CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                new[] { deleted, zero, valid },
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.AllSessions
+                });
+
+            Equal(new DateTime(2020, 1, 2), result.Context.Range.StartDate);
+            Equal(DateTime.Today, result.Context.Range.EndDate);
         }
 
         private static void TestWeeklyAggregationAndRangeMetrics()

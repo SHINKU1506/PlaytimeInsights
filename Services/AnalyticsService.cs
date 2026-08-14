@@ -89,7 +89,23 @@ namespace PlaytimeInsights.Services
             var sessionList = sessions == null ? new List<GameSession>() : sessions.ToList();
             query = query ?? new AnalyticsQuery();
             var topGames = Math.Max(1, Math.Min(50, query.TopGames));
-            var range = ResolveDateRange(query, DateTime.Today);
+            DateTime? allSessionsStartDate = null;
+            if (query.RangePreset == DateRangePreset.AllSessions)
+            {
+                allSessionsStartDate = sessionList
+                    .Where(session =>
+                        session != null &&
+                        !session.IsDeleted &&
+                        session.ElapsedSeconds > 0)
+                    .Select(session => (DateTime?)session.GetStartedLocalDate())
+                    .OrderBy(date => date)
+                    .FirstOrDefault();
+            }
+
+            var range = ResolveDateRange(
+                query,
+                DateTime.Today,
+                allSessionsStartDate);
             var firstDayOfWeek = GetFirstDayOfWeek(query.UseIsoWeekStart);
 
             var lifetimeSeconds = gameList.Aggregate<Game, ulong>(0, (current, game) =>
