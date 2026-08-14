@@ -41,14 +41,17 @@
 ## 发布动作门禁
 
 - [ ] 完成 `CLIENT_ACCEPTANCE_1.0.0.md` 中 1.0.0 PEXT 原位升级与视觉矩阵；
-- [ ] 提交发布候选并创建注释标签 `v1.0.0`；
-- [ ] 推送标签但暂不推进远端 `main`；
-- [ ] 创建 GitHub Release 并上传精确名称的 PEXT；
-- [ ] 匿名 PackageUrl 返回 HTTP 200，大小和 SHA-256 与本文件一致；
-- [ ] Toolbox 对正式公网 installer/addon manifest 完整校验通过；
-- [ ] 以上通过后才推送 `main`，激活 Add-on Browser 更新；
+- [x] 提交发布候选 `d4e9ed9` 并创建注释标签 `v1.0.0`；
+- [x] 先推送标签，确认远端 `main` 尚未暴露 1.0.0；
+- [x] 创建公开、非草稿、非预发布 GitHub Release，并上传精确名称的 PEXT；
+- [x] 匿名 PackageUrl 返回 HTTP 200，大小和 SHA-256 与本文件一致；
+- [x] Toolbox 对正式公网 installer/addon manifest 完整校验通过；
+- [x] 附件和 Toolbox 门禁通过后推送 `main`；raw CDN 刷新后已暴露 1.0.0 与 0.9.8；
 - [ ] 远端激活后从 0.9.8 检测并完成 1.0.0 更新；
 - [ ] 决定保留 0.9.8 目录截图，或另提 AddonDatabase 截图/描述 PR。
+
+公开 Release：<https://github.com/SHINKU1506/PlaytimeInsights/releases/tag/v1.0.0>。
+标签 peel 到 `d4e9ed908f30156ea9948c9e3c7fe3415ff2a51a`；远端 `main` 与本地同步。
 
 ## Git 边界
 

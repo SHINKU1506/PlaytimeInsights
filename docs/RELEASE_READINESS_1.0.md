@@ -3,8 +3,9 @@
 审查日期：2026-08-14
 
 结论：1.0.0 的源码、版本、自动化、双 clean 构建、确定性 PEXT、隐私和用户数据保护证据已经完成；
-当前候选可进入标签、GitHub Release 上传和远程 manifest 激活阶段。仍需按
-`CLIENT_ACCEPTANCE_1.0.0.md` 完成 1.0.0 包原位升级及完整视觉矩阵，不能用自动化替代该项。
+`v1.0.0`、公开 GitHub Release、PEXT 上传、匿名下载、正式公网 Toolbox 校验和远端 `main`
+manifest 激活均已完成。仍需按 `CLIENT_ACCEPTANCE_1.0.0.md` 完成 1.0.0 包原位升级及完整视觉矩阵，
+不能用自动化替代该项；本次发布是在明确保留该剩余风险的情况下执行。
 
 ## 纳入 1.0.0 的稳定范围
 
@@ -38,14 +39,15 @@
 - 当前目录截图仍指向 0.9.8。若要展示 1.0.0 响应式界面，需拍摄稳定截图、更新
   `manifests/addon.yaml` 和上游 YAML 后另提元数据 PR；这不阻塞包更新功能。
 
-## 剩余发布门禁
+## 发布执行结果与剩余门禁
 
-1. 完成 1.0.0 PEXT 从公开 0.9.8 的原位升级及主题/DPI/语言视觉矩阵；
-2. 提交候选，创建并推送 `v1.0.0` 标签；
-3. 创建 GitHub Release，上传 PEXT；
-4. 匿名下载附件并核对大小、SHA-256、包内版本与 AddonId；
-5. 对正式公网 URL 执行 Toolbox installer/addon 校验；
-6. 只有附件可用后才推送含 1.0.0 installer entry 的 `main`；
-7. 在 Playnite Add-on Browser 中复核 1.0.0 更新检测。
+- 发布提交：`d4e9ed908f30156ea9948c9e3c7fe3415ff2a51a`；
+- 标签：`v1.0.0`，注释标签 peel 到发布提交；
+- Release：<https://github.com/SHINKU1506/PlaytimeInsights/releases/tag/v1.0.0>；
+- 公开附件匿名 HTTP 200，147,824 字节，SHA-256 与本地一致；
+- 正式公网 installer 与 AddonDatabase addon 联动 Toolbox 校验通过；
+- raw `main` 经缓存传播后以 1.0.0 为首包，并继续保留 0.9.8；
+- 本地/远端 `main` 为 0/0 分叉；用户数据仍为 7 个文件且联合指纹不变。
 
-任何一步失败都停止激活 `main`；0.9.8 package 必须继续保持可下载。
+剩余：在真实 Playnite Add-on Browser 中完成 0.9.8 → 1.0.0 原位更新，并执行主题/DPI/语言视觉矩阵；
+决定是否以新版截图更新 AddonDatabase 目录元数据。0.9.8 package 必须继续保持可下载。

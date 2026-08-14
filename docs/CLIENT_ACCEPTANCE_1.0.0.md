@@ -26,8 +26,9 @@
 
 ## 发布外部门禁
 
-- [ ] 两轮确定性 PEXT 哈希一致；
-- [ ] GitHub Release 附件可匿名下载；
-- [ ] Toolbox installer/addon 校验通过；
-- [ ] 远端 `main` 激活后 Add-on Browser 检测到 1.0.0；
+- [x] 两轮确定性 PEXT 哈希一致；
+- [x] GitHub Release 附件可匿名下载，HTTP 200、大小和 SHA-256 正确；
+- [x] 正式公网 Toolbox installer/addon 校验通过；
+- [x] 远端 `main` raw installer manifest 已以 1.0.0 为首包；
+- [ ] Playnite Add-on Browser 实际检测并完成 0.9.8 → 1.0.0 更新；
 - [ ] 若采用新版目录截图，AddonDatabase 元数据 PR 已合并；否则明确保留 0.9.8 截图。

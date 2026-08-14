@@ -532,7 +532,7 @@ Playnite 插件程序集版本冲突。
 - Add-on Database [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626) 已于
   2026-08-13 合并，目录条目稳定指向本仓库 `main/manifests/installer.yaml`。
 
-### 1.0.0 — 稳定版发布候选
+### 1.0.0 — 已发布；客户端升级与视觉矩阵待补录
 
 - 版本、程序集、README、CHANGELOG、测试和 installer manifest 已冻结为 1.0.0 / 1.0.0.0；
 - 架构重构 A–E、Dashboard 选择性刷新、响应式指标卡与语义文本层级已整合；
@@ -544,9 +544,12 @@ Playnite 插件程序集版本冲突。
   `6ACFACDA528398A263219511B737A6C9699FE7D8D21CAD43EC4CAB86B7EF2790`；
 - 两轮确定性 PEXT 均为 147,824 字节、SHA-256
   `EBA048A7F71943B22E2566D899E81BB99BFD5570D0F26A65439789A3E081AB34`，严格包含 9 个安全条目；
-- 仍需执行 1.0.0 PEXT 从 0.9.8 原位升级、完整主题/DPI/语言视觉矩阵、标签、GitHub Release
-  上传、正式公网 Toolbox 校验和远端 `main` 激活；
+- 仍需执行真实 Playnite 中 1.0.0 PEXT 从 0.9.8 原位升级，以及完整主题/DPI/语言视觉矩阵；
 - AddonDatabase 的 package-only 更新不需要新 PR；如更新 0.9.8 目录截图或描述，再单独提交元数据 PR；
+- 发布提交 `d4e9ed9`、`v1.0.0`、公开 GitHub Release、PEXT 匿名下载、正式公网 Toolbox 校验和
+  远端 `main` manifest 激活已完成；
+- 真实 Playnite 的 0.9.8 → 1.0.0 原位更新和完整主题/DPI/语言视觉矩阵仍需补录，不能以远程
+  manifest 校验替代；
 - 完整顺序见 `docs\PRE_RELEASE_WORKFLOW.md`，证据与门禁见 `docs\RELEASE_CHECKLIST.md`、
   `docs\RELEASE_READINESS_1.0.md` 和 `docs\CLIENT_ACCEPTANCE_1.0.0.md`。
 

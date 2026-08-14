@@ -23,8 +23,12 @@
 - 通用流程见 `docs\PRE_RELEASE_WORKFLOW.md`；版本证据和剩余门禁见
   `docs\RELEASE_CHECKLIST.md`、`docs\RELEASE_READINESS_1.0.md` 和
   `docs\CLIENT_ACCEPTANCE_1.0.0.md`；
-- 尚未在本记录时点执行的外部动作：1.0.0 PEXT 原位升级/完整视觉矩阵、标签、GitHub Release
-  上传、正式公网 Toolbox 校验和远端 `main` 自动更新激活。
+- 发布提交 `d4e9ed9`、注释标签 `v1.0.0`、公开 GitHub Release、PEXT 上传、匿名 HTTP 200、
+  正式公网 Toolbox installer/addon 联动校验和远端 `main` 自动更新激活均已完成；
+- 本地与远端 `main` 0/0 分叉，raw manifest 以 1.0.0 为首包并保留 0.9.8；构建、打包、推送和
+  发布后用户数据仍为 7 个文件，联合指纹未变化；
+- 尚未执行：真实 Playnite 中 0.9.8 → 1.0.0 原位更新、完整主题/DPI/语言视觉矩阵，以及是否用
+  新版截图更新 AddonDatabase 目录元数据。
 
 ## 2026-08-13 响应式指标卡与 Dashboard 语义文本基础
 
