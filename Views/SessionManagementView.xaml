@@ -12,6 +12,10 @@
              KeyboardNavigation.TabNavigation="Continue"
              Foreground="{DynamicResource TextBrush}">
     <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../Resources/PlaytimeInsightsVisualResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <converters:CoverImageConverter x:Key="CoverImageConverter" />
         <Style x:Key="PanelStyle" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource ControlBackgroundBrush}" />
@@ -108,33 +112,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="SourceTagStyle" TargetType="{x:Type Border}">
-            <Setter Property="MinWidth" Value="72" />
-            <Setter Property="Padding" Value="7,2" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="CornerRadius" Value="9" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Background" Value="#202F8CFF" />
-            <Setter Property="BorderBrush" Value="#702F8CFF" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding Source}"
-                             Value="{x:Static models:SessionSource.Recovered}">
-                    <Setter Property="Background" Value="#30F0A43C" />
-                    <Setter Property="BorderBrush" Value="#A0F0A43C" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding Source}"
-                             Value="{x:Static models:SessionSource.Imported}">
-                    <Setter Property="Background" Value="#28A45CFF" />
-                    <Setter Property="BorderBrush" Value="#80A45CFF" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding Source}"
-                             Value="{x:Static models:SessionSource.Manual}">
-                    <Setter Property="Background" Value="#208A8A8A" />
-                    <Setter Property="BorderBrush" Value="#708A8A8A" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
         <Style x:Key="StateTagStyle" TargetType="{x:Type Border}">
             <Setter Property="MinWidth" Value="52" />
             <Setter Property="Padding" Value="7,2" />
@@ -151,6 +128,7 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
     <Grid Margin="24">
         <Grid.RowDefinitions>
@@ -468,7 +446,10 @@
                                            FontWeight="SemiBold"
                                            Opacity="0.86" />
                                 <Border Grid.Column="3"
-                                        Style="{StaticResource SourceTagStyle}">
+                                        MinWidth="72"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource SessionSourceTagStyle}">
                                     <TextBlock Text="{Binding SourceText}"
                                                HorizontalAlignment="Center"
                                                TextAlignment="Center"

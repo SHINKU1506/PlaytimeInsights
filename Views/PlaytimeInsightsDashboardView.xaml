@@ -12,13 +12,11 @@
              KeyboardNavigation.TabNavigation="Continue"
              Foreground="{DynamicResource TextBrush}">
     <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="../Resources/PlaytimeInsightsVisualResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <converters:CoverImageConverter x:Key="CoverImageConverter" />
-        <SolidColorBrush x:Key="RankingGoldBrush" Color="#FFD6B34B" />
-        <SolidColorBrush x:Key="RankingGoldFillBrush" Color="#33D6B34B" />
-        <SolidColorBrush x:Key="RankingSilverBrush" Color="#FFBFC7D5" />
-        <SolidColorBrush x:Key="RankingSilverFillBrush" Color="#33BFC7D5" />
-        <SolidColorBrush x:Key="RankingBronzeBrush" Color="#FFC9824A" />
-        <SolidColorBrush x:Key="RankingBronzeFillBrush" Color="#33C9824A" />
         <sys:Double x:Key="TextOpacityPrimary">1</sys:Double>
         <sys:Double x:Key="TextOpacitySecondary">0.72</sys:Double>
         <sys:Double x:Key="TextOpacityTertiary">0.58</sys:Double>
@@ -396,6 +394,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <ScrollViewer x:Name="DashboardScrollViewer"

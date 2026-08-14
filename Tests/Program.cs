@@ -98,6 +98,7 @@ namespace PlaytimeInsights.Tests
             Run("Weekday labels follow plugin resources instead of Windows culture", TestLocalizedWeekdayLabels);
             Run("Dialog sizing stays inside high-DPI work areas", TestResponsiveWindowSizing);
             Run("Native views use portable theme brushes and responsive overflow", TestThemeAndResponsiveLayout);
+            Run("Plugin visual resources load through explicit view merges", TestExplicitVisualResourceMerges);
             Run("Responsive metric panel selects expected columns", TestResponsiveMetricPanelColumns);
             Run("Responsive metric panel centers and equalizes rows", TestResponsiveMetricPanelArrangement);
             Run("Responsive metric panel contains invalid inputs", TestResponsiveMetricPanelEdgeCases);
@@ -3686,6 +3687,68 @@ namespace PlaytimeInsights.Tests
                 var ninth = GetLayoutSlot(panel.Children[8]);
                 Equal(true,
                     Math.Abs(ninth.Left - ((1200 - ninth.Width) / 2)) < 0.01);
+            });
+        }
+
+        private static void TestExplicitVisualResourceMerges()
+        {
+            var sourceRoot = FindSourceRoot();
+            const string merge =
+                @"<ResourceDictionary Source=""../Resources/PlaytimeInsightsVisualResources.xaml"" />";
+            var dashboardSource = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var managementSource = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "SessionManagementView.xaml"));
+
+            Equal(true, dashboardSource.Contains(merge));
+            Equal(true, managementSource.Contains(merge));
+
+            RunOnSta(() =>
+            {
+                var dashboard = new PlaytimeInsightsDashboardView();
+                var coordinator = new SessionManagementCoordinator(
+                    new FakeSessionManagementOperations(),
+                    new FakeSessionManagementInteraction());
+                var management = new SessionManagementView(coordinator);
+                foreach (var view in new FrameworkElement[]
+                {
+                    dashboard,
+                    management
+                })
+                {
+                    view.Resources["TextBrush"] = new SolidColorBrush(Colors.White);
+                    view.Resources["ControlBackgroundBrush"] =
+                        new SolidColorBrush(Colors.Black);
+                    view.Resources["PanelSeparatorBrush"] =
+                        new SolidColorBrush(Colors.Gray);
+                    view.Resources["PopupBackgroundBrush"] =
+                        new SolidColorBrush(Colors.DarkGray);
+                    view.Resources["GlyphBrush"] =
+                        new SolidColorBrush(Colors.LightGray);
+                    view.Measure(new Size(1200, double.PositiveInfinity));
+                    view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+                    view.UpdateLayout();
+                }
+
+                Equal(true,
+                    dashboard.TryFindResource("SessionSourceTagStyle") is Style);
+                Equal(true,
+                    management.TryFindResource("SessionSourceTagStyle") is Style);
+                Equal(true,
+                    dashboard.TryFindResource("RankingGoldBrush") is Brush);
+                var sharedStyle = dashboard.TryFindResource("SessionSourceTagStyle") as Style;
+                Equal(true, sharedStyle != null);
+                Equal(4, sharedStyle.Triggers.Count);
+                var dashboardLocalKeys = dashboard.Resources.Keys.Cast<object>().ToList();
+                var managementLocalKeys = management.Resources.Keys.Cast<object>().ToList();
+                Equal(false, dashboardLocalKeys.Contains("RankingGoldBrush"));
+                Equal(false, dashboardLocalKeys.Contains("RankingSilverBrush"));
+                Equal(false, dashboardLocalKeys.Contains("RankingBronzeBrush"));
+                Equal(false, managementLocalKeys.Contains("SourceTagStyle"));
             });
         }
 
