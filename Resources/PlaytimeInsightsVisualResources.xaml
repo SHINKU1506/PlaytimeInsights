@@ -129,6 +129,7 @@
         <GradientStop Color="#FF2E3342" Offset="0" />
         <GradientStop Color="#00000000" Offset="1" />
     </LinearGradientBrush>
+    <SolidColorBrush x:Key="ToolbarLabelBrush" Color="#FF9CA3AF" />
 
     <LinearGradientBrush x:Key="RankingGoldGlowBrush"
                          StartPoint="0,0.5"

@@ -270,6 +270,12 @@
             <Setter Property="Opacity" Value="{StaticResource TextOpacitySecondary}" />
             <Setter Property="Margin" Value="0,0,0,6" />
         </Style>
+        <Style x:Key="InlineFieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource ToolbarLabelBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
         <Style x:Key="HelpIconButtonStyle"
                TargetType="{x:Type Button}"
                BasedOn="{StaticResource {x:Type Button}}">
@@ -287,63 +293,107 @@
             <Setter Property="ToolTipService.ShowDuration" Value="60000" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <Style x:Key="AdvancedFilterToggleStyle"
+               TargetType="{x:Type ToggleButton}">
+            <Setter Property="Background" Value="#0AFFFFFF" />
+            <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Foreground" Value="{StaticResource RankingEnergyBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Border x:Name="AdvancedFilterToggleBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="AdvancedFilterToggleBorder"
+                                        Property="Background"
+                                        Value="#1A4A90E2" />
+                                <Setter TargetName="AdvancedFilterToggleBorder"
+                                        Property="BorderBrush"
+                                        Value="#4D4A90E2" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="AdvancedFilterToggleBorder"
+                                        Property="Background"
+                                        Value="#1A4A90E2" />
+                                <Setter TargetName="AdvancedFilterToggleBorder"
+                                        Property="BorderBrush"
+                                        Value="#594A90E2" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="AdvancedFilterToggleBorder"
+                                        Property="BorderBrush"
+                                        Value="{DynamicResource TextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="AdvancedFilterExpanderStyle"
                TargetType="{x:Type Expander}">
             <Setter Property="Foreground" Value="{StaticResource RankingEnergyBrush}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="Padding" Value="0,8" />
+            <Setter Property="Padding" Value="0" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type Expander}">
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
+                                BorderThickness="{TemplateBinding BorderThickness}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
-                                <ToggleButton x:Name="HeaderSite"
-                                              Background="Transparent"
-                                              BorderBrush="Transparent"
-                                              BorderThickness="0"
-                                              Foreground="{TemplateBinding Foreground}"
-                                              HorizontalContentAlignment="Left"
-                                              Padding="{TemplateBinding Padding}"
-                                              IsChecked="{Binding IsExpanded,
-                                                  RelativeSource={RelativeSource TemplatedParent},
-                                                  Mode=TwoWay}"
-                                              Focusable="True">
-                                    <ToggleButton.Template>
-                                        <ControlTemplate TargetType="{x:Type ToggleButton}">
-                                            <Border Background="{TemplateBinding Background}"
-                                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                                    Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter Content="{TemplateBinding Content}"
-                                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
-                                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
-                                            </Border>
-                                        </ControlTemplate>
-                                    </ToggleButton.Template>
-                                    <StackPanel Orientation="Horizontal">
-                                        <ContentPresenter Content="{TemplateBinding Header}"
-                                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
-                                                          VerticalAlignment="Center" />
-                                        <TextBlock Text="▾"
-                                                   Margin="6,0,0,0"
-                                                   VerticalAlignment="Center"
-                                                   IsHitTestVisible="False" />
-                                    </StackPanel>
-                                </ToggleButton>
+                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0"
+                                                      ContentSource="Header"
+                                                      ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                      HorizontalAlignment="Stretch"
+                                                      VerticalAlignment="Center" />
+                                    <ToggleButton x:Name="HeaderSite"
+                                                  Grid.Column="1"
+                                                  Margin="12,0,0,0"
+                                                  VerticalAlignment="Center"
+                                                  Style="{StaticResource AdvancedFilterToggleStyle}"
+                                                  IsChecked="{Binding IsExpanded,
+                                                      RelativeSource={RelativeSource TemplatedParent},
+                                                      Mode=TwoWay}"
+                                                  Focusable="True">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAdvancedFilters}"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Text="▾"
+                                                       Margin="6,0,0,0"
+                                                       VerticalAlignment="Center"
+                                                       IsHitTestVisible="False" />
+                                        </StackPanel>
+                                    </ToggleButton>
+                                </Grid>
                                 <ContentPresenter x:Name="ExpandSite"
                                                   Grid.Row="1"
                                                   ContentSource="Content"
-                                                  Margin="{TemplateBinding Padding}"
+                                                  Margin="0,2,0,0"
                                                   Visibility="Collapsed" />
                             </Grid>
                         </Border>
@@ -618,19 +668,22 @@
 
             <Border Style="{StaticResource ToolbarSurfaceStyle}" Margin="0,0,0,18">
                 <StackPanel>
-                    <DockPanel Margin="0,0,0,14">
+                    <DockPanel Margin="0,0,0,12">
                         <Border DockPanel.Dock="Right"
                                 Background="{DynamicResource PopupBackgroundBrush}"
                                 BorderBrush="{DynamicResource PanelSeparatorBrush}"
                                 BorderThickness="1"
                                 CornerRadius="4"
                                 Padding="10,5"
-                                Margin="16,0,4,0">
+                                Margin="16,0,4,0"
+                                VerticalAlignment="Center">
                             <TextBlock Text="{Binding RangeText}"
                                        FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis" />
                         </Border>
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal"
+                                    VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnalysisRange}"
                                        Style="{StaticResource SectionTitleStyle}"
                                        VerticalAlignment="Center" />
@@ -640,91 +693,107 @@
                                     ToolTip="{DynamicResource LOCPlaytimeInsightsCustomDateHint}" />
                         </StackPanel>
                     </DockPanel>
-                    <WrapPanel>
-                        <StackPanel Orientation="Horizontal"
-                                    Margin="0,0,16,8"
-                                    VerticalAlignment="Bottom">
-                            <Button Content="{DynamicResource LOCPlaytimeInsightsQuick7Days}"
-                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick7Days}"
-                                    Margin="0,0,6,0"
-                                    Command="{Binding SelectRangeCommand}"
-                                    CommandParameter="{x:Static services:DateRangePreset.Last7Days}" />
-                            <Button Content="{DynamicResource LOCPlaytimeInsightsQuick30Days}"
-                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick30Days}"
-                                    Margin="0,0,6,0"
-                                    Command="{Binding SelectRangeCommand}"
-                                    CommandParameter="{x:Static services:DateRangePreset.Last30Days}" />
-                            <Button Content="{DynamicResource LOCPlaytimeInsightsQuick1Year}"
-                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick1Year}"
-                                    Margin="0,0,6,0"
-                                    Command="{Binding SelectRangeCommand}"
-                                    CommandParameter="{x:Static services:DateRangePreset.ThisYear}" />
-                            <Button Content="{DynamicResource LOCPlaytimeInsightsQuickAll}"
-                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuickAll}"
-                                    Command="{Binding SelectRangeCommand}"
-                                    CommandParameter="{x:Static services:DateRangePreset.AllSessions}" />
-                        </StackPanel>
-                        <StackPanel Margin="0,0,16,8">
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsDateRange}" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox ItemsSource="{Binding RangeOptions}"
-                                      AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsDateRange}"
-                                      SelectedItem="{Binding SelectedRangeOption, Mode=TwoWay}"
-                                      DisplayMemberPath="Label"
-                                      Width="132" />
-                        </StackPanel>
-                        <WrapPanel Visibility="{Binding CustomDateVisibility}">
-                            <StackPanel Margin="0,0,16,8">
-                                <TextBlock Text="{DynamicResource LOCPlaytimeInsightsStartDate}" Style="{StaticResource FieldLabelStyle}" />
-                                <DatePicker SelectedDate="{Binding CustomStartDate, Mode=TwoWay}"
-                                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsStartDate}"
-                                            Width="150" />
-                            </StackPanel>
-                            <StackPanel Margin="0,0,16,8">
-                                <TextBlock Text="{DynamicResource LOCPlaytimeInsightsEndDate}" Style="{StaticResource FieldLabelStyle}" />
-                                <DatePicker SelectedDate="{Binding CustomEndDate, Mode=TwoWay}"
-                                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsEndDate}"
-                                            Width="150" />
-                            </StackPanel>
-                        </WrapPanel>
-                        <StackPanel Margin="0,0,16,8">
-                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsRankingMetric}" Style="{StaticResource FieldLabelStyle}" />
-                            <ComboBox ItemsSource="{Binding RankingMetricOptions}"
-                                      AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRankingMetric}"
-                                      SelectedItem="{Binding SelectedRankingMetricOption, Mode=TwoWay}"
-                                      DisplayMemberPath="Label"
-                                      Width="132" />
-                        </StackPanel>
-                    </WrapPanel>
                     <Expander x:Name="AdvancedFilterExpander"
                               Style="{StaticResource AdvancedFilterExpanderStyle}"
                               IsExpanded="True">
                         <Expander.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAdvancedFilters}" />
-                                <Border Margin="8,0,0,0"
+                            <WrapPanel>
+                                <StackPanel Orientation="Horizontal"
+                                            Margin="0,0,14,4"
+                                            VerticalAlignment="Center">
+                                    <Button Content="{DynamicResource LOCPlaytimeInsightsQuick7Days}"
+                                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick7Days}"
+                                            Margin="0,0,6,0"
+                                            Command="{Binding SelectRangeCommand}"
+                                            CommandParameter="{x:Static services:DateRangePreset.Last7Days}" />
+                                    <Button Content="{DynamicResource LOCPlaytimeInsightsQuick30Days}"
+                                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick30Days}"
+                                            Margin="0,0,6,0"
+                                            Command="{Binding SelectRangeCommand}"
+                                            CommandParameter="{x:Static services:DateRangePreset.Last30Days}" />
+                                    <Button Content="{DynamicResource LOCPlaytimeInsightsQuick1Year}"
+                                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick1Year}"
+                                            Margin="0,0,6,0"
+                                            Command="{Binding SelectRangeCommand}"
+                                            CommandParameter="{x:Static services:DateRangePreset.ThisYear}" />
+                                    <Button Content="{DynamicResource LOCPlaytimeInsightsQuickAll}"
+                                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuickAll}"
+                                            Command="{Binding SelectRangeCommand}"
+                                            CommandParameter="{x:Static services:DateRangePreset.AllSessions}" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal"
+                                            Margin="0,0,14,4"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource LOCPlaytimeInsightsDateRange}"
+                                               Style="{StaticResource InlineFieldLabelStyle}" />
+                                    <ComboBox ItemsSource="{Binding RangeOptions}"
+                                              AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsDateRange}"
+                                              SelectedItem="{Binding SelectedRangeOption, Mode=TwoWay}"
+                                              DisplayMemberPath="Label"
+                                              Width="132" />
+                                </StackPanel>
+                                <WrapPanel Margin="0,0,14,4"
+                                           Visibility="{Binding CustomDateVisibility}">
+                                    <StackPanel Orientation="Horizontal"
+                                                Margin="0,0,14,0"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsStartDate}"
+                                                   Style="{StaticResource InlineFieldLabelStyle}" />
+                                        <DatePicker SelectedDate="{Binding CustomStartDate, Mode=TwoWay}"
+                                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsStartDate}"
+                                                    Width="150" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal"
+                                                Margin="0,0,14,0"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsEndDate}"
+                                                   Style="{StaticResource InlineFieldLabelStyle}" />
+                                        <DatePicker SelectedDate="{Binding CustomEndDate, Mode=TwoWay}"
+                                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsEndDate}"
+                                                    Width="150" />
+                                    </StackPanel>
+                                </WrapPanel>
+                                <StackPanel Orientation="Horizontal"
+                                            Margin="0,0,14,4"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="{DynamicResource LOCPlaytimeInsightsRankingMetric}"
+                                               Style="{StaticResource InlineFieldLabelStyle}" />
+                                    <ComboBox ItemsSource="{Binding RankingMetricOptions}"
+                                              AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRankingMetric}"
+                                              SelectedItem="{Binding SelectedRankingMetricOption, Mode=TwoWay}"
+                                              DisplayMemberPath="Label"
+                                              Width="132" />
+                                </StackPanel>
+                                <Border Margin="0,0,14,4"
+                                        VerticalAlignment="Center"
                                         Visibility="{Binding Filter.ActiveMetadataFilterVisibility}">
-                                    <TextBlock Text="{Binding Filter.ActiveMetadataFilterSummary}" />
+                                    <TextBlock Text="{Binding Filter.ActiveMetadataFilterSummary}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource ToolbarLabelBrush}" />
                                 </Border>
-                            </StackPanel>
+                            </WrapPanel>
                         </Expander.Header>
-                        <Grid Margin="0,10,0,0">
+                        <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="12" />
-                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
+                            <StackPanel Grid.Column="0"
+                                        Orientation="Horizontal">
                                 <TextBlock Text="{DynamicResource LOCPlaytimeInsightsFilterDimension}"
-                                           Style="{StaticResource FieldLabelStyle}" />
+                                           Style="{StaticResource InlineFieldLabelStyle}" />
                                 <ComboBox ItemsSource="{Binding MetadataDimensionOptions}"
                                           AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsFilterDimension}"
                                           SelectedItem="{Binding SelectedMetadataDimensionOption, Mode=TwoWay}"
-                                          DisplayMemberPath="Label" />
+                                          DisplayMemberPath="Label"
+                                          Width="180" />
                             </StackPanel>
                             <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
                                         Visibility="{Binding MetadataValueVisibility}">
                                 <TextBlock Text="{DynamicResource LOCPlaytimeInsightsFilterValue}"
-                                           Style="{StaticResource FieldLabelStyle}" />
+                                           Style="{StaticResource InlineFieldLabelStyle}" />
                                 <ComboBox ItemsSource="{Binding MetadataValueOptions}"
                                           AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsFilterValue}"
                                           SelectedItem="{Binding SelectedMetadataValueOption, Mode=TwoWay}"
