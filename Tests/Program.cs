@@ -36,6 +36,7 @@ namespace PlaytimeInsights.Tests
 
         private static int Main()
         {
+            Run("Drilldown header gap stays compact", TestDrilldownHeaderGapIsCompact);
             Run("Playnite-style minute rounding", TestMinuteRounding);
             Run("Precise short duration display", TestPreciseDuration);
             Run("Duration display separates values units and automation text", TestDurationDisplayProjection);
@@ -1203,6 +1204,20 @@ namespace PlaytimeInsights.Tests
             Equal("{StaticResource PlaytimeInsightsDetailItemStyle}",
                 (string)detailList.Attribute("ItemContainerStyle"));
             Equal("160", (string)detailList.Attribute("MinHeight"));
+            Equal("Top", (string)detailList.Attribute("VerticalContentAlignment"));
+            Equal("{StaticResource PlaytimeInsightsDetailListStyle}",
+                (string)detailList.Attribute("Style"));
+            var detailListStyle = visualResources.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "Style" &&
+                    (string)element.Attribute(xamlNamespace + "Key") ==
+                    "PlaytimeInsightsDetailListStyle");
+            Equal("{x:Type ListView}",
+                (string)detailListStyle.Attribute("TargetType"));
+            Equal(true, detailListStyle.Descendants()
+                .Any(element => element.Name.LocalName == "ItemsPresenter"));
+            Equal(false, detailListStyle.Descendants()
+                .Any(element => element.Name.LocalName == "GridViewHeaderRowPresenter"));
             var detailItemStyle = visualResources.Descendants()
                 .Single(element =>
                     element.Name.LocalName == "Style" &&
@@ -3902,6 +3917,97 @@ namespace PlaytimeInsights.Tests
 
                 Equal(true, module.DesiredSize.Height > 300);
                 Equal(true, list.DesiredSize.Height > 0);
+            });
+        }
+
+        private static void TestDrilldownHeaderGapIsCompact()
+        {
+            RunOnSta(() =>
+            {
+                var settings =
+                    (PlaytimeInsightsSettingsViewModel)
+                    System.Runtime.Serialization.FormatterServices
+                        .GetUninitializedObject(
+                            typeof(PlaytimeInsightsSettingsViewModel));
+                settings.Settings = new PlaytimeInsightsSettings();
+                var viewModel = new DashboardViewModel(
+                    null,
+                    null,
+                    new AnalyticsService(),
+                    new SessionQueryService(new TestGameMetadataAccessor()),
+                    settings);
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 1400,
+                    DataContext = viewModel
+                };
+                view.Measure(new Size(1400, 680));
+                view.Arrange(new Rect(0, 0, 1400, 680));
+                view.UpdateLayout();
+
+                var session = new GameSession
+                {
+                    GameId = Guid.NewGuid(),
+                    GameName = "Drilldown Game",
+                    StartedAtUtc = new DateTime(
+                        2026,
+                        8,
+                        10,
+                        10,
+                        0,
+                        0,
+                        DateTimeKind.Utc),
+                    EndedAtUtc = new DateTime(
+                        2026,
+                        8,
+                        10,
+                        10,
+                        1,
+                        0,
+                        DateTimeKind.Utc),
+                    ElapsedSeconds = 60,
+                    StartUtcOffsetMinutes = 0,
+                    EndUtcOffsetMinutes = 0,
+                    TimeZoneId = "UTC",
+                    Source = SessionSource.Manual
+                };
+                viewModel.Drilldown.ResetContext(
+                    new Playnite.SDK.Models.Game[0],
+                    new[] { session });
+                viewModel.Drilldown.SelectPeriod(
+                    new PeriodActivityViewModel
+                    {
+                        PeriodStart = new DateTime(2026, 8, 10),
+                        PeriodEnd = new DateTime(2026, 8, 10),
+                        Label = "2026/8/10",
+                        DurationText = "1 分钟"
+                    });
+                view.UpdateLayout();
+
+                var module = (Border)view.FindName("DrilldownModule");
+                var list = FindVisualDescendants<ListView>(module).Single();
+                var firstItem = (ListViewItem)list.ItemContainerGenerator
+                    .ContainerFromIndex(0);
+                var count = FindVisualDescendants<TextBlock>(module)
+                    .First(text => text.Text == viewModel.SessionDetailCountText);
+                var divider = FindVisualDescendants<Border>(module)
+                    .Single(border => border.Height == 1);
+
+                Func<FrameworkElement, double> topOf = element =>
+                    element.TransformToAncestor(module)
+                        .Transform(new Point(0, 0)).Y;
+                var countBottom = topOf(count) + count.RenderSize.Height;
+                var dividerTop = topOf(divider);
+                var dividerBottom = dividerTop + divider.RenderSize.Height;
+                var firstItemTop = topOf(firstItem);
+
+                Equal(1d, divider.RenderSize.Height);
+                Equal(true, divider.Background is SolidColorBrush);
+                Equal(
+                    Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF),
+                    ((SolidColorBrush)divider.Background).Color);
+                Equal(true, dividerTop - countBottom <= 7d);
+                Equal(true, firstItemTop - dividerBottom <= 8d);
             });
         }
 

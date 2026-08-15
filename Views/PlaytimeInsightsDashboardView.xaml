@@ -102,14 +102,62 @@
             </Style.Triggers>
         </Style>
         <Style x:Key="DrilldownSessionItemStyle" TargetType="Border">
-            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Background" Value="{StaticResource DrilldownSessionItemBackgroundBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="8,10" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="{StaticResource DrilldownSessionHoverBackgroundBrush}" />
                 </Trigger>
             </Style.Triggers>
+        </Style>
+        <Style x:Key="GhostIconButtonStyle"
+               TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="#14FFFFFF" />
+            <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="GhostButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="GhostButtonBorder"
+                                        Property="Background"
+                                        Value="#264A90E2" />
+                                <Setter TargetName="GhostButtonBorder"
+                                        Property="BorderBrush"
+                                        Value="#664A90E2" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="GhostButtonBorder"
+                                        Property="Background"
+                                        Value="#334A90E2" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="GhostButtonBorder"
+                                        Property="BorderBrush"
+                                        Value="{DynamicResource TextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="HeroMetricValueStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="34" />
@@ -1489,7 +1537,7 @@
                             SnapsToDevicePixels="True"
                             IsHitTestVisible="False" />
                     <StackPanel Grid.Column="1" Margin="15,18,18,18">
-                        <Grid Margin="0,0,0,8">
+                        <Grid Margin="0,0,0,6">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -1505,31 +1553,38 @@
                                        Opacity="{StaticResource TextOpacityTertiary}" />
                         </StackPanel>
                         <Button Grid.Column="1"
-                                Width="30"
-                                Height="30"
+                                Style="{StaticResource GhostIconButtonStyle}"
                                 Margin="12,0,0,0"
-                                Padding="0"
                                 VerticalAlignment="Top"
                                 Command="{Binding ClearDrilldownSelectionCommand}"
                                 ToolTip="{DynamicResource LOCPlaytimeInsightsClearSelection}"
                                 AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsClearSelection}">
                             <TextBlock Text="&#xE711;"
                                        FontFamily="Segoe MDL2 Assets"
-                                       FontSize="12"
+                                       FontSize="11"
+                                       Opacity="{StaticResource TextOpacitySecondary}"
                                        IsHitTestVisible="False" />
                         </Button>
                     </Grid>
+                    <Border Height="1"
+                            Margin="0,0,0,6"
+                            Background="{StaticResource DrilldownDividerBrush}"
+                            SnapsToDevicePixels="True" />
                     <ListView ItemsSource="{Binding SessionDetails}"
+                               Style="{StaticResource PlaytimeInsightsDetailListStyle}"
                                ItemContainerStyle="{StaticResource PlaytimeInsightsDetailItemStyle}"
                                MinHeight="160"
                                MaxHeight="380"
                                HorizontalContentAlignment="Stretch"
+                               VerticalContentAlignment="Top"
+                               Background="Transparent"
+                               BorderThickness="0"
                                PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
                                ScrollViewer.VerticalScrollBarVisibility="Auto"
                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                              ScrollViewer.CanContentScroll="True"
-                              VirtualizingPanel.IsVirtualizing="True"
-                              VirtualizingPanel.VirtualizationMode="Recycling">
+                               ScrollViewer.CanContentScroll="True"
+                               VirtualizingPanel.IsVirtualizing="True"
+                               VirtualizingPanel.VirtualizationMode="Recycling">
                         <ListView.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <VirtualizingStackPanel />
@@ -1538,8 +1593,7 @@
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <Border Height="66"
-                                        Margin="0,0,0,8"
-                                        Padding="10"
+                                        Margin="0,0,0,6"
                                         Style="{StaticResource DrilldownSessionItemStyle}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -1567,29 +1621,35 @@
                                                 <RowDefinition Height="*" />
                                             </Grid.RowDefinitions>
                                             <TextBlock Text="{Binding GameName}"
+                                                       FontSize="13"
                                                        FontWeight="SemiBold"
+                                                       Foreground="{StaticResource DrilldownGameNameBrush}"
                                                        TextTrimming="CharacterEllipsis" />
-                                            <Grid Grid.Row="1" Margin="0,7,0,0">
+                                            <Grid Grid.Row="1" Margin="0,6,0,0">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
                                                     <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{Binding StartedText}"
+                                                           FontSize="11"
                                                            VerticalAlignment="Center"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           Opacity="{StaticResource TextOpacitySecondary}" />
+                                                           Foreground="{StaticResource DrilldownTimestampBrush}"
+                                                           TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Grid.Column="1"
                                                            Text="{Binding DurationText}"
+                                                           FontSize="12"
+                                                           FontWeight="SemiBold"
                                                            Margin="12,0,0,0"
                                                            VerticalAlignment="Center"
-                                                           Opacity="{StaticResource TextOpacitySecondary}" />
+                                                           Foreground="{StaticResource DrilldownDurationBrush}" />
                                                 <Border Grid.Column="2"
                                                         Margin="12,0,0,0"
                                                         VerticalAlignment="Center"
                                                         Style="{StaticResource SessionSourceTagStyle}"
                                                         AutomationProperties.Name="{Binding SourceText}">
                                                     <TextBlock Text="{Binding SourceText}"
+                                                               FontSize="10"
                                                                TextTrimming="CharacterEllipsis" />
                                                 </Border>
                                             </Grid>

@@ -54,6 +54,33 @@
         </Setter>
     </Style>
 
+    <Style x:Key="PlaytimeInsightsDetailListStyle"
+           TargetType="{x:Type ListView}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListView}">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ScrollViewer Focusable="False"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto"
+                                      CanContentScroll="True">
+                            <ItemsPresenter />
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <SolidColorBrush x:Key="MetricDurationForegroundBrush" Color="#FF60A5FA" />
     <SolidColorBrush x:Key="MetricDurationBackgroundBrush" Color="#203B82F6" />
     <SolidColorBrush x:Key="MetricSessionForegroundBrush" Color="#FFA78BFA" />
@@ -122,15 +149,15 @@
         <GradientStop Color="#FF1F212A" Offset="1" />
     </LinearGradientBrush>
     <SolidColorBrush x:Key="DrilldownAccentBrush" Color="#FF4A90E2" />
-    <LinearGradientBrush x:Key="DrilldownSessionHoverBackgroundBrush"
-                         StartPoint="0.5,0"
-                         EndPoint="0.5,1">
-        <GradientStop Color="#14FFFFFF" Offset="0" />
-        <GradientStop Color="#00000000" Offset="1" />
-    </LinearGradientBrush>
+    <SolidColorBrush x:Key="DrilldownDividerBrush" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="DrilldownGameNameBrush" Color="#FFF0F0F5" />
+    <SolidColorBrush x:Key="DrilldownTimestampBrush" Color="#FF9CA3AF" />
+    <SolidColorBrush x:Key="DrilldownDurationBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="DrilldownSessionItemBackgroundBrush" Color="#12FFFFFF" />
+    <SolidColorBrush x:Key="DrilldownSessionHoverBackgroundBrush" Color="#20FFFFFF" />
 
-    <SolidColorBrush x:Key="SessionTrackedBrush" Color="#FF60A5FA" />
-    <SolidColorBrush x:Key="SessionTrackedFillBrush" Color="#2060A5FA" />
+    <SolidColorBrush x:Key="SessionTrackedBrush" Color="#FF4A90E2" />
+    <SolidColorBrush x:Key="SessionTrackedFillBrush" Color="#1A4A90E2" />
     <SolidColorBrush x:Key="SessionImportedBrush" Color="#FFA78BFA" />
     <SolidColorBrush x:Key="SessionImportedFillBrush" Color="#20A78BFA" />
     <SolidColorBrush x:Key="SessionManualBrush" Color="#FFFBBF24" />
