@@ -37,6 +37,10 @@ namespace PlaytimeInsights.ViewModels
         private string hourDistributionTitle = LocalizationService.Get(
             "LOCPlaytimeInsightsHourDistributionAll",
             "24 小时分布 · 全部星期");
+        private string peakPeriodText = LocalizationService.Get(
+            "LOCPlaytimeInsightsNoPeakPeriod",
+            "暂无数据");
+        private string peakPeriodShareText;
 
         public int HeatmapColumnCount { get => heatmapColumnCount; private set => SetValue(ref heatmapColumnCount, value); }
 
@@ -51,6 +55,10 @@ namespace PlaytimeInsights.ViewModels
         public Visibility AnomalyVisibility { get => anomalyVisibility; private set => SetValue(ref anomalyVisibility, value); }
 
         public string HourDistributionTitle { get => hourDistributionTitle; private set => SetValue(ref hourDistributionTitle, value); }
+
+        public string PeakPeriodText { get => peakPeriodText; private set => SetValue(ref peakPeriodText, value); }
+
+        public string PeakPeriodShareText { get => peakPeriodShareText; private set => SetValue(ref peakPeriodShareText, value); }
 
         public IReadOnlyList<PeriodActivityViewModel> PeriodActivities
         {
@@ -142,6 +150,7 @@ namespace PlaytimeInsights.ViewModels
             WeekdayDistribution = Copy(snapshot.Advanced.WeekdayDistribution);
             HourDistribution = allHourDistribution.ToList();
             WeekHourCells = Copy(snapshot.Advanced.WeekHourCells);
+            UpdatePeakPeriod();
             AdvancedWeekdayLabels = Copy(snapshot.Advanced.WeekdayLabels);
             AdvancedHourLabels = Copy(snapshot.Advanced.HourLabels);
             Anomalies = Copy(snapshot.Advanced.Anomalies);
@@ -198,6 +207,38 @@ namespace PlaytimeInsights.ViewModels
                 "LOCPlaytimeInsightsHourDistributionSelectedFormat",
                 "24 小时分布 · {0}",
                 selectedBar.Label);
+        }
+
+        private void UpdatePeakPeriod()
+        {
+            var cells = WeekHourCells ?? new List<WeekHourCellViewModel>();
+            var peak = cells.OrderByDescending(cell => cell.Seconds)
+                .FirstOrDefault();
+            if (peak == null || peak.Seconds == 0)
+            {
+                PeakPeriodText = LocalizationService.Get(
+                    "LOCPlaytimeInsightsNoPeakPeriod",
+                    "暂无数据");
+                PeakPeriodShareText = string.Empty;
+                return;
+            }
+
+            var totalSeconds = cells.Aggregate(
+                0UL,
+                (total, cell) => total + cell.Seconds);
+            PeakPeriodText = string.Join(
+                " ",
+                new[]
+                {
+                    peak.DayLabel,
+                    peak.HourLabel
+                }.Where(value => !string.IsNullOrWhiteSpace(value)));
+            PeakPeriodShareText = LocalizationService.Format(
+                "LOCPlaytimeInsightsPeakPeriodShareFormat",
+                "占区间 {0:P0}",
+                totalSeconds == 0
+                    ? 0d
+                    : (double)peak.Seconds / totalSeconds);
         }
 
         private static IReadOnlyList<T> Copy<T>(IEnumerable<T> values)

@@ -107,7 +107,10 @@ namespace PlaytimeInsights.Tests
             Run("Responsive metric panel contains invalid inputs", TestResponsiveMetricPanelEdgeCases);
             Run("Responsive metric panel remeasures for arrange width", TestResponsiveMetricPanelRemeasuresForArrangeWidth);
             Run("Dashboard metrics use responsive semantic visual foundation", TestResponsiveMetricVisualFoundation);
-            Run("Dashboard recomposition keeps hero tier two and adaptive modules", TestDashboardVisualRefactorStaticContract);
+            Run("Dashboard metric additions expose behavior", TestDashboardMetricAdditionsBehavior);
+            Run("Advanced filter toggle keeps real interaction contract", TestAdvancedFilterToggleInteraction);
+            Run("Dashboard theme visual contracts stay explicit", TestDashboardThemeVisualContracts);
+            Run("Dashboard recomposition keeps 4x2 metric grid and adaptive modules", TestDashboardVisualRefactorStaticContract);
             Run("Dashboard visual refactor keeps final architecture guards", TestDashboardVisualRefactorContract);
             Run("Anomaly module review title stays localized and unique", TestAnomalyModuleReviewTitleLocalization);
             Run("Session management keeps compact hierarchy and table semantics", TestSessionManagementVisualHierarchy);
@@ -2810,8 +2813,8 @@ namespace PlaytimeInsights.Tests
             Equal(true, dashboard.Contains("RankingBronzeBrush"));
             Equal(true, dashboard.Contains("FontSize\" Value=\"26\""));
             Equal(true, dashboard.Contains("FontWeight\" Value=\"Bold\""));
-            Equal(true, dashboard.Contains("FontFamily\" Value=\"Segoe MDL2 Assets\""));
-            Equal(true, dashboard.Contains("Foreground\" Value=\"{DynamicResource TextBrush}\""));
+            Equal(true, dashboard.Contains("FontFamily=\"Segoe MDL2 Assets\""));
+            Equal(true, dashboard.Contains("Foreground=\"{DynamicResource TextBrush}\""));
             Equal(true, dashboard.Contains(
                 "DataContext=\"{Binding PreviousPeriodComparison}\""));
             Equal(true, dashboard.Contains(
@@ -2936,7 +2939,7 @@ namespace PlaytimeInsights.Tests
             Equal(true, dashboardViewModel.Contains(
                 "SessionDetailVisibility = Visibility.Visible"));
             Equal(true, dashboard.Contains(
-                "Text=\"{Binding CurrentStreakDateText}\""));
+                "Text=\"{Binding CurrentStreakDateText, Mode=OneWay}\""));
             var weekdayChartStart = dashboard.IndexOf(
                 "ItemsSource=\"{Binding WeekdayDistribution}\"",
                 StringComparison.Ordinal);
@@ -4105,6 +4108,259 @@ namespace PlaytimeInsights.Tests
             panel.UpdateLayout();
         }
 
+        private static void TestDashboardMetricAdditionsBehavior()
+        {
+            var compact = new DurationDisplayViewModel(
+                "5",
+                "小时",
+                "8",
+                "分",
+                "5 小时 8 分");
+            Equal("5 小时 8 分", compact.CompactText);
+
+            var metrics = new DashboardMetricsViewModel(null);
+            metrics.Apply(
+                new DashboardSnapshot
+                {
+                    AverageSessionDisplay = new DurationDisplayViewModel(
+                        "43",
+                        "分",
+                        "56",
+                        "秒",
+                        "43 分 56 秒"),
+                    AverageSessionText = "43 分 56 秒",
+                    Advanced = new AdvancedAnalyticsSnapshot
+                    {
+                        AnomalyCount = 3,
+                        AnomalyCountText = "3 条"
+                    }
+                },
+                new Dictionary<Guid, Playnite.SDK.Models.Game>());
+            Equal("均 43 分 56 秒 / 次", metrics.AverageSessionSummaryText);
+            Equal(3, metrics.AnomalyCount);
+
+            var distribution = new DashboardDistributionViewModel();
+            distribution.Apply(new DashboardSnapshot
+            {
+                Advanced = new AdvancedAnalyticsSnapshot
+                {
+                    WeekdayDistribution = new List<DistributionBarViewModel>(),
+                    HourDistribution = new List<DistributionBarViewModel>(),
+                    WeekHourCells = new List<WeekHourCellViewModel>
+                    {
+                        new WeekHourCellViewModel
+                        {
+                            DayLabel = "周五",
+                            HourLabel = "20:00",
+                            Seconds = 90
+                        },
+                        new WeekHourCellViewModel
+                        {
+                            DayLabel = "周一",
+                            HourLabel = "08:00",
+                            Seconds = 10
+                        }
+                    },
+                    WeekdayLabels = new List<string>(),
+                    HourLabels = new List<string>(),
+                    Anomalies = new List<AnomalySessionViewModel>(),
+                    AnomalyVisibility = Visibility.Collapsed
+                }
+            });
+            Equal("周五 20:00", distribution.PeakPeriodText);
+            Equal(true, Regex.IsMatch(
+                distribution.PeakPeriodShareText,
+                @"^占区间 90\s?%$",
+                RegexOptions.CultureInvariant));
+
+            var settings =
+                (PlaytimeInsightsSettingsViewModel)
+                System.Runtime.Serialization.FormatterServices
+                    .GetUninitializedObject(
+                        typeof(PlaytimeInsightsSettingsViewModel));
+            settings.Settings = new PlaytimeInsightsSettings();
+            var dashboard = new DashboardViewModel(
+                null,
+                null,
+                new AnalyticsService(),
+                new SessionQueryService(new TestGameMetadataAccessor()),
+                settings);
+            Equal(false, string.IsNullOrWhiteSpace(
+                dashboard.StreakCardTitle));
+            Equal(false, string.IsNullOrWhiteSpace(
+                dashboard.PeakPeriodCardTitle));
+        }
+
+        private static void TestAdvancedFilterToggleInteraction()
+        {
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 1200
+                };
+                view.Measure(new Size(1200, double.PositiveInfinity));
+                view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+                view.UpdateLayout();
+
+                var expander = (Expander)view.FindName(
+                    "AdvancedFilterExpander");
+                Equal(true, expander.IsExpanded);
+                var toggle = FindVisualDescendants<ToggleButton>(expander)
+                    .Single(button =>
+                        button.TemplatedParent == expander);
+                Equal(true, toggle.Focusable);
+                Equal(true, toggle.IsChecked);
+                var contentHost = FindVisualDescendants<ContentPresenter>(
+                    expander).Single(presenter =>
+                        presenter.ContentSource == "Content" &&
+                        presenter.TemplatedParent == expander);
+                Equal(Visibility.Visible, contentHost.Visibility);
+
+                toggle.IsChecked = false;
+                view.UpdateLayout();
+                Equal(false, expander.IsExpanded);
+                Equal(false, toggle.IsChecked);
+                Equal(Visibility.Collapsed, contentHost.Visibility);
+
+                toggle.IsChecked = true;
+                view.UpdateLayout();
+                Equal(true, expander.IsExpanded);
+                Equal(Visibility.Visible, contentHost.Visibility);
+
+                view.Width = 608;
+                view.Measure(new Size(608, double.PositiveInfinity));
+                view.Arrange(new Rect(0, 0, 608, view.DesiredSize.Height));
+                view.UpdateLayout();
+                var toggleLeft = toggle.TransformToAncestor(view)
+                    .Transform(new Point(0, 0)).X;
+                Equal(true, toggleLeft >= 0);
+                Equal(true, toggleLeft + toggle.ActualWidth <= 608.5);
+            });
+        }
+
+        private static void TestDashboardThemeVisualContracts()
+        {
+            var sourceRoot = FindSourceRoot();
+            var dashboardPath = Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml");
+            var document = XDocument.Load(dashboardPath);
+            var xamlNamespace = XNamespace.Get(
+                "http://schemas.microsoft.com/winfx/2006/xaml");
+
+            var rangeText = document.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "TextBlock" &&
+                    (string)element.Attribute("Text") ==
+                        "{Binding RangeText}");
+            Equal(
+                "{DynamicResource TextBrush}",
+                (string)rangeText.Attribute("Foreground"));
+
+            foreach (var styleName in new[]
+            {
+                "GhostIconButtonStyle",
+                "HelpIconButtonStyle",
+                "WeekdayButtonStyle"
+            })
+            {
+                var style = document.Descendants()
+                    .Single(element =>
+                        element.Name.LocalName == "Style" &&
+                        (string)element.Attribute(xamlNamespace + "Key") ==
+                            styleName);
+                Equal(null, (string)style.Attribute("BasedOn"));
+
+                var styleSource = style.ToString();
+                Equal(false, styleSource.Contains("DynamicResource TextBrush"));
+                Equal(false, styleSource.Contains("DynamicResource ControlBackgroundBrush"));
+                Equal(false, styleSource.Contains("DynamicResource PanelSeparatorBrush"));
+                Equal(true, styleSource.Contains(
+                    "StaticResource MetricCardTextBrush"));
+            }
+
+            var ghostStyle = FindStyle(document, xamlNamespace,
+                "GhostIconButtonStyle");
+            AssertStyleSetter(ghostStyle, "Background", "#14FFFFFF");
+            AssertStyleSetter(ghostStyle, "BorderBrush", "#1AFFFFFF");
+            AssertStyleSetter(ghostStyle, "Foreground",
+                "{StaticResource MetricCardTextBrush}");
+            AssertStyleTrigger(ghostStyle, "IsMouseOver", "Background",
+                "#264A90E2");
+            AssertStyleTrigger(ghostStyle, "IsPressed", "Background",
+                "#334A90E2");
+            AssertStyleTrigger(ghostStyle, "IsKeyboardFocused",
+                "BorderBrush", "{StaticResource MetricCardTextBrush}");
+
+            var helpStyle = FindStyle(document, xamlNamespace,
+                "HelpIconButtonStyle");
+            AssertStyleSetter(helpStyle, "Background", "#14FFFFFF");
+            AssertStyleSetter(helpStyle, "BorderBrush", "#1AFFFFFF");
+            AssertStyleSetter(helpStyle, "Foreground",
+                "{StaticResource MetricCardTextBrush}");
+            AssertStyleTrigger(helpStyle, "IsMouseOver", "Background",
+                "#264A90E2");
+            AssertStyleTrigger(helpStyle, "IsPressed", "Background",
+                "#334A90E2");
+            AssertStyleTrigger(helpStyle, "IsKeyboardFocused",
+                "BorderBrush", "{StaticResource MetricCardTextBrush}");
+
+            var weekdayStyle = FindStyle(document, xamlNamespace,
+                "WeekdayButtonStyle");
+            AssertStyleSetter(weekdayStyle, "Foreground",
+                "{StaticResource MetricCardTextBrush}");
+            AssertStyleTrigger(weekdayStyle, "IsMouseOver", "Background",
+                "#14FFFFFF");
+            AssertStyleTrigger(weekdayStyle, "IsMouseOver", "BorderBrush",
+                "#1AFFFFFF");
+            AssertStyleTrigger(weekdayStyle, "IsKeyboardFocused",
+                "BorderBrush", "{StaticResource MetricCardTextBrush}");
+        }
+
+        private static XElement FindStyle(
+            XDocument document,
+            XNamespace xamlNamespace,
+            string key)
+        {
+            return document.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "Style" &&
+                    (string)element.Attribute(xamlNamespace + "Key") == key);
+        }
+
+        private static void AssertStyleSetter(
+            XElement style,
+            string property,
+            string value)
+        {
+            Equal(1, style.Elements()
+                .Count(element =>
+                    element.Name.LocalName == "Setter" &&
+                    (string)element.Attribute("Property") == property &&
+                    (string)element.Attribute("Value") == value));
+        }
+
+        private static void AssertStyleTrigger(
+            XElement style,
+            string triggerProperty,
+            string setterProperty,
+            string value)
+        {
+            Equal(1, style.Descendants()
+                .Count(element =>
+                    element.Name.LocalName == "Trigger" &&
+                    (string)element.Attribute("Property") ==
+                        triggerProperty &&
+                    element.Elements()
+                        .Any(setter =>
+                            setter.Name.LocalName == "Setter" &&
+                            (string)setter.Attribute("Property") ==
+                                setterProperty &&
+                            (string)setter.Attribute("Value") == value)));
+        }
+
         private static void TestResponsiveMetricVisualFoundation()
         {
             RunOnSta(() =>
@@ -4119,137 +4375,80 @@ namespace PlaytimeInsights.Tests
                 view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
                 view.UpdateLayout();
 
-                var responsivePanels = FindVisualDescendants<ResponsiveUniformPanel>(view);
-                Equal(1, responsivePanels.Count);
-                var panel = responsivePanels[0];
-                Equal(7, panel.Children.Count);
-                Equal(true, panel.Children.Cast<UIElement>().All(
+                var metricGrids = FindVisualDescendants<ResponsiveUniformPanel>(view);
+                Equal(1, metricGrids.Count);
+                var metricGrid = metricGrids[0];
+                Equal(200d, metricGrid.MinItemWidth);
+                Equal(232d, metricGrid.PreferredItemWidth);
+                Equal(280d, metricGrid.MaxItemWidth);
+                Equal(1, metricGrid.MinColumns);
+                Equal(4, metricGrid.MaxColumns);
+                Equal(12d, metricGrid.HorizontalSpacing);
+                Equal(12d, metricGrid.VerticalSpacing);
+                Equal(true, metricGrid.CenterIncompleteRow);
+                Equal(8, metricGrid.Children.Count);
+                Equal(true, metricGrid.Children.Cast<UIElement>().All(
                     child => child is Border));
-                Equal(204d, panel.MinItemWidth);
-                Equal(232d, panel.PreferredItemWidth);
-                Equal(300d, panel.MaxItemWidth);
-                Equal(1, panel.MinColumns);
-                Equal(4, panel.MaxColumns);
-                Equal(12d, panel.HorizontalSpacing);
-                Equal(12d, panel.VerticalSpacing);
-                Equal(true, panel.CenterIncompleteRow);
+                Equal(true, metricGrid.Children.Cast<Border>().All(metricCard =>
+                    metricCard.Style == view.Resources["MetricCardStyle"]));
 
-                var adaptivePanels = FindVisualDescendants<AdaptiveDashboardPanel>(view);
-                Equal(1, adaptivePanels.Count);
-                Equal(1200d, adaptivePanels[0].EnterWideWidth);
-                Equal(1160d, adaptivePanels[0].ExitWideWidth);
-                Equal(18d, adaptivePanels[0].ColumnSpacing);
-                Equal(18d, adaptivePanels[0].VerticalSpacing);
-                Equal(0.38d, adaptivePanels[0].SecondaryColumnRatio);
+                var firstWideTop = GetLayoutSlot(metricGrid.Children[0]).Top;
+                Equal(true, metricGrid.Children.Cast<UIElement>()
+                    .Take(4)
+                    .All(child =>
+                        Math.Abs(GetLayoutSlot(child).Top - firstWideTop) < 0.01));
+                Equal(true, GetLayoutSlot(metricGrid.Children[4]).Top >
+                    firstWideTop + 1);
 
-                Equal(true, view.FindName("RangeDurationHeroCard") is Border);
-                Equal(true, view.FindName("SessionCountHeroCard") is Border);
+                view.Width = 608;
+                view.Measure(new Size(608, double.PositiveInfinity));
+                view.Arrange(new Rect(0, 0, 608, view.DesiredSize.Height));
+                view.UpdateLayout();
+                var firstNarrowTop = GetLayoutSlot(metricGrid.Children[0]).Top;
+                Equal(true, GetLayoutSlot(metricGrid.Children[1]).Top ==
+                    firstNarrowTop);
+                Equal(true, GetLayoutSlot(metricGrid.Children[2]).Top >
+                    firstNarrowTop + 1);
 
                 Equal(1d, (double)view.Resources["TextOpacityPrimary"]);
                 Equal(0.72d, (double)view.Resources["TextOpacitySecondary"]);
                 Equal(0.58d, (double)view.Resources["TextOpacityTertiary"]);
                 Equal(0.45d, (double)view.Resources["TextOpacityDisabled"]);
 
-                var card = new Border
+                var sampleCard = new Border
                 {
                     Style = (Style)view.Resources["MetricCardStyle"]
                 };
-                Equal(154d, card.MinHeight);
-                Equal(new Thickness(16), card.Padding);
-                Equal(true, double.IsNaN(card.Width));
-                Equal(true, double.IsNaN(card.Height));
-                Equal(new Thickness(0), card.Margin);
-
-                var heroCard = new Border
-                {
-                    Style = (Style)view.Resources["HeroMetricCardStyle"]
-                };
-                Equal(176d, heroCard.MinHeight);
-                Equal(new Thickness(20), heroCard.Padding);
-
-                var heroValue = new TextBlock
-                {
-                    Style = (Style)view.Resources["HeroMetricValueStyle"]
-                };
-                Equal(34d, heroValue.FontSize);
-                Equal(FontWeights.Bold, heroValue.FontWeight);
-                Equal(VerticalAlignment.Bottom, heroValue.VerticalAlignment);
-                Equal(TextTrimming.CharacterEllipsis, heroValue.TextTrimming);
-
-                var heroMinorValue = new TextBlock
-                {
-                    Style = (Style)view.Resources["HeroMetricMinorValueStyle"]
-                };
-                Equal(20d, heroMinorValue.FontSize);
-                Equal(new Thickness(10, 0, 0, 2), heroMinorValue.Margin);
-
-                var heroUnit = new TextBlock
-                {
-                    Style = (Style)view.Resources["HeroMetricUnitStyle"]
-                };
-                Equal(13d, heroUnit.FontSize);
-                Equal(FontWeights.SemiBold, heroUnit.FontWeight);
-                Equal(new Thickness(4, 0, 0, 5), heroUnit.Margin);
-                Equal(VerticalAlignment.Bottom, heroUnit.VerticalAlignment);
-                Equal(0.72d, heroUnit.Opacity);
+                Equal(154d, sampleCard.MinHeight);
+                Equal(new Thickness(16), sampleCard.Padding);
+                Equal(true, double.IsNaN(sampleCard.Width));
+                Equal(true, double.IsNaN(sampleCard.Height));
+                Equal(new Thickness(0), sampleCard.Margin);
 
                 var header = new TextBlock
                 {
                     Style = (Style)view.Resources["MetricHeaderStyle"]
                 };
-                var icon = new TextBlock
-                {
-                    Style = (Style)view.Resources["MetricIconStyle"]
-                };
                 var helper = new TextBlock
                 {
                     Style = (Style)view.Resources["MetricHelperTextStyle"]
                 };
-                Equal(0.72d, header.Opacity);
-                Equal(0.58d, icon.Opacity);
-                Equal(0.58d, helper.Opacity);
+                Equal(1d, header.Opacity);
+                Equal(1d, helper.Opacity);
+                Equal(
+                    view.TryFindResource("MetricCardMutedTextBrush"),
+                    header.Foreground);
+                Equal(
+                    view.TryFindResource("MetricCardMutedTextBrush"),
+                    helper.Foreground);
 
-                var textBrush = view.FindResource("TextBrush");
-                var helperHost = new Border
-                {
-                    Child = helper
-                };
-                panel.Children.Add(helperHost);
-                helperHost.Measure(new Size(240, double.PositiveInfinity));
-                helperHost.Arrange(new Rect(0, 0, 240, helperHost.DesiredSize.Height));
-                view.UpdateLayout();
-                helper.UpdateLayout();
-                Equal(textBrush, helper.Foreground);
-                panel.Children.Remove(helperHost);
-
-                LayoutMetricPanel(panel, 1200);
-                panel.Arrange(new Rect(0, 0, 1200, panel.DesiredSize.Height));
-                var firstOfLastRow = GetLayoutSlot(panel.Children[4]);
-                var lastRowWidth = (firstOfLastRow.Width * 3) + (12d * 2);
-                Equal(true,
-                    Math.Abs(firstOfLastRow.Left - ((1200 - lastRowWidth) / 2)) < 0.01);
-
-                var rangeDurationCard = (Border)view.FindName(
-                    "RangeDurationHeroCard");
-                var sessionCountCard = (Border)view.FindName(
-                    "SessionCountHeroCard");
-                LayoutDashboardViewAt(view, 639);
-                Equal(true, view.IsCompactHeroLayout);
-                Equal(0, Grid.GetRow(rangeDurationCard));
-                Equal(0, Grid.GetColumn(rangeDurationCard));
-                Equal(3, Grid.GetColumnSpan(rangeDurationCard));
-                Equal(2, Grid.GetRow(sessionCountCard));
-                Equal(0, Grid.GetColumn(sessionCountCard));
-                Equal(3, Grid.GetColumnSpan(sessionCountCard));
-
-                LayoutDashboardViewAt(view, 640);
-                Equal(false, view.IsCompactHeroLayout);
-                Equal(0, Grid.GetRow(rangeDurationCard));
-                Equal(0, Grid.GetColumn(rangeDurationCard));
-                Equal(1, Grid.GetColumnSpan(rangeDurationCard));
-                Equal(0, Grid.GetRow(sessionCountCard));
-                Equal(2, Grid.GetColumn(sessionCountCard));
-                Equal(1, Grid.GetColumnSpan(sessionCountCard));
+                var iconBases = FindVisualDescendants<Border>(metricGrid)
+                    .Where(border =>
+                        border.Width == 32 &&
+                        border.Height == 32 &&
+                        Math.Abs(border.CornerRadius.TopLeft - 8) < 0.01)
+                    .ToList();
+                Equal(8, iconBases.Count);
             });
         }
 
@@ -4270,11 +4469,8 @@ namespace PlaytimeInsights.Tests
                 "LOCPlaytimeInsightsRangeDuration",
                 "LOCPlaytimeInsightsSessionCount",
                 "LOCPlaytimeInsightsActiveDays",
-                "LOCPlaytimeInsightsAverageSession",
                 "LOCPlaytimeInsightsLongestSession",
                 "LOCPlaytimeInsightsLifetimeDuration",
-                "LOCPlaytimeInsightsLongestStreak",
-                "LOCPlaytimeInsightsCurrentStreak",
                 "LOCPlaytimeInsightsAnomalyHints"
             };
             foreach (var key in metricTitleKeys)
@@ -4282,166 +4478,84 @@ namespace PlaytimeInsights.Tests
                 Equal(1, Regex.Matches(dashboard, key + "}").Count);
             }
 
-            var heroBorders = document.Descendants()
-                .Where(element =>
-                    element.Name.LocalName == "Border" &&
-                    ((string)element.Attribute(xamlNamespace + "Name") ==
-                        "RangeDurationHeroCard" ||
-                    (string)element.Attribute(xamlNamespace + "Name") ==
-                        "SessionCountHeroCard"))
-                .ToList();
-            Equal(2, heroBorders.Count);
-            Equal(true, dashboard.IndexOf(
-                "x:Name=\"RangeDurationHeroCard\"",
-                StringComparison.Ordinal) <
-                dashboard.IndexOf(
-                    "<controls:ResponsiveUniformPanel",
-                    StringComparison.Ordinal));
-            foreach (var heroBorder in heroBorders)
-            {
-                Equal(false, heroBorder.Attributes().Any(attribute =>
-                    attribute.Name.LocalName == "Row" ||
-                    attribute.Name.LocalName == "Column" ||
-                    attribute.Name.LocalName == "ColumnSpan"));
-            }
+            var dashboardViewModelSource = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+            Equal(true, dashboardViewModelSource.Contains(
+                "LOCPlaytimeInsightsStreakCombined"));
+            Equal(true, dashboardViewModelSource.Contains(
+                "LOCPlaytimeInsightsPeakPeriodTitle"));
 
-            var durationHero = heroBorders.Single(element =>
-                (string)element.Attribute(xamlNamespace + "Name") ==
-                "RangeDurationHeroCard");
-            Equal(2, durationHero.DescendantsAndSelf()
-                .Attributes()
-                .Count(attribute =>
-                    attribute.Value ==
-                    "{Binding RangeDurationDisplay.AutomationText}"));
-            Equal(4, durationHero.Descendants()
-                .Count(element =>
-                    element.Name.LocalName == "ColumnDefinition"));
-            Equal(true, durationHero.DescendantsAndSelf()
-                .Attributes()
-                .Any(attribute =>
-                    attribute.Name.LocalName == "MinWidth" &&
-                    attribute.Value == "0"));
-            Equal(true, durationHero.DescendantsAndSelf()
-                .Attributes()
-                .Any(attribute =>
-                    attribute.Value == "{Binding ComparisonVisibility}"));
-
-            var sessionHero = heroBorders.Single(element =>
-                (string)element.Attribute(xamlNamespace + "Name") ==
-                "SessionCountHeroCard");
-            Equal(true, sessionHero.DescendantsAndSelf()
-                .Attributes()
-                .Any(attribute =>
-                    attribute.Name.LocalName == "AutomationProperties.Name" &&
-                    attribute.Value == "{Binding SessionCountText}"));
-
-            var styles = document.Descendants()
-                .Where(element =>
-                    element.Name.LocalName == "Style" &&
-                    element.Attribute(xamlNamespace + "Key") != null)
-                .ToDictionary(
-                    element => (string)element.Attribute(xamlNamespace + "Key"),
-                    element => element);
-            foreach (var styleName in new[]
-            {
-                "HeroMetricCardStyle",
-                "HeroMetricValueStyle",
-                "HeroMetricMinorValueStyle",
-                "HeroMetricUnitStyle"
-            })
-            {
-                Equal(true, styles.ContainsKey(styleName));
-            }
-
-            var heroCardStyle = styles["HeroMetricCardStyle"];
-            Equal("Border", (string)heroCardStyle.Attribute("TargetType"));
-            Equal("{StaticResource PanelStyle}",
-                (string)heroCardStyle.Attribute("BasedOn"));
-            Equal("176", GetStyleSetterValue(heroCardStyle, "MinHeight"));
-            Equal("20", GetStyleSetterValue(heroCardStyle, "Padding"));
-            var heroValueStyle = styles["HeroMetricValueStyle"];
-            Equal("34", GetStyleSetterValue(heroValueStyle, "FontSize"));
-            Equal("Bold", GetStyleSetterValue(heroValueStyle, "FontWeight"));
-            Equal("Bottom",
-                GetStyleSetterValue(heroValueStyle, "VerticalAlignment"));
-            Equal("CharacterEllipsis",
-                GetStyleSetterValue(heroValueStyle, "TextTrimming"));
-            var heroMinorValueStyle = styles["HeroMetricMinorValueStyle"];
-            Equal("20", GetStyleSetterValue(heroMinorValueStyle, "FontSize"));
-            Equal("10,0,0,2",
-                GetStyleSetterValue(heroMinorValueStyle, "Margin"));
-            var heroUnitStyle = styles["HeroMetricUnitStyle"];
-            Equal("13", GetStyleSetterValue(heroUnitStyle, "FontSize"));
-            Equal("SemiBold", GetStyleSetterValue(heroUnitStyle, "FontWeight"));
-            Equal("4,0,0,5", GetStyleSetterValue(heroUnitStyle, "Margin"));
-            Equal("Bottom",
-                GetStyleSetterValue(heroUnitStyle, "VerticalAlignment"));
-            Equal("{StaticResource TextOpacitySecondary}",
-                GetStyleSetterValue(heroUnitStyle, "Opacity"));
-            Equal(2, Regex.Matches(dashboard, "IsCompactHeroLayout").Count);
-
-            var responsivePanels = document.Descendants()
+            var metricGrids = document.Descendants()
                 .Where(element =>
                     element.Name.LocalName == "ResponsiveUniformPanel")
                 .ToList();
-            Equal(1, responsivePanels.Count);
-            var tier2Children = responsivePanels[0].Elements().ToList();
-            Equal(7, tier2Children.Count);
-            Equal(true, tier2Children.All(element =>
+            Equal(1, metricGrids.Count);
+            var metricGrid = metricGrids[0];
+            Equal("200", (string)metricGrid.Attribute("MinItemWidth"));
+            Equal("232", (string)metricGrid.Attribute("PreferredItemWidth"));
+            Equal("280", (string)metricGrid.Attribute("MaxItemWidth"));
+            Equal("1", (string)metricGrid.Attribute("MinColumns"));
+            Equal("4", (string)metricGrid.Attribute("MaxColumns"));
+            var metricCards = metricGrid.Elements().ToList();
+            Equal(8, metricCards.Count);
+            Equal(true, metricCards.All(element =>
                 element.Name.LocalName == "Border"));
+            Equal(false, dashboard.Contains(
+                "<UniformGrid Columns=\"4\""));
+            Equal(0, Regex.Matches(dashboard, "IsCompactHeroLayout").Count);
 
-            var tier2KeyOrder = new[]
-            {
-                "LOCPlaytimeInsightsActiveDays",
-                "LOCPlaytimeInsightsAverageSession",
-                "LOCPlaytimeInsightsLongestSession",
-                "LOCPlaytimeInsightsLifetimeDuration",
-                "LOCPlaytimeInsightsLongestStreak",
-                "LOCPlaytimeInsightsCurrentStreak",
-                "LOCPlaytimeInsightsAnomalyHints"
-            };
-            var lastTier2KeyIndex = -1;
-            foreach (var key in tier2KeyOrder)
+            var metricKeyOrder = metricTitleKeys;
+            var lastMetricKeyIndex = -1;
+            foreach (var key in metricKeyOrder)
             {
                 var keyIndex = dashboard.IndexOf(
                     key,
                     StringComparison.Ordinal);
-                Equal(true, keyIndex > lastTier2KeyIndex);
-                lastTier2KeyIndex = keyIndex;
+                Equal(true, keyIndex > lastMetricKeyIndex);
+                lastMetricKeyIndex = keyIndex;
             }
 
             foreach (var binding in new[]
             {
-                "{Binding AverageSessionDisplay.MajorValue}",
-                "{Binding AverageSessionDisplay.MajorUnit}",
-                "{Binding AverageSessionDisplay.MinorValue}",
-                "{Binding AverageSessionDisplay.MinorUnit}",
-                "{Binding LongestSessionDisplay.MajorValue}",
-                "{Binding LongestSessionDisplay.MajorUnit}",
-                "{Binding LongestSessionDisplay.MinorValue}",
-                "{Binding LongestSessionDisplay.MinorUnit}",
-                "{Binding LifetimeDurationDisplay.MajorValue}",
-                "{Binding LifetimeDurationDisplay.MajorUnit}",
-                "{Binding LifetimeDurationDisplay.MinorValue}",
-                "{Binding LifetimeDurationDisplay.MinorUnit}",
+                "{Binding RangeDurationDisplay.MajorValue, Mode=OneWay}",
+                "{Binding RangeDurationDisplay.MajorUnit, Mode=OneWay}",
+                "{Binding RangeDurationDisplay.MinorValue, Mode=OneWay}",
+                "{Binding RangeDurationDisplay.MinorUnit, Mode=OneWay}",
+                "{Binding LongestSessionDisplay.MajorValue, Mode=OneWay}",
+                "{Binding LongestSessionDisplay.MajorUnit, Mode=OneWay}",
+                "{Binding LongestSessionDisplay.MinorValue, Mode=OneWay}",
+                "{Binding LongestSessionDisplay.MinorUnit, Mode=OneWay}",
+                "{Binding LifetimeDurationDisplay.MajorValue, Mode=OneWay}",
+                "{Binding LifetimeDurationDisplay.MajorUnit, Mode=OneWay}",
+                "{Binding LifetimeDurationDisplay.MinorValue, Mode=OneWay}",
+                "{Binding LifetimeDurationDisplay.MinorUnit, Mode=OneWay}",
+                "{Binding SessionCountText}",
+                "{Binding AverageSessionSummaryText}",
                 "{Binding ActiveDaysText}",
-                "{Binding LongestStreakText}",
+                "{Binding StreakCardTitle}",
+                "{Binding LongestStreakText, Mode=OneWay}",
                 "{Binding CurrentStreakText}",
-                "{Binding CurrentStreakDateText}",
-                "{Binding AnomalyCountText}"
+                "{Binding CurrentStreakDateText, Mode=OneWay}",
+                "{Binding AnomalyCountText}",
+                "{Binding AnomalyCount}",
+                "{Binding PeakPeriodCardTitle}",
+                "{Binding PeakPeriodText}",
+                "{Binding PeakPeriodShareText}"
             })
             {
                 Equal(true, dashboard.Contains(binding));
             }
 
-            var tier2IconBases = responsivePanels[0].Descendants()
+            var metricIconBases = metricGrids[0].Descendants()
                 .Where(element =>
                     element.Name.LocalName == "Border" &&
                     (string)element.Attribute("Width") == "32" &&
                     (string)element.Attribute("Height") == "32" &&
                     (string)element.Attribute("CornerRadius") == "8")
                 .ToList();
-            Equal(7, tier2IconBases.Count);
+            Equal(8, metricIconBases.Count);
             foreach (var brush in new[]
             {
                 "MetricDurationForegroundBrush",
@@ -4456,6 +4570,16 @@ namespace PlaytimeInsights.Tests
             {
                 Equal(true, dashboard.Contains(brush));
             }
+
+            Equal(true, dashboard.Contains("MetricComparisonTagStyle"));
+            Equal(true, dashboard.Contains("#FF4ADE80"));
+            Equal(true, dashboard.Contains("#1A4ADE80"));
+            Equal(true, dashboard.Contains("#FF60A5FA"));
+            Equal(true, dashboard.Contains("#1A60A5FA"));
+            Equal(true, dashboard.Contains("RefreshGhostButtonStyle"));
+            Equal(true, dashboard.Contains("&#xE72C;"));
+            Equal(true, dashboard.Contains("AnomalyMetricIconStyle"));
+            Equal(true, dashboard.Contains("AnomalyMetricIconTextStyle"));
 
             var adaptivePanels = document.Descendants()
                 .Where(element =>
@@ -4609,24 +4733,9 @@ namespace PlaytimeInsights.Tests
                 "DrilldownModule_IsVisibleChanged"));
             Equal(true, dashboardCode.Contains("BringIntoView()"));
             Equal(true, dashboardCode.Contains(
-                "public static readonly DependencyProperty " +
-                "IsCompactHeroLayoutProperty"));
-            Equal(true, dashboardCode.Contains("DependencyProperty.Register("));
-            Equal(true, dashboardCode.Contains("nameof(IsCompactHeroLayout)"));
-            Equal(true, dashboardCode.Contains("typeof(bool)"));
-            Equal(true, dashboardCode.Contains(
-                "typeof(PlaytimeInsightsDashboardView)"));
-            Equal(true, dashboardCode.Contains("new PropertyMetadata(false)"));
-            Equal(true, dashboardCode.Contains(
-                "SizeChanged += PlaytimeInsightsDashboardView_SizeChanged;"));
-            var sizeChangedBlock = ExtractSourceBlock(
-                dashboardCode,
-                "private void PlaytimeInsightsDashboardView_SizeChanged",
-                "private void PlaytimeInsightsDashboardView_Loaded");
-            Equal(true, sizeChangedBlock.Contains(
-                "IsCompactHeroLayout = e.NewSize.Width < 640d;"));
-            Equal(false, sizeChangedBlock.Contains("Command"));
-            Equal(false, sizeChangedBlock.Contains("Execute"));
+                "Loaded += PlaytimeInsightsDashboardView_Loaded;"));
+            Equal(false, dashboardCode.Contains("IsCompactHeroLayout"));
+            Equal(false, dashboardCode.Contains("SizeChanged"));
         }
 
         private static void TestDashboardVisualRefactorContract()
@@ -4667,12 +4776,18 @@ namespace PlaytimeInsights.Tests
                 .Where(element =>
                     element.Name.LocalName == "ResponsiveUniformPanel")
                 .ToList();
+            var metricGrids = dashboard.Descendants()
+                .Where(element =>
+                    element.Name.LocalName == "UniformGrid" &&
+                    (string)element.Attribute("Columns") == "4")
+                .ToList();
             Equal(1, adaptivePanels.Count);
             Equal(1, responsivePanels.Count);
+            Equal(0, metricGrids.Count);
 
-            var tier2Cards = responsivePanels[0].Elements().ToList();
-            Equal(7, tier2Cards.Count);
-            Equal(true, tier2Cards.All(element =>
+            var metricCards = responsivePanels[0].Elements().ToList();
+            Equal(8, metricCards.Count);
+            Equal(true, metricCards.All(element =>
                 element.Name.LocalName == "Border"));
 
             foreach (var rankingBinding in new[]

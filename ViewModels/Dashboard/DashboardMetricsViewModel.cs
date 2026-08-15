@@ -20,6 +20,7 @@ namespace PlaytimeInsights.ViewModels
         private string activeDaysText;
         private string averageSessionText;
         private DurationDisplayViewModel averageSessionDisplay;
+        private string averageSessionSummaryText;
         private string longestSessionText;
         private DurationDisplayViewModel longestSessionDisplay;
         private string rangeText;
@@ -33,6 +34,7 @@ namespace PlaytimeInsights.ViewModels
         private string currentStreakText;
         private string currentStreakDateText;
         private string anomalyCountText;
+        private int anomalyCount;
         private IReadOnlyList<GameRankingViewModel> rangeGameRankings =
             new List<GameRankingViewModel>();
         private IReadOnlyList<GameRankingViewModel> lifetimeGameRankings =
@@ -74,6 +76,8 @@ namespace PlaytimeInsights.ViewModels
 
         public DurationDisplayViewModel AverageSessionDisplay { get => averageSessionDisplay; private set => SetValue(ref averageSessionDisplay, value); }
 
+        public string AverageSessionSummaryText { get => averageSessionSummaryText; private set => SetValue(ref averageSessionSummaryText, value); }
+
         public string LongestSessionText { get => longestSessionText; private set => SetValue(ref longestSessionText, value); }
 
         public DurationDisplayViewModel LongestSessionDisplay { get => longestSessionDisplay; private set => SetValue(ref longestSessionDisplay, value); }
@@ -99,6 +103,8 @@ namespace PlaytimeInsights.ViewModels
         public string CurrentStreakDateText { get => currentStreakDateText; private set => SetValue(ref currentStreakDateText, value); }
 
         public string AnomalyCountText { get => anomalyCountText; private set => SetValue(ref anomalyCountText, value); }
+
+        public int AnomalyCount { get => anomalyCount; private set => SetValue(ref anomalyCount, value); }
 
         public IReadOnlyList<GameRankingViewModel> RangeGameRankings
         {
@@ -133,6 +139,11 @@ namespace PlaytimeInsights.ViewModels
             ActiveDaysText = snapshot.ActiveDaysText;
             AverageSessionText = snapshot.AverageSessionText;
             AverageSessionDisplay = snapshot.AverageSessionDisplay;
+            AverageSessionSummaryText = LocalizationService.Format(
+                "LOCPlaytimeInsightsAverageSessionHelperFormat",
+                "均 {0} / 次",
+                snapshot.AverageSessionDisplay?.CompactText ??
+                    snapshot.AverageSessionText ?? string.Empty);
             LongestSessionText = snapshot.LongestSessionText;
             LongestSessionDisplay = snapshot.LongestSessionDisplay;
             RangeText = snapshot.RangeText;
@@ -146,6 +157,7 @@ namespace PlaytimeInsights.ViewModels
             CurrentStreakText = snapshot.Advanced.CurrentStreakText;
             CurrentStreakDateText = snapshot.Advanced.CurrentStreakDateText;
             AnomalyCountText = snapshot.Advanced.AnomalyCountText;
+            AnomalyCount = snapshot.Advanced.AnomalyCount;
             RangeGameRankings = (snapshot.RangeGameRankings ??
                 Enumerable.Empty<GameRankingViewModel>()).ToList();
             LifetimeGameRankings = (snapshot.LifetimeGameRankings ??

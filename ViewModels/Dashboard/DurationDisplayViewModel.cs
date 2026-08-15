@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace PlaytimeInsights.ViewModels
 {
     public sealed class DurationDisplayViewModel
@@ -25,5 +27,15 @@ namespace PlaytimeInsights.ViewModels
         public string MinorUnit { get; }
 
         public string AutomationText { get; }
+
+        public string CompactText => string.Join(
+            " ",
+            new[]
+            {
+                MajorValue,
+                MajorUnit,
+                MinorValue,
+                MinorUnit
+            }.Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 }

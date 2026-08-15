@@ -48,28 +48,78 @@
                BasedOn="{StaticResource PanelStyle}">
             <Setter Property="Background" Value="{StaticResource MetricCardBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource MetricCardRimLightBorderBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{StaticResource MetricCardTextBrush}" />
             <Setter Property="MinHeight" Value="154" />
             <Setter Property="Padding" Value="16" />
         </Style>
-        <Style x:Key="HeroMetricCardStyle"
-               TargetType="Border"
-               BasedOn="{StaticResource PanelStyle}">
-            <Setter Property="Background" Value="{StaticResource MetricCardBackgroundBrush}" />
-            <Setter Property="BorderBrush" Value="{StaticResource MetricCardRimLightBorderBrush}" />
-            <Setter Property="MinHeight" Value="176" />
-            <Setter Property="Padding" Value="20" />
+        <Style x:Key="MetricComparisonTagStyle" TargetType="Border">
+            <Setter Property="Background" Value="#14FFFFFF" />
+            <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="7,2" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding TrendKind}" Value="Increase">
+                    <Setter Property="Background" Value="#1A4ADE80" />
+                    <Setter Property="BorderBrush" Value="#334ADE80" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding TrendKind}" Value="Decrease">
+                    <Setter Property="Background" Value="#1A60A5FA" />
+                    <Setter Property="BorderBrush" Value="#3360A5FA" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="MetricComparisonTagTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FF9CA3AF" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding TrendKind}" Value="Increase">
+                    <Setter Property="Foreground" Value="#FF4ADE80" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding TrendKind}" Value="Decrease">
+                    <Setter Property="Foreground" Value="#FF60A5FA" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="AnomalyMetricIconStyle" TargetType="Border">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="{StaticResource MetricAnomalyBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="#33FB7185" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding AnomalyCount}" Value="0">
+                    <Setter Property="Background" Value="#14FFFFFF" />
+                    <Setter Property="BorderBrush" Value="#1AFFFFFF" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="AnomalyMetricIconTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MetricAnomalyForegroundBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding AnomalyCount}" Value="0">
+                    <Setter Property="Foreground" Value="#FF9CA3AF" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="ModulePanelStyle"
                TargetType="Border"
                BasedOn="{StaticResource PanelStyle}">
             <Setter Property="Background" Value="{StaticResource ModuleBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource ModuleRimLightBorderBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{StaticResource MetricCardTextBrush}" />
         </Style>
         <Style x:Key="ToolbarSurfaceStyle"
                TargetType="Border"
                BasedOn="{StaticResource PanelStyle}">
             <Setter Property="Background" Value="{StaticResource ToolbarSurfaceBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource ToolbarSurfaceRimLightBorderBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{StaticResource MetricCardTextBrush}" />
             <Setter Property="Padding" Value="12,14" />
         </Style>
         <Style x:Key="DrilldownCardStyle"
@@ -77,6 +127,7 @@
                BasedOn="{StaticResource PanelStyle}">
             <Setter Property="Background" Value="{StaticResource DrilldownCardBackgroundBrush}" />
             <Setter Property="BorderBrush" Value="{StaticResource MetricCardRimLightBorderBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{StaticResource MetricCardTextBrush}" />
             <Setter Property="Padding" Value="0" />
         </Style>
         <Style x:Key="RankingItemCardStyle" TargetType="Border">
@@ -127,7 +178,7 @@
             <Setter Property="Background" Value="#14FFFFFF" />
             <Setter Property="BorderBrush" Value="#1AFFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource MetricCardTextBrush}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Template">
@@ -159,57 +210,75 @@
                             <Trigger Property="IsKeyboardFocused" Value="True">
                                 <Setter TargetName="GhostButtonBorder"
                                         Property="BorderBrush"
-                                        Value="{DynamicResource TextBrush}" />
+                                        Value="{StaticResource MetricCardTextBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="HeroMetricValueStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="34" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="VerticalAlignment" Value="Bottom" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-        </Style>
-        <Style x:Key="HeroMetricMinorValueStyle"
-               TargetType="TextBlock"
-               BasedOn="{StaticResource HeroMetricValueStyle}">
-            <Setter Property="FontSize" Value="20" />
-            <Setter Property="Margin" Value="10,0,0,2" />
-        </Style>
-        <Style x:Key="HeroMetricUnitStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="4,0,0,5" />
-            <Setter Property="VerticalAlignment" Value="Bottom" />
-            <Setter Property="Opacity" Value="{StaticResource TextOpacitySecondary}" />
+        <Style x:Key="RefreshGhostButtonStyle"
+               TargetType="{x:Type Button}">
+            <Setter Property="Padding" Value="16,6" />
+            <Setter Property="Background" Value="#1A4A90E2" />
+            <Setter Property="BorderBrush" Value="#664A90E2" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource MetricDurationForegroundBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="RefreshGhostBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="RefreshGhostBorder"
+                                        Property="Background"
+                                        Value="#264A90E2" />
+                                <Setter TargetName="RefreshGhostBorder"
+                                        Property="BorderBrush"
+                                        Value="#804A90E2" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="RefreshGhostBorder"
+                                        Property="Background"
+                                        Value="#334A90E2" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="RefreshGhostBorder"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource MetricCardTextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="MetricHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Opacity" Value="{StaticResource TextOpacitySecondary}" />
+            <Setter Property="Foreground" Value="{StaticResource MetricCardMutedTextBrush}" />
             <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style x:Key="MetricIconStyle" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-            <Setter Property="Opacity" Value="{StaticResource TextOpacityTertiary}" />
-            <Setter Property="HorizontalAlignment" Value="Right" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="IsHitTestVisible" Value="False" />
         </Style>
         <Style x:Key="MetricValueStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="26" />
             <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource MetricCardTextBrush}" />
             <Setter Property="Margin" Value="0,8,0,0" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
         <Style x:Key="MetricHelperTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-            <Setter Property="Opacity" Value="{StaticResource TextOpacityTertiary}" />
+            <Setter Property="Foreground" Value="{StaticResource MetricCardMutedTextBrush}" />
             <Setter Property="Margin" Value="0,4,0,0" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
@@ -230,37 +299,6 @@
             <GradientStop Color="#FF2457D6" Offset="0" />
             <GradientStop Color="#FFA45CFF" Offset="1" />
         </LinearGradientBrush>
-        <Style x:Key="TrendTagStyle" TargetType="Border">
-            <Setter Property="HorizontalAlignment" Value="Left" />
-            <Setter Property="Background" Value="{DynamicResource PopupBackgroundBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="9" />
-            <Setter Property="Padding" Value="7,2" />
-            <Setter Property="Margin" Value="0,3,0,0" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding TrendKind}" Value="Increase">
-                    <Setter Property="Background" Value="{StaticResource TrendIncreaseFillBrush}" />
-                    <Setter Property="BorderBrush" Value="{StaticResource TrendIncreaseBrush}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding TrendKind}" Value="Decrease">
-                    <Setter Property="Background" Value="{StaticResource TrendDecreaseFillBrush}" />
-                    <Setter Property="BorderBrush" Value="{StaticResource TrendDecreaseBrush}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-        <Style x:Key="TrendTagTextStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="10" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding TrendKind}" Value="Increase">
-                    <Setter Property="Foreground" Value="{StaticResource TrendIncreaseBrush}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding TrendKind}" Value="Decrease">
-                    <Setter Property="Foreground" Value="{StaticResource TrendDecreaseBrush}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -277,21 +315,55 @@
             <Setter Property="Margin" Value="0,0,8,0" />
         </Style>
         <Style x:Key="HelpIconButtonStyle"
-               TargetType="{x:Type Button}"
-               BasedOn="{StaticResource {x:Type Button}}">
+               TargetType="{x:Type Button}">
             <Setter Property="Width" Value="19" />
             <Setter Property="Height" Value="19" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="7,0,0,0" />
             <Setter Property="FontSize" Value="11" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
+            <Setter Property="Background" Value="#14FFFFFF" />
+            <Setter Property="BorderBrush" Value="#1AFFFFFF" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Opacity" Value="{StaticResource TextOpacitySecondary}" />
+            <Setter Property="Foreground" Value="{StaticResource MetricCardTextBrush}" />
             <Setter Property="Cursor" Value="Help" />
             <Setter Property="ToolTipService.ShowDuration" Value="60000" />
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="HelpButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HelpButtonBorder"
+                                        Property="Background"
+                                        Value="#264A90E2" />
+                                <Setter TargetName="HelpButtonBorder"
+                                        Property="BorderBrush"
+                                        Value="#664A90E2" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="HelpButtonBorder"
+                                        Property="Background"
+                                        Value="#334A90E2" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="HelpButtonBorder"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource MetricCardTextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="AdvancedFilterToggleStyle"
                TargetType="{x:Type ToggleButton}">
@@ -524,7 +596,7 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource MetricCardTextBrush}" />
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -561,15 +633,15 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ButtonBorder"
                                         Property="Background"
-                                        Value="{DynamicResource ControlBackgroundBrush}" />
+                                        Value="#14FFFFFF" />
                                 <Setter TargetName="ButtonBorder"
                                         Property="BorderBrush"
-                                        Value="{DynamicResource PanelSeparatorBrush}" />
+                                        Value="#1AFFFFFF" />
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
                                 <Setter TargetName="ButtonBorder"
                                         Property="BorderBrush"
-                                        Value="{DynamicResource TextBrush}" />
+                                        Value="{StaticResource MetricCardTextBrush}" />
                                 <Setter TargetName="ButtonBorder"
                                         Property="BorderThickness"
                                         Value="1" />
@@ -659,11 +731,20 @@
                     </StackPanel>
                 </Grid>
                 <Button Grid.Column="1"
-                        Content="{DynamicResource LOCPlaytimeInsightsRefreshButton}"
+                        Style="{StaticResource RefreshGhostButtonStyle}"
                         AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRefreshButton}"
-                        Padding="18,7"
-                        VerticalAlignment="Center"
-                        Command="{Binding RefreshCommand}" />
+                        Command="{Binding RefreshCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE72C;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="12"
+                                   VerticalAlignment="Center"
+                                   IsHitTestVisible="False" />
+                        <AccessText Text="{DynamicResource LOCPlaytimeInsightsRefreshButton}"
+                                    Margin="6,0,0,0"
+                                    VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </Grid>
 
             <Border Style="{StaticResource ToolbarSurfaceStyle}" Margin="0,0,0,18">
@@ -679,6 +760,7 @@
                                 VerticalAlignment="Center">
                             <TextBlock Text="{Binding RangeText}"
                                        FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextBrush}"
                                        VerticalAlignment="Center"
                                        TextTrimming="CharacterEllipsis" />
                         </Border>
@@ -806,120 +888,101 @@
                 </StackPanel>
             </Border>
 
-            <Grid Margin="0,0,0,12">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="12" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Border x:Name="RangeDurationHeroCard">
-                    <Border.Style>
-                        <Style TargetType="Border"
-                               BasedOn="{StaticResource HeroMetricCardStyle}">
-                            <Setter Property="Grid.Row" Value="0" />
-                            <Setter Property="Grid.Column" Value="0" />
-                            <Setter Property="Grid.ColumnSpan" Value="1" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsCompactHeroLayout, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                             Value="True">
-                                    <Setter Property="Grid.Row" Value="0" />
-                                    <Setter Property="Grid.Column" Value="0" />
-                                    <Setter Property="Grid.ColumnSpan" Value="3" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <StackPanel>
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsRangeDuration}"
-                                   Style="{StaticResource MetricHeaderStyle}" />
-                        <Grid Margin="0,12,0,0"
-                              ToolTip="{Binding RangeDurationDisplay.AutomationText}"
-                              AutomationProperties.Name="{Binding RangeDurationDisplay.AutomationText}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       MinWidth="0"
-                                       Text="{Binding RangeDurationDisplay.MajorValue}"
-                                       Style="{StaticResource HeroMetricValueStyle}" />
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding RangeDurationDisplay.MajorUnit}"
-                                       Style="{StaticResource HeroMetricUnitStyle}" />
-                            <TextBlock Grid.Column="2"
-                                       Text="{Binding RangeDurationDisplay.MinorValue}"
-                                       Style="{StaticResource HeroMetricMinorValueStyle}" />
-                            <TextBlock Grid.Column="3"
-                                       Text="{Binding RangeDurationDisplay.MinorUnit}"
-                                       Style="{StaticResource HeroMetricUnitStyle}" />
-                        </Grid>
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsPreciseSessionBasis}"
-                                   Style="{StaticResource MetricHelperTextStyle}" />
-                        <StackPanel VerticalAlignment="Bottom"
-                                    Margin="0,10,0,0"
-                                    Visibility="{Binding ComparisonVisibility}">
-                            <Border Style="{StaticResource TrendTagStyle}"
-                                    DataContext="{Binding PreviousPeriodComparison}"
-                                    ToolTip="{Binding TooltipText}">
-                                <TextBlock Text="{Binding TagText}"
-                                           Style="{StaticResource TrendTagTextStyle}" />
-                            </Border>
-                            <Border Style="{StaticResource TrendTagStyle}"
-                                    DataContext="{Binding YearOverYearComparison}"
-                                    ToolTip="{Binding TooltipText}">
-                                <TextBlock Text="{Binding TagText}"
-                                           Style="{StaticResource TrendTagTextStyle}" />
-                            </Border>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-                <Border x:Name="SessionCountHeroCard">
-                    <Border.Style>
-                        <Style TargetType="Border"
-                               BasedOn="{StaticResource HeroMetricCardStyle}">
-                            <Setter Property="Grid.Row" Value="0" />
-                            <Setter Property="Grid.Column" Value="2" />
-                            <Setter Property="Grid.ColumnSpan" Value="1" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsCompactHeroLayout, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                             Value="True">
-                                    <Setter Property="Grid.Row" Value="2" />
-                                    <Setter Property="Grid.Column" Value="0" />
-                                    <Setter Property="Grid.ColumnSpan" Value="3" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <StackPanel>
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsSessionCount}"
-                                   Style="{StaticResource MetricHeaderStyle}" />
-                        <TextBlock Text="{Binding SessionCountText}"
-                                   Margin="0,12,0,0"
-                                   Style="{StaticResource HeroMetricValueStyle}"
-                                   AutomationProperties.Name="{Binding SessionCountText}" />
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsOverlappingSessions}"
-                                   Style="{StaticResource MetricHelperTextStyle}" />
-                    </StackPanel>
-                </Border>
-            </Grid>
-
             <controls:ResponsiveUniformPanel
                                              Margin="0,0,0,18"
-                                             MinItemWidth="204"
+                                             MinItemWidth="200"
                                              PreferredItemWidth="232"
-                                             MaxItemWidth="300"
+                                             MaxItemWidth="280"
                                              MinColumns="1"
                                              MaxColumns="4"
                                              HorizontalSpacing="12"
                                              VerticalSpacing="12"
                                              CenterIncompleteRow="True">
+                <Border Style="{StaticResource MetricCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricDurationBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE916;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricDurationForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsRangeDuration}"
+                                       Style="{StaticResource MetricHeaderStyle}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                        <TextBlock Style="{StaticResource MetricValueStyle}"
+                                   ToolTip="{Binding RangeDurationDisplay.AutomationText}"
+                                   AutomationProperties.Name="{Binding RangeDurationDisplay.AutomationText}">
+                            <Run Text="{Binding RangeDurationDisplay.MajorValue, Mode=OneWay}" /><Run Text=" " />
+                            <Run Text="{Binding RangeDurationDisplay.MajorUnit, Mode=OneWay}" /><Run Text=" " />
+                            <Run Text="{Binding RangeDurationDisplay.MinorValue, Mode=OneWay}" /><Run Text=" " />
+                            <Run Text="{Binding RangeDurationDisplay.MinorUnit, Mode=OneWay}" />
+                        </TextBlock>
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="0,10,0,0"
+                                    Visibility="{Binding ComparisonVisibility}">
+                            <Border Style="{StaticResource MetricComparisonTagStyle}"
+                                    DataContext="{Binding PreviousPeriodComparison}"
+                                    ToolTip="{Binding TooltipText}">
+                                <TextBlock Text="{Binding TagText}"
+                                           Style="{StaticResource MetricComparisonTagTextStyle}" />
+                            </Border>
+                            <Border Style="{StaticResource MetricComparisonTagStyle}"
+                                    DataContext="{Binding YearOverYearComparison}"
+                                    ToolTip="{Binding TooltipText}">
+                                <TextBlock Text="{Binding TagText}"
+                                           Style="{StaticResource MetricComparisonTagTextStyle}" />
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource MetricCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricSessionBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE7FC;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricSessionForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsSessionCount}"
+                                       Style="{StaticResource MetricHeaderStyle}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                        <TextBlock Text="{Binding SessionCountText}"
+                                   Style="{StaticResource MetricValueStyle}"
+                                   AutomationProperties.Name="{Binding SessionCountText}" />
+                        <TextBlock Text="{Binding AverageSessionSummaryText}"
+                                   Style="{StaticResource MetricHelperTextStyle}" />
+                    </StackPanel>
+                </Border>
                 <Border Style="{StaticResource MetricCardStyle}">
                     <StackPanel>
                         <Grid>
@@ -943,70 +1006,11 @@
                             </Border>
                             <TextBlock Grid.Column="2"
                                        Text="{DynamicResource LOCPlaytimeInsightsActiveDays}"
-                                       Style="{StaticResource MetricHeaderStyle}" />
+                                       Style="{StaticResource MetricHeaderStyle}"
+                                       TextTrimming="CharacterEllipsis" />
                         </Grid>
                         <TextBlock Text="{Binding ActiveDaysText}" Style="{StaticResource MetricValueStyle}" />
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsActiveNaturalDays}" Style="{StaticResource MetricHelperTextStyle}" />
-                    </StackPanel>
-                </Border>
-                <Border Style="{StaticResource MetricCardStyle}">
-                    <StackPanel>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="32" />
-                                <ColumnDefinition Width="10" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Border Width="32"
-                                    Height="32"
-                                    CornerRadius="8"
-                                    Background="{StaticResource MetricSessionBackgroundBrush}"
-                                    VerticalAlignment="Center">
-                                <TextBlock Text="&#xE8EF;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="{StaticResource MetricSessionForegroundBrush}"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           IsHitTestVisible="False" />
-                            </Border>
-                            <TextBlock Grid.Column="2"
-                                       Text="{DynamicResource LOCPlaytimeInsightsAverageSession}"
-                                       Style="{StaticResource MetricHeaderStyle}" />
-                        </Grid>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       MinWidth="0"
-                                       Text="{Binding AverageSessionDisplay.MajorValue}"
-                                       Style="{StaticResource MetricValueStyle}" />
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding AverageSessionDisplay.MajorUnit}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Bottom"
-                                       Margin="4,0,0,5"
-                                       Opacity="{StaticResource TextOpacitySecondary}" />
-                            <TextBlock Grid.Column="2"
-                                       Text="{Binding AverageSessionDisplay.MinorValue}"
-                                       FontSize="16"
-                                       FontWeight="Bold"
-                                       VerticalAlignment="Bottom"
-                                       Margin="10,0,0,2" />
-                            <TextBlock Grid.Column="3"
-                                       Text="{Binding AverageSessionDisplay.MinorUnit}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Bottom"
-                                       Margin="4,0,0,5"
-                                       Opacity="{StaticResource TextOpacitySecondary}" />
-                        </Grid>
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAverageFormula}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource MetricCardStyle}">
@@ -1032,40 +1036,17 @@
                             </Border>
                             <TextBlock Grid.Column="2"
                                        Text="{DynamicResource LOCPlaytimeInsightsLongestSession}"
-                                       Style="{StaticResource MetricHeaderStyle}" />
+                                       Style="{StaticResource MetricHeaderStyle}"
+                                       TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       MinWidth="0"
-                                       Text="{Binding LongestSessionDisplay.MajorValue}"
-                                       Style="{StaticResource MetricValueStyle}" />
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding LongestSessionDisplay.MajorUnit}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Bottom"
-                                       Margin="4,0,0,5"
-                                       Opacity="{StaticResource TextOpacitySecondary}" />
-                            <TextBlock Grid.Column="2"
-                                       Text="{Binding LongestSessionDisplay.MinorValue}"
-                                       FontSize="16"
-                                       FontWeight="Bold"
-                                       VerticalAlignment="Bottom"
-                                       Margin="10,0,0,2" />
-                            <TextBlock Grid.Column="3"
-                                       Text="{Binding LongestSessionDisplay.MinorUnit}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Bottom"
-                                       Margin="4,0,0,5"
-                                       Opacity="{StaticResource TextOpacitySecondary}" />
-                        </Grid>
+                        <TextBlock Style="{StaticResource MetricValueStyle}"
+                                   ToolTip="{Binding LongestSessionDisplay.AutomationText}"
+                                   AutomationProperties.Name="{Binding LongestSessionDisplay.AutomationText}">
+                            <Run Text="{Binding LongestSessionDisplay.MajorValue, Mode=OneWay}" /><Run Text=" " />
+                            <Run Text="{Binding LongestSessionDisplay.MajorUnit, Mode=OneWay}" /><Run Text=" " />
+                            <Run Text="{Binding LongestSessionDisplay.MinorValue, Mode=OneWay}" /><Run Text=" " />
+                            <Run Text="{Binding LongestSessionDisplay.MinorUnit, Mode=OneWay}" />
+                        </TextBlock>
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsClippedToRange}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
@@ -1092,40 +1073,17 @@
                             </Border>
                             <TextBlock Grid.Column="2"
                                        Text="{DynamicResource LOCPlaytimeInsightsLifetimeDuration}"
-                                       Style="{StaticResource MetricHeaderStyle}" />
+                                       Style="{StaticResource MetricHeaderStyle}"
+                                       TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       MinWidth="0"
-                                       Text="{Binding LifetimeDurationDisplay.MajorValue}"
-                                       Style="{StaticResource MetricValueStyle}" />
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding LifetimeDurationDisplay.MajorUnit}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Bottom"
-                                       Margin="4,0,0,5"
-                                       Opacity="{StaticResource TextOpacitySecondary}" />
-                            <TextBlock Grid.Column="2"
-                                       Text="{Binding LifetimeDurationDisplay.MinorValue}"
-                                       FontSize="16"
-                                       FontWeight="Bold"
-                                       VerticalAlignment="Bottom"
-                                       Margin="10,0,0,2" />
-                            <TextBlock Grid.Column="3"
-                                       Text="{Binding LifetimeDurationDisplay.MinorUnit}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Bottom"
-                                       Margin="4,0,0,5"
-                                       Opacity="{StaticResource TextOpacitySecondary}" />
-                        </Grid>
+                        <TextBlock Style="{StaticResource MetricValueStyle}"
+                                   ToolTip="{Binding LifetimeDurationDisplay.AutomationText}"
+                                   AutomationProperties.Name="{Binding LifetimeDurationDisplay.AutomationText}">
+                            <Run Text="{Binding LifetimeDurationDisplay.MajorValue, Mode=OneWay}" /><Run Text=" " />
+                            <Run Text="{Binding LifetimeDurationDisplay.MajorUnit, Mode=OneWay}" /><Run Text=" " />
+                            <Run Text="{Binding LifetimeDurationDisplay.MinorValue, Mode=OneWay}" /><Run Text=" " />
+                            <Run Text="{Binding LifetimeDurationDisplay.MinorUnit, Mode=OneWay}" />
+                        </TextBlock>
                         <TextBlock Text="{Binding TrackedDurationSummaryText}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
@@ -1151,42 +1109,17 @@
                                            IsHitTestVisible="False" />
                             </Border>
                             <TextBlock Grid.Column="2"
-                                       Text="{DynamicResource LOCPlaytimeInsightsLongestStreak}"
-                                       Style="{StaticResource MetricHeaderStyle}" />
-                        </Grid>
-                        <TextBlock Text="{Binding LongestStreakText}" Style="{StaticResource MetricValueStyle}" />
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsLongestStreakHint}" Style="{StaticResource MetricHelperTextStyle}" />
-                    </StackPanel>
-                </Border>
-                <Border Style="{StaticResource MetricCardStyle}">
-                    <StackPanel>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="32" />
-                                <ColumnDefinition Width="10" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Border Width="32"
-                                    Height="32"
-                                    CornerRadius="8"
-                                    Background="{StaticResource MetricActivityBackgroundBrush}"
-                                    VerticalAlignment="Center">
-                                <TextBlock Text="&#xE72C;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="{StaticResource MetricActivityForegroundBrush}"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           IsHitTestVisible="False" />
-                            </Border>
-                            <TextBlock Grid.Column="2"
-                                       Text="{DynamicResource LOCPlaytimeInsightsCurrentStreak}"
-                                       Style="{StaticResource MetricHeaderStyle}" />
+                                       Text="{Binding StreakCardTitle}"
+                                       Style="{StaticResource MetricHeaderStyle}"
+                                       TextTrimming="CharacterEllipsis" />
                         </Grid>
                         <TextBlock Text="{Binding CurrentStreakText}" Style="{StaticResource MetricValueStyle}" />
-                        <TextBlock Text="{Binding CurrentStreakDateText}"
-                                   ToolTip="{DynamicResource LOCPlaytimeInsightsCurrentStreakHint}"
-                                   Style="{StaticResource MetricHelperTextStyle}" />
+                        <TextBlock Style="{StaticResource MetricHelperTextStyle}"
+                                   ToolTip="{DynamicResource LOCPlaytimeInsightsCurrentStreakHint}">
+                            <Run Text="{Binding CurrentStreakDateText, Mode=OneWay}" /><Run Text=" · " />
+                            <Run Text="{DynamicResource LOCPlaytimeInsightsStreakBestPrefix}" />
+                            <Run Text="{Binding LongestStreakText, Mode=OneWay}" />
+                        </TextBlock>
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource MetricCardStyle}">
@@ -1200,22 +1133,77 @@
                             <Border Width="32"
                                     Height="32"
                                     CornerRadius="8"
-                                    Background="{StaticResource MetricAnomalyBackgroundBrush}"
-                                    VerticalAlignment="Center">
+                                    Style="{StaticResource AnomalyMetricIconStyle}">
                                 <TextBlock Text="&#xE7BA;"
                                            FontFamily="Segoe MDL2 Assets"
                                            FontSize="14"
-                                           Foreground="{StaticResource MetricAnomalyForegroundBrush}"
+                                           Style="{StaticResource AnomalyMetricIconTextStyle}"
                                            HorizontalAlignment="Center"
                                            VerticalAlignment="Center"
                                            IsHitTestVisible="False" />
                             </Border>
                             <TextBlock Grid.Column="2"
                                        Text="{DynamicResource LOCPlaytimeInsightsAnomalyHints}"
-                                       Style="{StaticResource MetricHeaderStyle}" />
+                                       Style="{StaticResource MetricHeaderStyle}"
+                                       TextTrimming="CharacterEllipsis" />
                         </Grid>
                         <TextBlock Text="{Binding AnomalyCountText}" Style="{StaticResource MetricValueStyle}" />
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnomalyReadOnly}" Style="{StaticResource MetricHelperTextStyle}" />
+                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnomalyNormal}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock"
+                                       BasedOn="{StaticResource MetricHelperTextStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnomalyCount}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnomalyReadOnly}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock"
+                                       BasedOn="{StaticResource MetricHelperTextStyle}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AnomalyCount}" Value="0">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource MetricCardStyle}">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="32"
+                                    Height="32"
+                                    CornerRadius="8"
+                                    Background="{StaticResource MetricDurationBackgroundBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="&#xE82F;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="{StaticResource MetricDurationForegroundBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding PeakPeriodCardTitle}"
+                                       Style="{StaticResource MetricHeaderStyle}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                        <TextBlock Text="{Binding PeakPeriodText}" Style="{StaticResource MetricValueStyle}" />
+                        <TextBlock Text="{Binding PeakPeriodShareText}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
             </controls:ResponsiveUniformPanel>

@@ -159,6 +159,7 @@ namespace PlaytimeInsights.Services
                     "LOCPlaytimeInsightsCountItemsFormat",
                     "{0:N0} 条",
                     anomalies.Count),
+                AnomalyCount = anomalies.Count,
                 AnomalyVisibility = anomalies.Count > 0
                     ? Visibility.Visible
                     : Visibility.Collapsed,

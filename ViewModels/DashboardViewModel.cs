@@ -170,6 +170,8 @@ namespace PlaytimeInsights.ViewModels
 
         public DurationDisplayViewModel AverageSessionDisplay => Metrics.AverageSessionDisplay;
 
+        public string AverageSessionSummaryText => Metrics.AverageSessionSummaryText;
+
         public string LongestSessionText => Metrics.LongestSessionText;
 
         public DurationDisplayViewModel LongestSessionDisplay => Metrics.LongestSessionDisplay;
@@ -207,6 +209,20 @@ namespace PlaytimeInsights.ViewModels
         public string CurrentStreakDateText => Metrics.CurrentStreakDateText;
 
         public string AnomalyCountText => Metrics.AnomalyCountText;
+
+        public int AnomalyCount => Metrics.AnomalyCount;
+
+        public string StreakCardTitle => LocalizationService.Get(
+            "LOCPlaytimeInsightsStreakCombined",
+            "连续游玩");
+
+        public string PeakPeriodCardTitle => LocalizationService.Get(
+            "LOCPlaytimeInsightsPeakPeriodTitle",
+            "活跃时段");
+
+        public string PeakPeriodText => Distribution.PeakPeriodText;
+
+        public string PeakPeriodShareText => Distribution.PeakPeriodShareText;
 
         public Visibility AnomalyVisibility => Distribution.AnomalyVisibility;
 

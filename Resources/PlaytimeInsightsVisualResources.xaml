@@ -130,6 +130,8 @@
         <GradientStop Color="#00000000" Offset="1" />
     </LinearGradientBrush>
     <SolidColorBrush x:Key="ToolbarLabelBrush" Color="#FF9CA3AF" />
+    <SolidColorBrush x:Key="MetricCardTextBrush" Color="#FFF0F0F5" />
+    <SolidColorBrush x:Key="MetricCardMutedTextBrush" Color="#FF9CA3AF" />
 
     <LinearGradientBrush x:Key="RankingGoldGlowBrush"
                          StartPoint="0,0.5"

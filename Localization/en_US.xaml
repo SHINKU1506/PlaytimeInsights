@@ -35,6 +35,13 @@
     <sys:String x:Key="LOCPlaytimeInsightsCurrentStreakHint">Anchored to range end or today</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyHints">Suspicious session hints</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyReadOnly">Hints only; data is never changed automatically</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAnomalyNormal">Looks normal</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsStreakCombined">Play streak</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsStreakBestPrefix">Best: </sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsAverageSessionHelperFormat">Avg {0} / session</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsPeakPeriodTitle">Peak hours</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsPeakPeriodShareFormat">{0:P0} of range</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsNoPeakPeriod">No data</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyReviewTitle">Suspicious sessions</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsDurationComparison">Playtime comparison</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsAnomalyDescription">For manual review only. No session is changed or deleted automatically. Shows the latest 50 items.</sys:String>

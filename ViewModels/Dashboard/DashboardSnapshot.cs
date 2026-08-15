@@ -58,6 +58,8 @@ namespace PlaytimeInsights.ViewModels
 
         public string AnomalyCountText { get; set; }
 
+        public int AnomalyCount { get; set; }
+
         public Visibility AnomalyVisibility { get; set; }
 
         public IList<AnomalySessionViewModel> Anomalies { get; set; }
