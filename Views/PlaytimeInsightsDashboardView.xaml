@@ -888,7 +888,12 @@
                 </StackPanel>
             </Border>
 
-            <controls:ResponsiveUniformPanel
+            <Grid x:Name="MetricCardsHost"
+                  RenderTransformOrigin="0.5,0.5">
+                <Grid.RenderTransform>
+                    <TranslateTransform x:Name="MetricCardsTransform" Y="0" />
+                </Grid.RenderTransform>
+                <controls:ResponsiveUniformPanel
                                              Margin="0,0,0,18"
                                              MinItemWidth="200"
                                              PreferredItemWidth="232"
@@ -1207,6 +1212,7 @@
                     </StackPanel>
                 </Border>
             </controls:ResponsiveUniformPanel>
+            </Grid>
             <controls:AdaptiveDashboardPanel
                 EnterWideWidth="1200"
                 ExitWideWidth="1160"
@@ -1216,7 +1222,11 @@
 
             <Border x:Name="TrendModule"
                     Style="{StaticResource ModulePanelStyle}"
+                    RenderTransformOrigin="0.5,0.5"
                     controls:AdaptiveDashboardPanel.Zone="Primary">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="TrendModuleTransform" Y="0" />
+                </Border.RenderTransform>
                 <StackPanel>
                     <DockPanel Margin="0,0,0,12">
                         <StackPanel Orientation="Horizontal"
@@ -1257,7 +1267,11 @@
 
             <Border x:Name="RankingModule"
                     Style="{StaticResource ModulePanelStyle}"
+                    RenderTransformOrigin="0.5,0.5"
                     controls:AdaptiveDashboardPanel.Zone="Secondary">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="RankingModuleTransform" Y="0" />
+                </Border.RenderTransform>
                 <TabControl>
                     <TabItem Header="{DynamicResource LOCPlaytimeInsightsRangeRankingTab}"
                              AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsRangeRankingTab}">
@@ -1280,7 +1294,11 @@
 
             <Border x:Name="DistributionModule"
                     Style="{StaticResource ModulePanelStyle}"
+                    RenderTransformOrigin="0.5,0.5"
                     controls:AdaptiveDashboardPanel.Zone="Primary">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="DistributionModuleTransform" Y="0" />
+                </Border.RenderTransform>
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsTimeDistribution}"
@@ -1531,8 +1549,12 @@
 
             <Border x:Name="AnomalyModule"
                     Style="{StaticResource ModulePanelStyle}"
+                    RenderTransformOrigin="0.5,0.5"
                     controls:AdaptiveDashboardPanel.Zone="Secondary"
                     Visibility="{Binding AnomalyVisibility}">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="AnomalyModuleTransform" Y="0" />
+                </Border.RenderTransform>
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnomalyReviewTitle}"
@@ -1656,9 +1678,18 @@
                         </ListView.ItemsPanel>
                         <ListView.ItemTemplate>
                             <DataTemplate>
-                                <Border Height="66"
+                                <Border x:Name="DrilldownSessionRoot"
+                                        Height="66"
                                         Margin="0,0,0,6"
-                                        Style="{StaticResource DrilldownSessionItemStyle}">
+                                        Style="{StaticResource DrilldownSessionItemStyle}"
+                                        RenderTransformOrigin="0.5,0.5"
+                                        controls:HoverMotion.Enabled="True"
+                                        controls:HoverMotion.LiftY="1"
+                                        controls:HoverMotion.Duration="100">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform x:Name="DrilldownSessionTransform"
+                                                            Y="0" />
+                                    </Border.RenderTransform>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="36" />
@@ -1718,6 +1749,42 @@
                                                 </Border>
                                             </Grid>
                                         </Grid>
+                                        <Border x:Name="DrilldownSessionHoverOverlay"
+                                                Grid.ColumnSpan="3"
+                                                Background="{StaticResource DrilldownSessionHoverOverlayBrush}"
+                                                BorderBrush="{StaticResource DrilldownSessionHoverBorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                IsHitTestVisible="False">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Opacity" Value="0" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMouseOver, ElementName=DrilldownSessionRoot}"
+                                                                     Value="True">
+                                                            <DataTrigger.EnterActions>
+                                                                <BeginStoryboard HandoffBehavior="SnapshotAndReplace">
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                         To="1"
+                                                                                         Duration="0:0:0.1" />
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.EnterActions>
+                                                            <DataTrigger.ExitActions>
+                                                                <BeginStoryboard HandoffBehavior="SnapshotAndReplace">
+                                                                    <Storyboard>
+                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                         To="0"
+                                                                         Duration="0:0:0.1" />
+                                                                    </Storyboard>
+                                                                </BeginStoryboard>
+                                                            </DataTrigger.ExitActions>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
                                     </Grid>
                                 </Border>
                             </DataTemplate>

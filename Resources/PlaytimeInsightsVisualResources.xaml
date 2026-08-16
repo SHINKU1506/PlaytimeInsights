@@ -158,6 +158,8 @@
         <GradientStop Color="#14FFFFFF" Offset="0" />
         <GradientStop Color="#00000000" Offset="1" />
     </LinearGradientBrush>
+    <SolidColorBrush x:Key="DrilldownSessionHoverOverlayBrush" Color="#0F60A5FA" />
+    <SolidColorBrush x:Key="DrilldownSessionHoverBorderBrush" Color="#4D60A5FA" />
 
     <LinearGradientBrush x:Key="DrilldownCardBackgroundBrush"
                          StartPoint="0.5,0"

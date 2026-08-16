@@ -23,6 +23,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -109,6 +110,16 @@ namespace PlaytimeInsights.Tests
             Run("Dashboard metrics use responsive semantic visual foundation", TestResponsiveMetricVisualFoundation);
             Run("Dashboard metric additions expose behavior", TestDashboardMetricAdditionsBehavior);
             Run("Advanced filter toggle keeps real interaction contract", TestAdvancedFilterToggleInteraction);
+            Run("Dashboard list hover overlays keep microinteraction contracts", TestDashboardListHoverContracts);
+            Run("Dashboard entrance plan maps transitions and reduced motion", TestDashboardEntrancePlanBehavior);
+            Run("Dashboard refresh publishes one presentation signal", TestDashboardPresentationSignalContract);
+            Run("Dashboard entrance hosts and scheduler keep animation contracts", TestDashboardEntranceHostContract);
+            Run("Virtualized list items reset hover lift after unload", TestDashboardListHoverReset);
+            Run("Entrance animation keeps final base values", TestEntranceAnimationKeepsFinalBaseValues);
+            Run("HoverMotion resets recycled list items", TestHoverMotionRecyclesCleanly);
+            Run("HoverMotion holds lift while hovered and releases after leave", TestHoverMotionHoldAndRelease);
+            Run("Drilldown recycling keeps hover transform at zero", TestDrilldownRecyclingKeepsTransformZero);
+            Run("Presentation refresh chain reaches host animations", TestPresentationRefreshChain);
             Run("Dashboard theme visual contracts stay explicit", TestDashboardThemeVisualContracts);
             Run("Dashboard recomposition keeps 4x2 metric grid and adaptive modules", TestDashboardVisualRefactorStaticContract);
             Run("Dashboard visual refactor keeps final architecture guards", TestDashboardVisualRefactorContract);
@@ -4108,6 +4119,605 @@ namespace PlaytimeInsights.Tests
             panel.UpdateLayout();
         }
 
+        private static void TestDashboardEntrancePlanBehavior()
+        {
+            var full = DashboardEntrancePlan.Create(
+                DashboardPresentationTransition.Full,
+                true);
+            Equal(5, full.Steps.Count);
+            Equal("MetricCardsHost", full.Steps[0].HostName);
+            Equal(0d, full.Steps[0].DelayMilliseconds);
+            Equal(160d, full.Steps[0].DurationMilliseconds);
+            Equal(6d, full.Steps[0].OffsetY);
+            Equal("TrendModule", full.Steps[1].HostName);
+            Equal(24d, full.Steps[1].DelayMilliseconds);
+            Equal("RankingModule", full.Steps[2].HostName);
+            Equal(24d, full.Steps[2].DelayMilliseconds);
+            Equal("DistributionModule", full.Steps[3].HostName);
+            Equal(48d, full.Steps[3].DelayMilliseconds);
+            Equal("AnomalyModule", full.Steps[4].HostName);
+            Equal(48d, full.Steps[4].DelayMilliseconds);
+            Equal(5d, full.Steps[1].OffsetY);
+            Equal(5d, full.Steps[2].OffsetY);
+            Equal(5d, full.Steps[3].OffsetY);
+            Equal(5d, full.Steps[4].OffsetY);
+
+            var trend = DashboardEntrancePlan.Create(
+                DashboardPresentationTransition.Trend,
+                true);
+            Equal(1, trend.Steps.Count);
+            Equal("TrendModule", trend.Steps[0].HostName);
+            Equal(0d, trend.Steps[0].DelayMilliseconds);
+            Equal(140d, trend.Steps[0].DurationMilliseconds);
+            Equal(4d, trend.Steps[0].OffsetY);
+
+            var ranking = DashboardEntrancePlan.Create(
+                DashboardPresentationTransition.Ranking,
+                true);
+            Equal(1, ranking.Steps.Count);
+            Equal("RankingModule", ranking.Steps[0].HostName);
+            Equal(0d, ranking.Steps[0].DelayMilliseconds);
+            Equal(140d, ranking.Steps[0].DurationMilliseconds);
+            Equal(4d, ranking.Steps[0].OffsetY);
+
+            var none = DashboardEntrancePlan.Create(
+                DashboardPresentationTransition.None,
+                true);
+            Equal(0, none.Steps.Count);
+
+            var reduced = DashboardEntrancePlan.Create(
+                DashboardPresentationTransition.Full,
+                false);
+            Equal(5, reduced.Steps.Count);
+            Equal(true, reduced.Steps.All(step =>
+                step.DelayMilliseconds == 0 &&
+                step.DurationMilliseconds == 0 &&
+                step.OffsetY == 0));
+        }
+
+        private static void TestDashboardPresentationSignalContract()
+        {
+            var sourceRoot = FindSourceRoot();
+            var source = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "DashboardViewModel.cs"));
+            Equal(true, source.Contains(
+                "enum DashboardPresentationTransition"));
+            Equal(true, source.Contains(
+                "DashboardPresentationTransition PresentationTransition"));
+            Equal(true, source.Contains(
+                "int PresentationRevision"));
+            Equal(true, source.Contains(
+                "PublishPresentationUpdate"));
+            Equal(true, source.Contains(
+                "PresentationRevision"));
+            Equal(true, source.Contains(
+                "plan.Mode"));
+
+            var settings =
+                (PlaytimeInsightsSettingsViewModel)
+                System.Runtime.Serialization.FormatterServices
+                    .GetUninitializedObject(
+                        typeof(PlaytimeInsightsSettingsViewModel));
+            settings.Settings = new PlaytimeInsightsSettings();
+            var viewModel = new DashboardViewModel(
+                null,
+                null,
+                new AnalyticsService(),
+                new SessionQueryService(new TestGameMetadataAccessor()),
+                settings);
+            Equal(0, viewModel.PresentationRevision);
+
+            var refreshMethod = typeof(DashboardViewModel).GetMethod(
+                "Refresh",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new[] { typeof(DashboardRefreshReason) },
+                null);
+            Equal(true, refreshMethod != null);
+            viewModel.SelectedMetadataDimensionOption = null;
+            refreshMethod.Invoke(
+                viewModel,
+                new object[] { DashboardRefreshReason.DataReload });
+            Equal(0, viewModel.PresentationRevision);
+
+            var publishMethod = typeof(DashboardViewModel).GetMethod(
+                "PublishPresentationUpdate",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Equal(true, publishMethod != null);
+            var revision = viewModel.PresentationRevision;
+            publishMethod.Invoke(
+                viewModel,
+                new object[] { DashboardPresentationTransition.Trend });
+            Equal(DashboardPresentationTransition.Trend,
+                viewModel.PresentationTransition);
+            Equal(revision + 1, viewModel.PresentationRevision);
+            publishMethod.Invoke(
+                viewModel,
+                new object[] { DashboardPresentationTransition.Ranking });
+            Equal(DashboardPresentationTransition.Ranking,
+                viewModel.PresentationTransition);
+            Equal(revision + 2, viewModel.PresentationRevision);
+        }
+
+        private static void TestDashboardEntranceHostContract()
+        {
+            var sourceRoot = FindSourceRoot();
+            var dashboardPath = Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml");
+            var dashboard = File.ReadAllText(dashboardPath);
+            var codeBehind = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+
+            foreach (var hostName in new[]
+            {
+                "MetricCardsHost",
+                "TrendModule",
+                "RankingModule",
+                "DistributionModule",
+                "AnomalyModule"
+            })
+            {
+                Equal(true, dashboard.Contains(
+                    "x:Name=\"" + hostName + "\""));
+            }
+
+            Equal(true, codeBehind.Contains("DataContextChanged"));
+            Equal(true, codeBehind.Contains("PresentationRevision"));
+            Equal(true, codeBehind.Contains("DispatcherPriority.Loaded"));
+            Equal(true, codeBehind.Contains(
+                "SystemParameters.ClientAreaAnimation"));
+            Equal(true, codeBehind.Contains(
+                "DashboardEntrancePlan.Create"));
+            Equal(true, codeBehind.Contains("BeginAnimation"));
+            Equal(true, codeBehind.Contains("FillBehavior.Stop"));
+            Equal(true, codeBehind.Contains(
+                "HandoffBehavior.SnapshotAndReplace"));
+
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 1200
+                };
+                view.Measure(new Size(1200, double.PositiveInfinity));
+                view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+                view.UpdateLayout();
+
+                var metricHost = (FrameworkElement)view.FindName(
+                    "MetricCardsHost");
+                Equal(true, metricHost != null);
+                foreach (var hostName in new[]
+                {
+                    "TrendModule",
+                    "RankingModule",
+                    "DistributionModule",
+                    "AnomalyModule"
+                })
+                {
+                    Equal(true, view.FindName(hostName) is FrameworkElement);
+                }
+
+                var hosts = new[]
+                {
+                    metricHost,
+                    (FrameworkElement)view.FindName("TrendModule"),
+                    (FrameworkElement)view.FindName("RankingModule"),
+                    (FrameworkElement)view.FindName("DistributionModule"),
+                    (FrameworkElement)view.FindName("AnomalyModule")
+                };
+                foreach (var host in hosts)
+                {
+                    var transform = host.RenderTransform as TranslateTransform;
+                    Equal(true, transform != null);
+                    Equal(0d, transform.Y);
+                    Equal(1d, host.Opacity);
+                }
+            });
+        }
+
+        private static void TestEntranceAnimationKeepsFinalBaseValues()
+        {
+            RunOnSta(() =>
+            {
+                var playStep = typeof(PlaytimeInsightsDashboardView).GetMethod(
+                    "PlayEntranceStep",
+                    BindingFlags.Static | BindingFlags.NonPublic);
+                Equal(true, playStep != null);
+                var host = new Border
+                {
+                    Width = 120,
+                    Height = 60,
+                    RenderTransform = new TranslateTransform(0, 0)
+                };
+                playStep.Invoke(
+                    null,
+                    new object[]
+                    {
+                        host,
+                        new DashboardEntranceStep("TestHost", 0d, 160d, 6d),
+                        true
+                    });
+                Equal(1d, host.Opacity);
+                Equal(0d, ((TranslateTransform)host.RenderTransform).Y);
+                Equal(true, host.HasAnimatedProperties);
+            });
+        }
+
+        private static void TestDrilldownRecyclingKeepsTransformZero()
+        {
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView();
+                view.Measure(new Size(1200, double.PositiveInfinity));
+                view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+                view.UpdateLayout();
+                var drilldownModule = (Border)view.FindName(
+                    "DrilldownModule");
+                var template = FindVisualDescendants<ListView>(
+                    drilldownModule).Single().ItemTemplate;
+
+                var items = Enumerable.Range(0, 200)
+                    .Select(index => new SessionDetailViewModel
+                    {
+                        GameName = "Game " + index
+                    })
+                    .ToList();
+                var list = new ListView
+                {
+                    Width = 360,
+                    Height = 300,
+                    ItemsSource = items,
+                    ItemTemplate = template
+                };
+                VirtualizingPanel.SetIsVirtualizing(list, true);
+                VirtualizingPanel.SetVirtualizationMode(
+                    list,
+                    VirtualizationMode.Recycling);
+                ScrollViewer.SetCanContentScroll(list, true);
+                list.ItemsPanel = new ItemsPanelTemplate(
+                    new FrameworkElementFactory(
+                        typeof(VirtualizingStackPanel)));
+
+                var window = new Window
+                {
+                    Content = list,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                    Left = -10000,
+                    Top = -10000,
+                    Width = 400,
+                    Height = 340
+                };
+                try
+                {
+                    window.Show();
+                    PumpDispatcher();
+                    list.UpdateLayout();
+                    var firstContainer = (ListViewItem)list
+                        .ItemContainerGenerator.ContainerFromIndex(0);
+                    Equal(true, firstContainer != null);
+                    var root = FindVisualDescendants<Border>(
+                        firstContainer).First(border =>
+                            HoverMotion.GetEnabled(border));
+                    var transform = (TranslateTransform)root.RenderTransform;
+                    transform.Y = -1;
+
+                    list.ScrollIntoView(items[items.Count - 1]);
+                    list.UpdateLayout();
+                    PumpDispatcher();
+                    Equal(0d, transform.Y);
+                }
+                finally
+                {
+                    window.Content = null;
+                    window.Close();
+                }
+            });
+        }
+
+        private static void TestHoverMotionHoldAndRelease()
+        {
+            RunOnSta(() =>
+            {
+                var root = new Border
+                {
+                    Width = 100,
+                    Height = 40,
+                    RenderTransform = new TranslateTransform(0, 0)
+                };
+                HoverMotion.SetEnabled(root, true);
+                HoverMotion.SetLiftY(root, 1d);
+                HoverMotion.SetDuration(root, 60d);
+                var transform = (TranslateTransform)root.RenderTransform;
+                var window = new Window
+                {
+                    Content = root,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                    Left = -10000,
+                    Top = -10000,
+                    Width = 200,
+                    Height = 120
+                };
+                try
+                {
+                    window.Show();
+                    PumpDispatcher();
+
+                    double RenderedY()
+                    {
+                        return root.TransformToAncestor(window)
+                            .Transform(new Point(0, 0)).Y;
+                    }
+
+                    var initialY = RenderedY();
+                    root.RaiseEvent(new MouseEventArgs(
+                        Mouse.PrimaryDevice,
+                        Environment.TickCount)
+                    {
+                        RoutedEvent = Mouse.MouseEnterEvent
+                    });
+                    PumpDispatcherFor(TimeSpan.FromMilliseconds(140));
+                    Equal(true, Math.Abs(RenderedY() - (initialY - 1d)) < 0.01);
+
+                    root.RaiseEvent(new MouseEventArgs(
+                        Mouse.PrimaryDevice,
+                        Environment.TickCount)
+                    {
+                        RoutedEvent = Mouse.MouseLeaveEvent
+                    });
+                    PumpDispatcherFor(TimeSpan.FromMilliseconds(140));
+                    Equal(true, Math.Abs(RenderedY() - initialY) < 0.01);
+                    Equal(0d, transform.Y);
+                }
+                finally
+                {
+                    window.Content = null;
+                    window.Close();
+                }
+            });
+        }
+
+        private static void TestHoverMotionRecyclesCleanly()
+        {
+            RunOnSta(() =>
+            {
+                var root = new Border
+                {
+                    RenderTransform = new TranslateTransform(0, 0)
+                };
+                HoverMotion.SetEnabled(root, true);
+                HoverMotion.SetLiftY(root, 1d);
+                HoverMotion.SetDuration(root, 100d);
+                var transform = (TranslateTransform)root.RenderTransform;
+
+                transform.Y = -1;
+                root.DataContext = new object();
+                Equal(0d, transform.Y);
+
+                transform.Y = -1;
+                root.RaiseEvent(new RoutedEventArgs(
+                    FrameworkElement.UnloadedEvent));
+                PumpDispatcher();
+                Equal(0d, transform.Y);
+
+                transform.Y = -1;
+                root.IsEnabled = false;
+                Equal(0d, transform.Y);
+            });
+        }
+
+        private static void TestPresentationRefreshChain()
+        {
+            RunOnSta(() =>
+            {
+                var settings =
+                    (PlaytimeInsightsSettingsViewModel)
+                    System.Runtime.Serialization.FormatterServices
+                        .GetUninitializedObject(
+                            typeof(PlaytimeInsightsSettingsViewModel));
+                settings.Settings = new PlaytimeInsightsSettings();
+                var viewModel = new DashboardViewModel(
+                    null,
+                    null,
+                    new AnalyticsService(),
+                    new SessionQueryService(new TestGameMetadataAccessor()),
+                    settings);
+                viewModel.SelectedMetadataDimensionOption = null;
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    DataContext = viewModel,
+                    Width = 1200,
+                    Height = 800
+                };
+                var window = new Window
+                {
+                    Content = view,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                    Left = -10000,
+                    Top = -10000,
+                    Width = 1200,
+                    Height = 800
+                };
+                try
+                {
+                    window.Show();
+                    PumpDispatcher();
+
+                    var publish = typeof(DashboardViewModel).GetMethod(
+                        "PublishPresentationUpdate",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                    Equal(true, publish != null);
+                    publish.Invoke(
+                        viewModel,
+                        new object[] { DashboardPresentationTransition.Full });
+                    publish.Invoke(
+                        viewModel,
+                        new object[] { DashboardPresentationTransition.Trend });
+                    PumpDispatcher();
+
+                    var metricHost = (FrameworkElement)view.FindName(
+                        "MetricCardsHost");
+                    var trendHost = (FrameworkElement)view.FindName(
+                        "TrendModule");
+                    Equal(1d, metricHost.Opacity);
+                    Equal(0d,
+                        ((TranslateTransform)metricHost.RenderTransform).Y);
+                    if (SystemParameters.ClientAreaAnimation)
+                    {
+                        Equal(false, metricHost.HasAnimatedProperties);
+                        Equal(true, trendHost.HasAnimatedProperties);
+                    }
+                    else
+                    {
+                        Equal(1d, trendHost.Opacity);
+                        Equal(0d,
+                            ((TranslateTransform)trendHost.RenderTransform).Y);
+                    }
+                }
+                finally
+                {
+                    window.Content = null;
+                    window.Close();
+                }
+            });
+        }
+
+        private static void TestDashboardListHoverReset()
+        {
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView();
+                view.Measure(new Size(1200, double.PositiveInfinity));
+                view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+                view.UpdateLayout();
+
+                var drilldownModule = (Border)view.FindName(
+                    "DrilldownModule");
+                var drilldownList = FindVisualDescendants<ListView>(
+                    drilldownModule).Single();
+                var drilldownTemplate = drilldownList.ItemTemplate;
+                Equal(true, drilldownTemplate != null);
+                var drilldownPresenter = new ContentPresenter
+                {
+                    ContentTemplate = drilldownTemplate,
+                    Content = new SessionDetailViewModel()
+                };
+                var drilldownWindow = new Window
+                {
+                    Content = drilldownPresenter,
+                    ShowInTaskbar = false,
+                    Width = 320,
+                    Height = 120,
+                    WindowStyle = WindowStyle.None,
+                    Left = -10000,
+                    Top = -10000
+                };
+                try
+                {
+                    drilldownWindow.Show();
+                    PumpDispatcher();
+                    var drilldownRoot = FindVisualDescendants<Border>(
+                        drilldownPresenter).First(border =>
+                            border.RenderTransform is TranslateTransform);
+                    Equal(true, HoverMotion.GetEnabled(drilldownRoot));
+                    var drilldownTransform =
+                        (TranslateTransform)drilldownRoot.RenderTransform;
+                    drilldownTransform.Y = -1;
+                    drilldownRoot.DataContext = new object();
+                    Equal(0d, drilldownTransform.Y);
+
+                    drilldownTransform.Y = -1;
+                    drilldownRoot.RaiseEvent(new RoutedEventArgs(
+                        FrameworkElement.UnloadedEvent));
+                    PumpDispatcher();
+                    Equal(0d, drilldownTransform.Y);
+                }
+                finally
+                {
+                    drilldownWindow.Content = null;
+                    drilldownWindow.Close();
+                }
+            });
+        }
+
+        private static void TestDashboardListHoverContracts()
+        {
+            var sourceRoot = FindSourceRoot();
+            var visualResources = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Resources",
+                "PlaytimeInsightsVisualResources.xaml"));
+            var dashboardPath = Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml");
+            var dashboard = File.ReadAllText(dashboardPath);
+            var document = XDocument.Load(dashboardPath);
+            var xamlNamespace = XNamespace.Get(
+                "http://schemas.microsoft.com/winfx/2006/xaml");
+
+            foreach (var brush in new[]
+            {
+                "DrilldownSessionHoverOverlayBrush",
+                "DrilldownSessionHoverBorderBrush"
+            })
+            {
+                Equal(true, visualResources.Contains(brush));
+            }
+
+            var rankingTemplate = document.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "DataTemplate" &&
+                    (string)element.Attribute(xamlNamespace + "Key") ==
+                        "GameRankingItemTemplate");
+            var rankingSource = rankingTemplate.ToString();
+            Equal(false, rankingSource.Contains(
+                "RankingItemRoot"));
+            Equal(false, rankingSource.Contains(
+                "RankingItemTransform"));
+            Equal(false, rankingSource.Contains(
+                "RankingItemHoverOverlay"));
+            Equal(false, rankingSource.Contains(
+                "RoutedEvent=\"MouseEnter\""));
+            Equal(false, rankingSource.Contains("DropShadowEffect"));
+
+            var drilldownList = document.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "ListView" &&
+                    (string)element.Attribute("ItemsSource") ==
+                    "{Binding SessionDetails}");
+            var drilldownSource = drilldownList.ToString();
+            Equal(true, drilldownSource.Contains(
+                "x:Name=\"DrilldownSessionRoot\""));
+            Equal(true, drilldownSource.Contains(
+                "x:Name=\"DrilldownSessionTransform\""));
+            Equal(true, drilldownSource.Contains(
+                "x:Name=\"DrilldownSessionHoverOverlay\""));
+            Equal(true, drilldownSource.Contains(
+                "{StaticResource DrilldownSessionHoverOverlayBrush}"));
+            Equal(true, drilldownSource.Contains(
+                "{StaticResource DrilldownSessionHoverBorderBrush}"));
+            Equal(true, drilldownSource.Contains(
+                "IsHitTestVisible=\"False\""));
+            Equal(true, drilldownSource.Contains(
+                "controls:HoverMotion.Enabled=\"True\""));
+            Equal(true, drilldownSource.Contains(
+                "controls:HoverMotion.LiftY=\"1\""));
+            Equal(true, drilldownSource.Contains(
+                "controls:HoverMotion.Duration=\"100\""));
+            Equal(false, drilldownSource.Contains(
+                "RoutedEvent=\"MouseEnter\""));
+            Equal(false, drilldownSource.Contains("DropShadowEffect"));
+        }
+
         private static void TestDashboardMetricAdditionsBehavior()
         {
             var compact = new DurationDisplayViewModel(
@@ -5519,6 +6129,16 @@ namespace PlaytimeInsights.Tests
                 DispatcherPriority.Background,
                 new Action(() => frame.Continue = false));
             Dispatcher.PushFrame(frame);
+        }
+
+        private static void PumpDispatcherFor(TimeSpan duration)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            while (stopwatch.Elapsed < duration)
+            {
+                Thread.Sleep(10);
+                PumpDispatcher();
+            }
         }
 
         private static void RenderTrendChart(AdaptiveTrendChart chart)

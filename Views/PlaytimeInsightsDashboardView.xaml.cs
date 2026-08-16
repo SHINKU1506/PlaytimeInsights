@@ -1,21 +1,147 @@
 using PlaytimeInsights.Controls;
 using PlaytimeInsights.ViewModels;
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
 namespace PlaytimeInsights.Views
 {
     public partial class PlaytimeInsightsDashboardView : UserControl
     {
+        private DashboardViewModel presentationViewModel;
+
         public PlaytimeInsightsDashboardView()
         {
             InitializeComponent();
+            DataContextChanged += PlaytimeInsightsDashboardView_DataContextChanged;
             // Loaded is the sole automatic refresh boundary for sidebar activation.
             Loaded += PlaytimeInsightsDashboardView_Loaded;
+        }
+
+        private void PlaytimeInsightsDashboardView_DataContextChanged(
+            object sender,
+            DependencyPropertyChangedEventArgs e)
+        {
+            if (presentationViewModel != null)
+            {
+                presentationViewModel.PropertyChanged -=
+                    PresentationViewModel_PropertyChanged;
+            }
+
+            presentationViewModel = DataContext as DashboardViewModel;
+            if (presentationViewModel != null)
+            {
+                presentationViewModel.PropertyChanged +=
+                    PresentationViewModel_PropertyChanged;
+            }
+        }
+
+        private void PresentationViewModel_PropertyChanged(
+            object sender,
+            PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(DashboardViewModel.PresentationRevision))
+            {
+                return;
+            }
+
+            var viewModel = presentationViewModel;
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            var revision = viewModel.PresentationRevision;
+            var transition = viewModel.PresentationTransition;
+            Dispatcher.BeginInvoke(
+                DispatcherPriority.Loaded,
+                new Action(() =>
+                {
+                    if (!ReferenceEquals(DataContext, viewModel) ||
+                        viewModel.PresentationRevision != revision)
+                    {
+                        return;
+                    }
+
+                    PlayEntrance(transition);
+                }));
+        }
+
+        private void PlayEntrance(DashboardPresentationTransition transition)
+        {
+            var animationsEnabled = SystemParameters.ClientAreaAnimation;
+            var plan = DashboardEntrancePlan.Create(
+                transition,
+                animationsEnabled);
+            foreach (var step in plan.Steps)
+            {
+                var host = FindName(step.HostName) as FrameworkElement;
+                if (host == null)
+                {
+                    continue;
+                }
+
+                PlayEntranceStep(host, step, animationsEnabled);
+            }
+        }
+
+        private static void PlayEntranceStep(
+            FrameworkElement host,
+            DashboardEntranceStep step,
+            bool animationsEnabled)
+        {
+            var translate = host.RenderTransform as TranslateTransform;
+            host.BeginAnimation(OpacityProperty, null);
+            if (translate != null)
+            {
+                translate.BeginAnimation(TranslateTransform.YProperty, null);
+            }
+
+            host.Opacity = 1;
+            if (translate != null)
+            {
+                translate.Y = 0;
+            }
+
+            if (!animationsEnabled || step.DurationMilliseconds <= 0)
+            {
+                return;
+            }
+
+            var duration = TimeSpan.FromMilliseconds(
+                step.DurationMilliseconds);
+            var beginTime = TimeSpan.FromMilliseconds(
+                step.DelayMilliseconds);
+            var easing = new CubicEase
+            {
+                EasingMode = EasingMode.EaseOut
+            };
+            host.BeginAnimation(
+                OpacityProperty,
+                new DoubleAnimation(0d, 1d, duration)
+                {
+                    BeginTime = beginTime,
+                    EasingFunction = easing,
+                    FillBehavior = FillBehavior.Stop
+                },
+                HandoffBehavior.SnapshotAndReplace);
+            if (translate != null)
+            {
+                translate.BeginAnimation(
+                    TranslateTransform.YProperty,
+                    new DoubleAnimation(step.OffsetY, 0d, duration)
+                    {
+                        BeginTime = beginTime,
+                        EasingFunction = easing,
+                        FillBehavior = FillBehavior.Stop
+                    },
+                    HandoffBehavior.SnapshotAndReplace);
+            }
         }
 
         private void PlaytimeInsightsDashboardView_Loaded(object sender, RoutedEventArgs e)

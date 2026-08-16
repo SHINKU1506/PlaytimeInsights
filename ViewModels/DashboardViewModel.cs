@@ -13,6 +13,14 @@ using System.Windows.Media;
 
 namespace PlaytimeInsights.ViewModels
 {
+    public enum DashboardPresentationTransition
+    {
+        None,
+        Full,
+        Trend,
+        Ranking
+    }
+
     public sealed class DashboardViewModel : ObservableObject
     {
         private readonly IPlayniteAPI playniteApi;
@@ -32,6 +40,9 @@ namespace PlaytimeInsights.ViewModels
         private IList<GameSession> filteredSessions = new List<GameSession>();
         private DashboardAnalysisContext analysisContext;
         private bool dataCacheReady;
+        private DashboardPresentationTransition presentationTransition =
+            DashboardPresentationTransition.None;
+        private int presentationRevision;
 
         public DashboardViewModel(
             IPlayniteAPI playniteApi,
@@ -93,6 +104,18 @@ namespace PlaytimeInsights.ViewModels
         public DashboardDistributionViewModel Distribution { get; }
 
         public DashboardDrilldownViewModel Drilldown { get; }
+
+        public DashboardPresentationTransition PresentationTransition
+        {
+            get => presentationTransition;
+            private set => SetValue(ref presentationTransition, value);
+        }
+
+        public int PresentationRevision
+        {
+            get => presentationRevision;
+            private set => SetValue(ref presentationRevision, value);
+        }
 
         public ObservableCollection<SelectionOption<DateRangePreset>> RangeOptions => Filter.RangeOptions;
 
@@ -365,6 +388,9 @@ namespace PlaytimeInsights.ViewModels
                     break;
             }
 
+            PublishPresentationUpdate(
+                MapPresentationTransition(plan.Mode));
+
             total.Stop();
             Trace.WriteLine(string.Format(
                 "PlaytimeInsights Dashboard refresh reason={0} data={1}ms filter={2}ms analytics={3}ms apply={4}ms total={5}ms",
@@ -374,6 +400,28 @@ namespace PlaytimeInsights.ViewModels
                 timing.AnalyticsMilliseconds,
                 timing.ApplyMilliseconds,
                 total.ElapsedMilliseconds));
+        }
+
+        private static DashboardPresentationTransition MapPresentationTransition(
+            DashboardRefreshMode mode)
+        {
+            switch (mode)
+            {
+                case DashboardRefreshMode.TrendOnly:
+                    return DashboardPresentationTransition.Trend;
+                case DashboardRefreshMode.RankingOnly:
+                    return DashboardPresentationTransition.Ranking;
+                case DashboardRefreshMode.FullAnalysis:
+                default:
+                    return DashboardPresentationTransition.Full;
+            }
+        }
+
+        private void PublishPresentationUpdate(
+            DashboardPresentationTransition transition)
+        {
+            PresentationTransition = transition;
+            PresentationRevision++;
         }
 
         private void LoadData()
