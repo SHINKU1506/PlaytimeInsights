@@ -14,10 +14,19 @@ namespace PlaytimeInsights.Views
     public partial class PlaytimeInsightsDashboardView : UserControl
     {
         private DashboardViewModel presentationViewModel;
+        private bool rankingTabMouseInteraction;
+        private readonly DispatcherTimer rankingTabMouseInteractionTimer;
 
         public PlaytimeInsightsDashboardView()
         {
             InitializeComponent();
+            rankingTabMouseInteractionTimer = new DispatcherTimer(
+                DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(300)
+            };
+            rankingTabMouseInteractionTimer.Tick +=
+                RankingTabMouseInteractionTimer_Tick;
             DataContextChanged += PlaytimeInsightsDashboardView_DataContextChanged;
             // Loaded is the sole automatic refresh boundary for sidebar activation.
             Loaded += PlaytimeInsightsDashboardView_Loaded;
@@ -147,6 +156,51 @@ namespace PlaytimeInsights.Views
         private void PlaytimeInsightsDashboardView_Loaded(object sender, RoutedEventArgs e)
         {
             Refresh();
+        }
+
+        private void RankingModule_PreviewMouseDown(
+            object sender,
+            MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton != MouseButton.Left)
+            {
+                return;
+            }
+
+            rankingTabMouseInteraction = true;
+            rankingTabMouseInteractionTimer.Stop();
+            rankingTabMouseInteractionTimer.Start();
+        }
+
+        private void RankingModule_PreviewKeyDown(
+            object sender,
+            KeyEventArgs e)
+        {
+            rankingTabMouseInteraction = false;
+            rankingTabMouseInteractionTimer.Stop();
+        }
+
+        private void RankingTabMouseInteractionTimer_Tick(
+            object sender,
+            EventArgs e)
+        {
+            rankingTabMouseInteractionTimer.Stop();
+            rankingTabMouseInteraction = false;
+        }
+
+        private void RankingModule_RequestBringIntoView(
+            object sender,
+            RequestBringIntoViewEventArgs e)
+        {
+            if (!rankingTabMouseInteraction)
+            {
+                return;
+            }
+
+            // A mouse-triggered ranking tab switch owns a short lifecycle.
+            // Suppress every bring-into-view request bubbled by that TabControl,
+            // including delayed requests from the content host after layout.
+            e.Handled = true;
         }
 
         private void AdaptiveTrendChart_PeriodSelected(

@@ -120,6 +120,7 @@ namespace PlaytimeInsights.Tests
             Run("HoverMotion holds lift while hovered and releases after leave", TestHoverMotionHoldAndRelease);
             Run("Drilldown recycling keeps hover transform at zero", TestDrilldownRecyclingKeepsTransformZero);
             Run("Presentation refresh chain reaches host animations", TestPresentationRefreshChain);
+            Run("Ranking tab mouse clicks stay inside the scroll position", TestRankingTabBringIntoViewSuppression);
             Run("Dashboard theme visual contracts stay explicit", TestDashboardThemeVisualContracts);
             Run("Dashboard recomposition keeps 4x2 metric grid and adaptive modules", TestDashboardVisualRefactorStaticContract);
             Run("Dashboard visual refactor keeps final architecture guards", TestDashboardVisualRefactorContract);
@@ -4510,6 +4511,138 @@ namespace PlaytimeInsights.Tests
                 transform.Y = -1;
                 root.IsEnabled = false;
                 Equal(0d, transform.Y);
+            });
+        }
+
+        private static RequestBringIntoViewEventArgs CreateBringIntoViewRequest(
+            DependencyObject target,
+            Rect targetRect)
+        {
+            var constructor = typeof(RequestBringIntoViewEventArgs)
+                .GetConstructor(
+                    BindingFlags.Instance | BindingFlags.NonPublic,
+                    null,
+                    new[]
+                    {
+                        typeof(DependencyObject),
+                        typeof(Rect)
+                    },
+                    null);
+            Equal(true, constructor != null);
+            return (RequestBringIntoViewEventArgs)constructor.Invoke(
+                new object[] { target, targetRect });
+        }
+
+        private static void TestRankingTabBringIntoViewSuppression()
+        {
+            var sourceRoot = FindSourceRoot();
+            var dashboard = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            Equal(true, dashboard.Contains(
+                "RequestBringIntoView=\"RankingModule_RequestBringIntoView\""));
+            Equal(true, dashboard.Contains(
+                "PreviewMouseDown=\"RankingModule_PreviewMouseDown\""));
+            Equal(true, dashboard.Contains(
+                "PreviewKeyDown=\"RankingModule_PreviewKeyDown\""));
+            var codeBehind = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs"));
+            Equal(true, codeBehind.Contains(
+                "rankingTabMouseInteraction"));
+            Equal(true, codeBehind.Contains(
+                "rankingTabMouseInteractionTimer"));
+            Equal(true, codeBehind.Contains("DispatcherTimer"));
+
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 900,
+                    Height = 800
+                };
+                var window = new Window
+                {
+                    Content = view,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                    Left = -10000,
+                    Top = -10000,
+                    Width = 900,
+                    Height = 800
+                };
+                try
+                {
+                    window.Show();
+                    PumpDispatcher();
+
+                    var scroller = (ScrollViewer)view.FindName(
+                        "DashboardScrollViewer");
+                    Equal(true, scroller.ScrollableHeight > 0);
+                    scroller.ScrollToVerticalOffset(120);
+                    view.UpdateLayout();
+                    var initialOffset = scroller.VerticalOffset;
+                    Equal(true, initialOffset > 0);
+
+                    var module = (Border)view.FindName("RankingModule");
+                    var tabItems = FindVisualDescendants<TabItem>(module)
+                        .ToList();
+                    Equal(2, tabItems.Count);
+                    var lifetimeTab = tabItems[1];
+
+                    lifetimeTab.RaiseEvent(new MouseButtonEventArgs(
+                        Mouse.PrimaryDevice,
+                        Environment.TickCount,
+                        MouseButton.Left)
+                    {
+                        RoutedEvent = Mouse.PreviewMouseDownEvent
+                    });
+                    lifetimeTab.Focus();
+                    lifetimeTab.RaiseEvent(new MouseButtonEventArgs(
+                        Mouse.PrimaryDevice,
+                        Environment.TickCount,
+                        MouseButton.Left)
+                    {
+                        RoutedEvent = Mouse.MouseDownEvent
+                    });
+                    lifetimeTab.RaiseEvent(new MouseButtonEventArgs(
+                        Mouse.PrimaryDevice,
+                        Environment.TickCount,
+                        MouseButton.Left)
+                    {
+                        RoutedEvent = Mouse.MouseUpEvent
+                    });
+                    PumpDispatcherFor(TimeSpan.FromMilliseconds(200));
+
+                    Equal(true, lifetimeTab.IsSelected);
+                    Equal(true, Math.Abs(
+                        scroller.VerticalOffset - initialOffset) < 0.01);
+
+                    PumpDispatcherFor(TimeSpan.FromMilliseconds(250));
+                    Equal(true, Math.Abs(
+                        scroller.VerticalOffset - initialOffset) < 0.01);
+
+                    var request = CreateBringIntoViewRequest(
+                        lifetimeTab,
+                        new Rect(0, 0, 200, 40));
+                    request.RoutedEvent =
+                        FrameworkElement.RequestBringIntoViewEvent;
+                    var handler = typeof(PlaytimeInsightsDashboardView).GetMethod(
+                        "RankingModule_RequestBringIntoView",
+                        BindingFlags.Instance | BindingFlags.NonPublic);
+                    Equal(true, handler != null);
+                    handler.Invoke(
+                        view,
+                        new object[] { module, request });
+                    Equal(false, request.Handled);
+                }
+                finally
+                {
+                    window.Content = null;
+                    window.Close();
+                }
             });
         }
 

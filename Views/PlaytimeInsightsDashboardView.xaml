@@ -1268,6 +1268,9 @@
             <Border x:Name="RankingModule"
                     Style="{StaticResource ModulePanelStyle}"
                     RenderTransformOrigin="0.5,0.5"
+                    PreviewMouseDown="RankingModule_PreviewMouseDown"
+                    PreviewKeyDown="RankingModule_PreviewKeyDown"
+                    RequestBringIntoView="RankingModule_RequestBringIntoView"
                     controls:AdaptiveDashboardPanel.Zone="Secondary">
                 <Border.RenderTransform>
                     <TranslateTransform x:Name="RankingModuleTransform" Y="0" />
