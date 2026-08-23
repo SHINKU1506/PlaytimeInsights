@@ -103,6 +103,10 @@ namespace PlaytimeInsights.ViewModels
 
         public IList<string> HeatmapWeekdayLabels { get; set; }
 
+        public IList<HeatmapMonthLabelViewModel> HeatmapMonthLabels { get; set; }
+
+        public IList<string> HeatmapWeekLabels { get; set; }
+
         public int HeatmapColumnCount { get; set; }
 
         public PointCollection TrendLinePoints { get; set; }

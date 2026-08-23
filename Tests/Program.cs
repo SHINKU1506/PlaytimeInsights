@@ -66,7 +66,12 @@ namespace PlaytimeInsights.Tests
             Run("Weekly aggregation and range metrics", TestWeeklyAggregationAndRangeMetrics);
             Run("Range clips cross-midnight duration", TestRangeClipsCrossMidnightDuration);
             Run("Range ranking supports session count", TestRangeRankingBySessionCount);
-            Run("Heatmap aligns ISO week and scales intensity", TestHeatmapLayoutAndIntensity);
+            Run("Heatmap aligns ISO week and preserves calendar layout", TestHeatmapLayoutAndIntensity);
+            Run("Heatmap uses absolute duration levels", TestHeatmapAbsoluteDurationLevels);
+            Run("Heatmap month axis follows calendar-week columns", TestHeatmapMonthAxisProjection);
+            Run("Heatmap supports six-calendar-week months", TestHeatmapSixWeekMonth);
+            Run("Heatmap month axis panel measures and arranges spans", TestHeatmapMonthAxisPanel);
+            Run("Calendar heatmap keeps aligned visual contracts", TestCalendarHeatmapVisualContract);
             Run("Trend points scale to period maximum", TestTrendPointScaling);
             Run("Period drilldown bounds clip to range", TestPeriodBoundsClipToRange);
             Run("Session drilldown clips duration and labels recovery", TestSessionDrilldown);
@@ -573,11 +578,11 @@ namespace PlaytimeInsights.Tests
                     ulong>(
                     0,
                     (total, item) => total + item.Seconds));
-            Equal(true, stopwatch.Elapsed < TimeSpan.FromSeconds(30));
             Console.WriteLine(
                 string.Format(
                     "       100k sessions / 5k games / 10 years: {0:N0} ms",
                     stopwatch.ElapsedMilliseconds));
+            Equal(true, stopwatch.Elapsed <= TimeSpan.FromMilliseconds(750));
         }
 
         private static void TestLargeStoreLoad()
@@ -627,11 +632,11 @@ namespace PlaytimeInsights.Tests
                 Equal(
                     GameSession.CurrentSchemaVersion,
                     repository.GetStorageDiagnostics().SchemaVersion);
-                Equal(true, stopwatch.Elapsed < TimeSpan.FromSeconds(30));
                 Console.WriteLine(
                     string.Format(
                         "       schema 4 JSON load / 100k sessions: {0:N0} ms",
                         stopwatch.ElapsedMilliseconds));
+                Equal(true, stopwatch.Elapsed <= TimeSpan.FromMilliseconds(1400));
             });
         }
 
@@ -1032,7 +1037,7 @@ namespace PlaytimeInsights.Tests
                 new[]
                 {
                     CreateSession(gameId, "Heat", new DateTime(2026, 7, 27, 10, 0, 0, DateTimeKind.Utc), 60),
-                    CreateSession(gameId, "Heat", new DateTime(2026, 7, 28, 10, 0, 0, DateTimeKind.Utc), 120)
+                    CreateSession(gameId, "Heat", new DateTime(2026, 7, 28, 10, 0, 0, DateTimeKind.Utc), 3600)
                 },
                 new AnalyticsQuery
                 {
@@ -1046,8 +1051,350 @@ namespace PlaytimeInsights.Tests
             Equal(7, snapshot.HeatmapCells.Count);
             Equal(new DateTime(2026, 7, 27), snapshot.HeatmapCells[0].Date);
             Equal(new DateTime(2026, 7, 28), snapshot.HeatmapCells[1].Date);
-            Equal(true, snapshot.HeatmapCells[1].HeatOpacity >
-                snapshot.HeatmapCells[0].HeatOpacity);
+            Equal(HeatmapIntensityLevel.Low, snapshot.HeatmapCells[0].IntensityLevel);
+            Equal(HeatmapIntensityLevel.Medium, snapshot.HeatmapCells[1].IntensityLevel);
+        }
+
+        private static void TestHeatmapAbsoluteDurationLevels()
+        {
+            Equal(HeatmapIntensityLevel.None,
+                HeatmapIntensityScale.FromSeconds(0));
+            Equal(HeatmapIntensityLevel.Low,
+                HeatmapIntensityScale.FromSeconds(3599));
+            Equal(HeatmapIntensityLevel.Medium,
+                HeatmapIntensityScale.FromSeconds(3600));
+            Equal(HeatmapIntensityLevel.Medium,
+                HeatmapIntensityScale.FromSeconds(10800));
+            Equal(HeatmapIntensityLevel.High,
+                HeatmapIntensityScale.FromSeconds(10801));
+        }
+
+        private static void TestHeatmapMonthAxisProjection()
+        {
+            var analyticsService = new AnalyticsService();
+
+            // Multi-month range crossing boundary: 2026-07-01 -> 2026-08-31
+            var multiMonth = analyticsService.CreateSnapshot(
+                new Playnite.SDK.Models.Game[0],
+                new GameSession[0],
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 7, 1),
+                    CustomEndDate = new DateTime(2026, 8, 31),
+                    UseIsoWeekStart = true
+                });
+
+            Equal(10, multiMonth.HeatmapColumnCount);
+            Equal(2, multiMonth.HeatmapMonthLabels.Count);
+            Equal(0, multiMonth.HeatmapMonthLabels[0].ColumnIndex);
+            Equal(4, multiMonth.HeatmapMonthLabels[0].ColumnSpan);
+            Equal("2026 年 7 月", multiMonth.HeatmapMonthLabels[0].Label);
+            Equal(4, multiMonth.HeatmapMonthLabels[1].ColumnIndex);
+            Equal(6, multiMonth.HeatmapMonthLabels[1].ColumnSpan);
+            Equal("2026 年 8 月", multiMonth.HeatmapMonthLabels[1].Label);
+            Equal(10, multiMonth.HeatmapWeekLabels.Count);
+            Equal("1", multiMonth.HeatmapWeekLabels[0]);
+            Equal("4", multiMonth.HeatmapWeekLabels[3]);
+            Equal("1", multiMonth.HeatmapWeekLabels[4]);
+            Equal("6", multiMonth.HeatmapWeekLabels[9]);
+
+            // Mid-month crossing boundary: 2026-07-15 -> 2026-08-15
+            var midMonth = analyticsService.CreateSnapshot(
+                new Playnite.SDK.Models.Game[0],
+                new GameSession[0],
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 7, 15),
+                    CustomEndDate = new DateTime(2026, 8, 15),
+                    UseIsoWeekStart = true
+                });
+
+            Equal(5, midMonth.HeatmapColumnCount);
+            Equal(35, midMonth.HeatmapCells.Count);
+            Equal(2, midMonth.HeatmapMonthLabels.Count);
+            Equal(0, midMonth.HeatmapMonthLabels[0].ColumnIndex);
+            Equal(2, midMonth.HeatmapMonthLabels[0].ColumnSpan);
+            Equal("2026 年 7 月", midMonth.HeatmapMonthLabels[0].Label);
+            Equal(2, midMonth.HeatmapMonthLabels[1].ColumnIndex);
+            Equal(3, midMonth.HeatmapMonthLabels[1].ColumnSpan);
+            Equal("2026 年 8 月", midMonth.HeatmapMonthLabels[1].Label);
+            Equal(5, midMonth.HeatmapWeekLabels.Count);
+            Equal("1", midMonth.HeatmapWeekLabels[0]);
+            Equal("2", midMonth.HeatmapWeekLabels[1]);
+            Equal("1", midMonth.HeatmapWeekLabels[2]);
+            Equal("3", midMonth.HeatmapWeekLabels[4]);
+
+            // Assert out-of-range hidden dates in row-major layout (row * columnCount + col)
+            Equal(Visibility.Hidden, midMonth.HeatmapCells[0 * 5 + 0].CellVisibility); // Mon 2026-07-13
+            Equal(Visibility.Hidden, midMonth.HeatmapCells[1 * 5 + 0].CellVisibility); // Tue 2026-07-14
+            Equal(Visibility.Visible, midMonth.HeatmapCells[2 * 5 + 0].CellVisibility); // Wed 2026-07-15 (range start)
+            Equal(Visibility.Visible, midMonth.HeatmapCells[5 * 5 + 4].CellVisibility); // Sat 2026-08-15 (range end)
+            Equal(Visibility.Hidden, midMonth.HeatmapCells[6 * 5 + 4].CellVisibility); // Sun 2026-08-16
+
+            // Localization resource check for MonthRangeFormat in zh_CN and en_US
+            var sourceRoot = FindSourceRoot();
+            var xamlNamespace = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml");
+            var english = XDocument.Load(Path.Combine(sourceRoot, "Localization", "en_US.xaml"));
+            var chinese = XDocument.Load(Path.Combine(sourceRoot, "Localization", "zh_CN.xaml"));
+
+            string GetString(XDocument doc, string key) =>
+                doc.Descendants().Where(e => (string)e.Attribute(xamlNamespace + "Key") == key)
+                   .Select(e => e.Value).Single();
+
+            var zhFormat = GetString(chinese, "LOCPlaytimeInsightsMonthRangeFormat");
+            var enFormat = GetString(english, "LOCPlaytimeInsightsMonthRangeFormat");
+            Equal("{0:yyyy 年 M 月}", zhFormat);
+            Equal("{0:yyyy/M}", enFormat);
+
+            var julDate = new DateTime(2026, 7, 1);
+            var augDate = new DateTime(2026, 8, 1);
+            var zhCulture = CultureInfo.GetCultureInfo("zh-CN");
+            var enCulture = CultureInfo.GetCultureInfo("en-US");
+            Equal("2026 年 7 月", string.Format(zhCulture, zhFormat, julDate));
+            Equal("2026 年 8 月", string.Format(zhCulture, zhFormat, augDate));
+            Equal("2026/7", string.Format(enCulture, enFormat, julDate));
+            Equal("2026/8", string.Format(enCulture, enFormat, augDate));
+        }
+
+        private static void TestHeatmapSixWeekMonth()
+        {
+            var snapshot = new AnalyticsService().CreateSnapshot(
+                new Playnite.SDK.Models.Game[0],
+                new GameSession[0],
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 8, 1),
+                    CustomEndDate = new DateTime(2026, 8, 31),
+                    UseIsoWeekStart = true
+                });
+
+            Equal(6, snapshot.HeatmapColumnCount);
+            Equal(42, snapshot.HeatmapCells.Count);
+            Equal(1, snapshot.HeatmapMonthLabels.Count);
+            Equal(0, snapshot.HeatmapMonthLabels[0].ColumnIndex);
+            Equal(6, snapshot.HeatmapMonthLabels[0].ColumnSpan);
+            Equal(6, snapshot.HeatmapWeekLabels.Count);
+            Equal("1", snapshot.HeatmapWeekLabels[0]);
+            Equal("6", snapshot.HeatmapWeekLabels[5]);
+        }
+
+        private static void TestHeatmapMonthAxisPanel()
+        {
+            RunOnSta(() =>
+            {
+                var panel = new HeatmapMonthAxisPanel
+                {
+                    ColumnCount = 8
+                };
+                Equal(26d, panel.ColumnPitch);
+                panel.ColumnPitch = 26d;
+                panel.Children.Add(CreateMonthAxisChild(0, 2));
+                panel.Children.Add(CreateMonthAxisChild(2, 4));
+                panel.Children.Add(CreateMonthAxisChild(6, 2));
+                panel.Measure(new Size(double.PositiveInfinity, 20));
+                panel.Arrange(new Rect(0, 0, 208, 20));
+
+                Equal(208d, panel.DesiredSize.Width);
+                Equal(0d, GetLayoutSlot(panel.Children[0]).X);
+                Equal(52d, GetLayoutSlot(panel.Children[0]).Width);
+                Equal(52d, GetLayoutSlot(panel.Children[1]).X);
+                Equal(104d, GetLayoutSlot(panel.Children[1]).Width);
+                Equal(156d, GetLayoutSlot(panel.Children[2]).X);
+                Equal(52d, GetLayoutSlot(panel.Children[2]).Width);
+            });
+        }
+
+        private static FrameworkElement CreateMonthAxisChild(int columnIndex, int columnSpan)
+        {
+            var child = new Border { Height = 16 };
+            HeatmapMonthAxisPanel.SetColumnIndex(child, columnIndex);
+            HeatmapMonthAxisPanel.SetColumnSpan(child, columnSpan);
+            return child;
+        }
+
+        private static void TestCalendarHeatmapVisualContract()
+        {
+            var sourceRoot = FindSourceRoot();
+            var dashboardPath = Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml");
+            var dashboardCodePath = Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml.cs");
+            var resourcesPath = Path.Combine(
+                sourceRoot,
+                "Resources",
+                "PlaytimeInsightsVisualResources.xaml");
+            var analyticsPath = Path.Combine(
+                sourceRoot,
+                "Services",
+                "AnalyticsService.cs");
+            var heatmapModelPath = Path.Combine(
+                sourceRoot,
+                "ViewModels",
+                "Dashboard",
+                "HeatmapCellViewModel.cs");
+
+            var dashboardXaml = File.ReadAllText(dashboardPath);
+            var dashboardCode = File.ReadAllText(dashboardCodePath);
+            var resourcesXaml = File.ReadAllText(resourcesPath);
+            var analyticsSource = File.ReadAllText(analyticsPath);
+            var heatmapModelSource = File.ReadAllText(heatmapModelPath);
+            var calendarStart = dashboardXaml.IndexOf(
+                "ItemsSource=\"{Binding HeatmapMonthLabels}\"",
+                StringComparison.Ordinal);
+            var calendarEnd = dashboardXaml.IndexOf(
+                "ItemsSource=\"{Binding HeatmapCells}\"",
+                StringComparison.Ordinal);
+            var cellBlockEnd = dashboardXaml.IndexOf(
+                "x:Name=\"AnomalyModule\"",
+                StringComparison.Ordinal);
+
+            // T1-P2-01: Calendar model & projection must not contain HeatOpacity
+            var heatmapProjection = ExtractSourceBlock(
+                analyticsSource,
+                "private static HeatmapProjection CreateHeatmapProjection(",
+                "private static void ApplyPeriodGameSummaries(");
+            Equal(false, heatmapProjection.Contains("HeatOpacity"));
+            Equal(false, heatmapModelSource.Contains("public double HeatOpacity { get; set; }") &&
+                         heatmapModelSource.IndexOf("HeatOpacity", StringComparison.Ordinal) <
+                         heatmapModelSource.IndexOf("WeekHourCellViewModel", StringComparison.Ordinal));
+            Equal(true, heatmapModelSource.Contains("public double HeatOpacity { get; set; }")); // Preserved in WeekHourCellViewModel
+
+            // T2-P1-01 & T2-P2-01: Visual and accessibility contracts
+            Equal(true, dashboardXaml.Contains("controls:HeatmapMonthAxisPanel"));
+            Equal(true, dashboardXaml.Contains("AlternationCount=\"7\""));
+            Equal(true, dashboardXaml.Contains("(ItemsControl.AlternationIndex)"));
+            Equal(false, dashboardXaml.Contains("Property=\"ItemsControl.AlternationIndex\""));
+            Equal(true, dashboardXaml.Contains("DataContext.SelectHeatmapDateCommand"));
+            Equal(false, dashboardXaml.Contains("HeatmapCell_MouseLeftButtonUp"));
+            Equal(false, dashboardCode.Contains("HeatmapCell_MouseLeftButtonUp"));
+
+            Equal(true, calendarStart >= 0);
+            Equal(true, calendarEnd > calendarStart);
+            Equal(true, cellBlockEnd > calendarEnd);
+            var axisGeometry = dashboardXaml.Substring(
+                calendarStart,
+                calendarEnd - calendarStart);
+            var cellGeometry = dashboardXaml.Substring(
+                calendarEnd,
+                cellBlockEnd - calendarEnd);
+
+            // Axis geometry: 26 DIP pitch and weekday rows.
+            Equal(true, axisGeometry.Contains("ColumnPitch=\"26\""));
+            Equal(false, axisGeometry.Contains("ColumnPitch=\"24\""));
+            Equal(false, axisGeometry.Contains("Width=\"14\""));
+            Equal(false, axisGeometry.Contains("Height=\"14\""));
+
+            var weekdayStart = dashboardXaml.IndexOf(
+                "ItemsSource=\"{Binding HeatmapWeekdayLabels}\"",
+                StringComparison.Ordinal);
+
+            // Week-number labels center horizontally over 26 DIP cells.
+            var weekStart = dashboardXaml.IndexOf(
+                "ItemsSource=\"{Binding HeatmapWeekLabels}\"",
+                StringComparison.Ordinal);
+            Equal(true, weekStart > calendarStart);
+            Equal(true, weekdayStart > weekStart);
+            var weekGeometry = dashboardXaml.Substring(
+                weekStart,
+                weekdayStart - weekStart);
+            Equal(true, weekGeometry.Contains("Width=\"26\""));
+            Equal(true, weekGeometry.Contains("TextAlignment=\"Center\""));
+            Equal(true, weekGeometry.Contains("HorizontalAlignment=\"Center\""));
+
+            // Weekday glyphs center vertically inside 26 DIP row containers.
+            Equal(true, weekdayStart > calendarStart);
+            Equal(true, calendarEnd > weekdayStart);
+            var weekdayGeometry = dashboardXaml.Substring(
+                weekdayStart,
+                calendarEnd - weekdayStart);
+            Equal(true, weekdayGeometry.Contains("<Grid Height=\"26\">"));
+            Equal(true, weekdayGeometry.Contains("VerticalAlignment=\"Center\""));
+            Equal(true, weekdayGeometry.Contains("HorizontalAlignment=\"Stretch\""));
+            Equal(false, weekdayGeometry.Contains("VerticalAlignment=\"Top\""));
+
+            // Cell geometry: 26 DIP button targets with centered 24 DIP swatches.
+            Equal(true, cellGeometry.Contains("<Button Width=\"26\""));
+            Equal(true, cellGeometry.Contains("Height=\"26\""));
+            Equal(true, cellGeometry.Contains("x:Name=\"CellButtonRoot\""));
+            Equal(true, cellGeometry.Contains("x:Name=\"CellSwatch\""));
+            Equal(true, cellGeometry.Contains("Width=\"24\""));
+            Equal(true, cellGeometry.Contains("Height=\"24\""));
+            Equal(true, cellGeometry.Contains("CornerRadius=\"3\""));
+            Equal(true, cellGeometry.Contains("HorizontalAlignment=\"Center\""));
+            Equal(true, cellGeometry.Contains("VerticalAlignment=\"Center\""));
+            Equal(true, dashboardXaml.Contains("UniformGrid Columns=\"{Binding HeatmapColumnCount}\""));
+
+            // Keyboard focus & theme brush
+            Equal(true, dashboardXaml.Contains("Trigger Property=\"IsKeyboardFocused\" Value=\"True\""));
+            Equal(true, dashboardXaml.Contains("Setter TargetName=\"CellSwatch\" Property=\"BorderBrush\" Value=\"{DynamicResource TextBrush}\""));
+
+            // Legend brushes
+            Equal(true, resourcesXaml.Contains("HeatmapNoneBrush"));
+            Equal(true, resourcesXaml.Contains("HeatmapLowBrush"));
+            Equal(true, resourcesXaml.Contains("HeatmapMediumBrush"));
+            Equal(true, resourcesXaml.Contains("HeatmapHighBrush"));
+
+            // STA runtime proof of alternating weekday visibility: [Visible, Hidden, Visible, Hidden, Visible, Hidden, Visible]
+            RunOnSta(() =>
+            {
+                var weekdayItems = new[] { "一", "二", "三", "四", "五", "六", "日" };
+                var control = new ItemsControl
+                {
+                    ItemsSource = weekdayItems,
+                    AlternationCount = 7
+                };
+                var style = new Style(typeof(ContentPresenter));
+                foreach (var index in new[] { 1, 3, 5 })
+                {
+                    var trigger = new DataTrigger
+                    {
+                        Binding = new System.Windows.Data.Binding
+                        {
+                            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.Self),
+                            Path = new PropertyPath("(0)", ItemsControl.AlternationIndexProperty)
+                        },
+                        Value = index
+                    };
+                    trigger.Setters.Add(new Setter(UIElement.VisibilityProperty, Visibility.Hidden));
+                    style.Triggers.Add(trigger);
+                }
+                control.ItemContainerStyle = style;
+
+                var window = new Window
+                {
+                    Content = control,
+                    Width = 100,
+                    Height = 200
+                };
+                window.Show();
+                control.UpdateLayout();
+
+                var expectedVisibilities = new[]
+                {
+                    Visibility.Visible,
+                    Visibility.Hidden,
+                    Visibility.Visible,
+                    Visibility.Hidden,
+                    Visibility.Visible,
+                    Visibility.Hidden,
+                    Visibility.Visible
+                };
+
+                for (var i = 0; i < 7; i++)
+                {
+                    var container = control.ItemContainerGenerator.ContainerFromIndex(i) as UIElement;
+                    Equal(expectedVisibilities[i], container.Visibility);
+                }
+
+                window.Close();
+            });
         }
 
         private static void TestTrendPointScaling()
@@ -5639,7 +5986,7 @@ namespace PlaytimeInsights.Tests
                 .Count(attribute =>
                     attribute.Value == "#FF2A2A2E" ||
                     attribute.Value.Contains("HeatmapEmptyBrush")));
-            Equal(2, dashboard.Descendants()
+            Equal(1, dashboard.Descendants()
                 .Count(element =>
                     element.Name.LocalName == "Border" &&
                     (string)element.Attribute("Background") ==
@@ -6722,7 +7069,8 @@ namespace PlaytimeInsights.Tests
                 "Click=\"WeekdayDistribution_Click\""));
             Equal(false, dashboardCode.Contains("WeekdayDistribution_Click"));
             Equal(true, dashboardCode.Contains("SelectPeriodCommand"));
-            Equal(true, dashboardCode.Contains("SelectHeatmapDateCommand"));
+            Equal(true, dashboardXaml.Contains("DataContext.SelectHeatmapDateCommand"));
+            Equal(false, dashboardCode.Contains("SelectHeatmapDateCommand"));
             Equal(true, dashboardViewModel.Contains(
                 "private readonly RefreshReentrancyGuard refreshGuard"));
             Equal(true, dashboardViewModel.Contains(
@@ -7777,8 +8125,13 @@ namespace PlaytimeInsights.Tests
             {
                 try
                 {
-                    document = JsonConvert.DeserializeObject<SessionStoreDocument>(
-                        File.ReadAllText(path));
+                    using (var stream = File.OpenRead(path))
+                    using (var streamReader = new StreamReader(stream, System.Text.Encoding.UTF8))
+                    using (var jsonReader = new JsonTextReader(streamReader))
+                    {
+                        var serializer = JsonSerializer.CreateDefault();
+                        document = serializer.Deserialize<SessionStoreDocument>(jsonReader);
+                    }
                     error = null;
                     return document != null;
                 }

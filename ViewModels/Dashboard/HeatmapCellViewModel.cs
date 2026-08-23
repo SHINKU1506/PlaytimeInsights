@@ -3,13 +3,21 @@ using System.Windows;
 
 namespace PlaytimeInsights.ViewModels
 {
+    public enum HeatmapIntensityLevel
+    {
+        None,
+        Low,
+        Medium,
+        High
+    }
+
     public sealed class HeatmapCellViewModel
     {
         public DateTime Date { get; set; }
 
         public ulong Seconds { get; set; }
 
-        public double HeatOpacity { get; set; }
+        public HeatmapIntensityLevel IntensityLevel { get; set; }
 
         public Visibility CellVisibility { get; set; }
 

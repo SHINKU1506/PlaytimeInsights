@@ -209,12 +209,10 @@ namespace PlaytimeInsights.Services
                     }).ToList()
             };
             var trend = CreateTrendProjection(context, query.AggregationPeriod);
-            int heatmapColumnCount;
-            var heatmapCells = CreateHeatmapCells(
+            var heatmap = CreateHeatmapProjection(
                 dailySeconds,
                 range,
-                firstDayOfWeek,
-                out heatmapColumnCount);
+                firstDayOfWeek);
             var ranking = CreateRankingProjection(context, query.RankingMetric, topGames);
             var lifetimeRankings = CreateLifetimeRankings(gameList, topGames);
             var activeDays = dailySeconds.Count(item => item.Value > 0);
@@ -259,10 +257,12 @@ namespace PlaytimeInsights.Services
                         rangeSessionCount,
                         DateTime.Now),
                 PeriodActivities = trend.PeriodActivities,
-                HeatmapCells = heatmapCells,
+                HeatmapCells = heatmap.Cells,
                 HeatmapWeekdayLabels = WeekdayLabelService.CreateLabels(
                     firstDayOfWeek),
-                HeatmapColumnCount = heatmapColumnCount,
+                HeatmapMonthLabels = heatmap.MonthLabels,
+                HeatmapWeekLabels = heatmap.WeekLabels,
+                HeatmapColumnCount = heatmap.ColumnCount,
                 TrendChartWidth = trend.TrendChartWidth,
                 TrendLinePoints = trend.TrendLinePoints,
                 TrendLineGeometry = trend.TrendLineGeometry,
@@ -727,18 +727,25 @@ namespace PlaytimeInsights.Services
             return values;
         }
 
-        private static IList<HeatmapCellViewModel> CreateHeatmapCells(
+        private sealed class HeatmapProjection
+        {
+            public IList<HeatmapCellViewModel> Cells { get; set; }
+
+            public int ColumnCount { get; set; }
+
+            public IList<HeatmapMonthLabelViewModel> MonthLabels { get; set; }
+
+            public IList<string> WeekLabels { get; set; }
+        }
+
+        private static HeatmapProjection CreateHeatmapProjection(
             IDictionary<DateTime, ulong> dailySeconds,
             AnalyticsDateRange range,
-            DayOfWeek firstDayOfWeek,
-            out int columnCount)
+            DayOfWeek firstDayOfWeek)
         {
             var firstWeek = StartOfWeek(range.StartDate, firstDayOfWeek);
             var lastWeek = StartOfWeek(range.EndDate, firstDayOfWeek);
-            columnCount = Math.Max(1, (int)((lastWeek - firstWeek).TotalDays / 7) + 1);
-            var maximumSeconds = dailySeconds.Count == 0
-                ? 0UL
-                : dailySeconds.Max(item => item.Value);
+            var columnCount = Math.Max(1, (int)((lastWeek - firstWeek).TotalDays / 7) + 1);
             var values = new List<HeatmapCellViewModel>(columnCount * 7);
 
             for (var row = 0; row < 7; row++)
@@ -757,10 +764,8 @@ namespace PlaytimeInsights.Services
                     {
                         Date = date,
                         Seconds = seconds,
+                        IntensityLevel = inRange ? HeatmapIntensityScale.FromSeconds(seconds) : HeatmapIntensityLevel.None,
                         CellVisibility = inRange ? Visibility.Visible : Visibility.Hidden,
-                        HeatOpacity = seconds == 0 || maximumSeconds == 0
-                            ? 0.08
-                            : 0.18 + (double)seconds / maximumSeconds * 0.82,
                         TooltipText = inRange
                             ? LocalizationService.Format(
                                 "LOCPlaytimeInsightsChartTooltipFormat",
@@ -772,7 +777,95 @@ namespace PlaytimeInsights.Services
                 }
             }
 
-            return values;
+            var columnMonths = new DateTime[columnCount];
+            for (var col = 0; col < columnCount; col++)
+            {
+                DateTime? columnMonth = null;
+                for (var row = 0; row < 7; row++)
+                {
+                    var date = firstWeek.AddDays(col * 7 + row);
+                    if (date >= range.StartDate && date <= range.EndDate)
+                    {
+                        if (date.Day == 1)
+                        {
+                            columnMonth = new DateTime(date.Year, date.Month, 1);
+                            break;
+                        }
+                        else if (!columnMonth.HasValue)
+                        {
+                            columnMonth = new DateTime(date.Year, date.Month, 1);
+                        }
+                    }
+                }
+
+                if (!columnMonth.HasValue)
+                {
+                    var fallbackDate = firstWeek.AddDays(col * 7);
+                    columnMonth = new DateTime(fallbackDate.Year, fallbackDate.Month, 1);
+                }
+
+                columnMonths[col] = columnMonth.Value;
+            }
+
+            var monthLabels = new List<HeatmapMonthLabelViewModel>();
+            var weekLabels = new List<string>(columnCount);
+            var currentMonth = DateTime.MinValue;
+            var monthStartIndex = 0;
+            var weekInMonth = 0;
+
+            for (var col = 0; col < columnCount; col++)
+            {
+                var colMonth = columnMonths[col];
+                if (colMonth != currentMonth)
+                {
+                    if (currentMonth != DateTime.MinValue)
+                    {
+                        monthLabels.Add(new HeatmapMonthLabelViewModel
+                        {
+                            Label = LocalizationService.Format(
+                                "LOCPlaytimeInsightsMonthRangeFormat",
+                                "{0:yyyy 年 M 月}",
+                                currentMonth),
+                            ColumnIndex = monthStartIndex,
+                            ColumnSpan = col - monthStartIndex
+                        });
+                    }
+
+                    currentMonth = colMonth;
+                    monthStartIndex = col;
+                    weekInMonth = 1;
+                }
+                else
+                {
+                    weekInMonth++;
+                }
+
+                weekLabels.Add(LocalizationService.Format(
+                    "LOCPlaytimeInsightsHeatmapWeekNumberFormat",
+                    "{0}",
+                    weekInMonth));
+            }
+
+            if (currentMonth != DateTime.MinValue)
+            {
+                monthLabels.Add(new HeatmapMonthLabelViewModel
+                {
+                    Label = LocalizationService.Format(
+                        "LOCPlaytimeInsightsMonthRangeFormat",
+                        "{0:yyyy 年 M 月}",
+                        currentMonth),
+                    ColumnIndex = monthStartIndex,
+                    ColumnSpan = columnCount - monthStartIndex
+                });
+            }
+
+            return new HeatmapProjection
+            {
+                Cells = values,
+                ColumnCount = columnCount,
+                MonthLabels = monthLabels,
+                WeekLabels = weekLabels
+            };
         }
 
         private static void ApplyPeriodGameSummaries(
