@@ -10,6 +10,40 @@
     <SolidColorBrush x:Key="RankingBronzeFillBrush" Color="#33C9824A" />
     <SolidColorBrush x:Key="RankingEnergyBrush" Color="#FF4A90E2" />
 
+    <!-- Trend chart semantic brushes. AdaptiveTrendChart.OnRender resolves these by
+         key and never rebuilds a gradient per frame; the control keeps matching
+         frozen static fallbacks for the case where this dictionary is absent.
+         The line brush is the product's primary blue-to-violet gesture and stays in
+         sync with RankingEnergyIndicatorBrush.
+         The area fill is tuned against the dark module surface (#1B1C24). Measured
+         on that surface: the top stop composites to 1.648:1, just above the
+         gridline's own 1.525:1, so the fill reads as a distinct region; the mid stop
+         holds 1.263:1 so the body of the fill keeps weight instead of dying early.
+         Gridlines are drawn BEFORE the area and show through it, and they stay
+         legible at these alphas (local contrast inside the fill 1.36:1 at the top,
+         1.47:1 at the mid). The line itself sits at 5.10:1 and is never at risk.
+         An earlier 0x30 -> 0x18 ramp falling off at 0.55 was rejected: at 1.273:1 the
+         fill was fainter than the gridlines painted under it, so it had no presence
+         in dark mode. Do not lower these alphas back toward 0x30, and do not push the
+         top past about 0x66, where the gridlines start washing out.
+         If these values change, CreateFallbackTrendAreaBrush in AdaptiveTrendChart
+         must be updated to match; a test asserts the two stay in sync.
+         There is no TrendNodeRingBrush by design. The node ring - normal and hover
+         alike - resolves the theme's ControlBackgroundBrush, so it tracks Playnite
+         Light and Dark. A fixed near-white ring such as #CCF3F4F6 was evaluated and
+         rejected: it loses its edge on a light surface, which is the same defect as
+         falling back to Brushes.White, just carried by a resource. -->
+    <LinearGradientBrush x:Key="TrendLineBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#FF2F8CFF" Offset="0" />
+        <GradientStop Color="#FFA45CFF" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="TrendAreaFillBrush" StartPoint="0.5,0" EndPoint="0.5,1">
+        <GradientStop Color="#5A3B82F6" Offset="0" />
+        <GradientStop Color="#2E5B7CFA" Offset="0.62" />
+        <GradientStop Color="#005B7CFA" Offset="1" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="TrendNodeFillBrush" Color="#FF4A90E2" />
+
     <!-- Calendar heatmap levels: a one-hue ICE-CYAN ordinal ramp on the dark module
          surface (ModuleBackgroundBrush, effective #1B1C24), with a visible per-cell
          aurora sheen matching the Week x Hour grid's.

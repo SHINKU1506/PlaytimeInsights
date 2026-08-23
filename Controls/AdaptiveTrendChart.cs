@@ -1,3 +1,4 @@
+using PlaytimeInsights.Services;
 using PlaytimeInsights.ViewModels;
 using System;
 using System.Collections;
@@ -37,6 +38,26 @@ namespace PlaytimeInsights.Controls
         private IList<PeriodActivityViewModel> renderedItems =
             new List<PeriodActivityViewModel>();
         private IList<Point> renderedPoints = new List<Point>();
+
+        // Y scale. The gridlines are only worth protecting from the area fill if
+        // they carry values, so the plot reserves a measured left gutter and the
+        // points normalise against a rounded-up maximum rather than the raw peak.
+        // Both are cached here because GetPlotRect is also called from OnMouseMove
+        // for hit-testing and must never disagree with what was drawn.
+        private const double AxisLabelFontSize = 10d;
+        private const double AxisGutterPadding = 8d;
+        private ulong axisMaximumSeconds;
+        private double axisGutter = 12d;
+
+        // Frozen once per process. OnRender resolves the shared dictionary by key and
+        // only reaches for these when the dictionary is not in scope, so no frame
+        // allocates a gradient or a brush.
+        private static readonly Brush FallbackTrendLineBrush =
+            CreateFallbackTrendLineBrush();
+        private static readonly Brush FallbackTrendAreaBrush =
+            CreateFallbackTrendAreaBrush();
+        private static readonly Brush FallbackTrendNodeFillBrush =
+            CreateFrozenBrush(Color.FromRgb(74, 144, 226));
 
         public IEnumerable ItemsSource
         {
@@ -82,7 +103,56 @@ namespace PlaytimeInsights.Controls
             hoverIndex = -1;
             renderedItems = new List<PeriodActivityViewModel>();
             renderedPoints = new List<Point>();
+            axisMaximumSeconds = 0;
+            axisGutter = 12d;
             InvalidateVisual();
+        }
+
+        // Ceiling only, no 1/2/5/10 ladder: sub-hour peaks round up to the next
+        // 10 minutes, anything from an hour up to the next whole hour. Both steps
+        // keep the midpoint label (maximum / 2) a clean multiple. Public because it
+        // is a pure function and the regression suite asserts its boundaries; there
+        // is no InternalsVisibleTo in this project.
+        public static ulong ResolveAxisMaximumSeconds(ulong peakSeconds)
+        {
+            if (peakSeconds == 0)
+            {
+                return 0;
+            }
+
+            var step = peakSeconds < 3600UL ? 600UL : 3600UL;
+            var steps = peakSeconds / step;
+            if (peakSeconds % step != 0)
+            {
+                steps++;
+            }
+
+            return steps * step;
+        }
+
+        private IList<FormattedText> CreateAxisLabels(Brush textBrush)
+        {
+            var labels = new List<FormattedText>();
+            if (axisMaximumSeconds == 0)
+            {
+                return labels;
+            }
+
+            // Top, midpoint, baseline. FormatDuration is already localized, so no
+            // new resource keys; the baseline is a culture-formatted numeral.
+            labels.Add(CreateText(
+                AnalyticsService.FormatDuration(axisMaximumSeconds),
+                AxisLabelFontSize,
+                textBrush));
+            labels.Add(CreateText(
+                AnalyticsService.FormatDuration(axisMaximumSeconds / 2UL),
+                AxisLabelFontSize,
+                textBrush));
+            labels.Add(CreateText(
+                0.ToString(CultureInfo.CurrentCulture),
+                AxisLabelFontSize,
+                textBrush));
+            return labels;
         }
 
         protected override void OnRender(DrawingContext drawingContext)
@@ -93,63 +163,92 @@ namespace PlaytimeInsights.Controls
                 .Cast<object>()
                 .OfType<PeriodActivityViewModel>()
                 .ToList();
+
+            var separator = ResolveBrush("PanelSeparatorBrush", Color.FromArgb(80, 128, 128, 128));
+            var textBrush = ResolveBrush("TextBrush", Colors.White);
+
+            // Axis first: the maximum depends only on the items, and the gutter
+            // depends only on the label widths, so both are known before any
+            // geometry. Measure the labels rather than guessing a width, so an
+            // axis label is never clipped.
+            axisMaximumSeconds = renderedItems.Count == 0
+                ? 0UL
+                : ResolveAxisMaximumSeconds(
+                    renderedItems.Max(item => item.Seconds));
+            var axisLabels = CreateAxisLabels(textBrush);
+            axisGutter = 12d;
+            if (axisLabels.Count > 0)
+            {
+                var widest = axisLabels.Max(label => label.Width);
+                axisGutter = Math.Min(
+                    Math.Max(12d, widest + AxisGutterPadding + 4d),
+                    Math.Max(12d, ActualWidth * 0.3));
+            }
+
             renderedPoints = CreatePoints(renderedItems);
             if (renderedPoints.Count == 0)
             {
                 return;
             }
 
-            var separator = ResolveBrush("PanelSeparatorBrush", Color.FromArgb(80, 128, 128, 128));
-            var textBrush = ResolveBrush("TextBrush", Colors.White);
+            var areaBrush = ResolveBrush("TrendAreaFillBrush", FallbackTrendAreaBrush);
+            var lineBrush = ResolveBrush("TrendLineBrush", FallbackTrendLineBrush);
+            var nodeFillBrush = ResolveBrush("TrendNodeFillBrush", FallbackTrendNodeFillBrush);
+
+            // Option A: one theme-tracking ring shared by the normal and hover nodes.
+            var nodeRingBrush = ResolveBrush("ControlBackgroundBrush", Colors.Black);
             var plot = GetPlotRect();
             var gridPen = new Pen(separator, 1);
-            foreach (var ratio in new[] { 0d, 0.5d, 1d })
+            var ratios = new[] { 0d, 0.5d, 1d };
+            for (var index = 0; index < ratios.Length; index++)
             {
-                var y = plot.Top + plot.Height * ratio;
+                var y = plot.Top + plot.Height * ratios[index];
                 drawingContext.DrawLine(gridPen, new Point(plot.Left, y), new Point(plot.Right, y));
+
+                // Right-align each value against its own gridline so the scale
+                // reads without hovering. Axis text wears text ink, never the
+                // series colour.
+                if (index < axisLabels.Count)
+                {
+                    var label = axisLabels[index];
+                    drawingContext.DrawText(
+                        label,
+                        new Point(
+                            Math.Max(0d, plot.Left - AxisGutterPadding - label.Width),
+                            y - label.Height / 2));
+                }
             }
 
             var area = CreateSmoothGeometry(renderedPoints, plot.Bottom, true);
             var line = CreateSmoothGeometry(renderedPoints, plot.Bottom, false);
-            var areaBrush = new LinearGradientBrush
-            {
-                StartPoint = new Point(0.5, 0),
-                EndPoint = new Point(0.5, 1)
-            };
-            areaBrush.GradientStops.Add(new GradientStop(
-                Color.FromArgb(102, 63, 140, 255),
-                0));
-            areaBrush.GradientStops.Add(new GradientStop(
-                Color.FromArgb(31, 122, 101, 255),
-                0.65));
-            areaBrush.GradientStops.Add(new GradientStop(
-                Color.FromArgb(0, 122, 101, 255),
-                1));
             drawingContext.DrawGeometry(areaBrush, null, area);
             var thickness = renderedItems.Count >= 180
                 ? 1
                 : renderedItems.Count >= 90 ? 1.5 : 2.5;
-            var lineBrush = new LinearGradientBrush(
-                Color.FromRgb(47, 140, 255),
-                Color.FromRgb(164, 92, 255),
-                new Point(0, 0),
-                new Point(1, 0));
-            drawingContext.DrawGeometry(
-                null,
-                new Pen(lineBrush, thickness),
-                line);
+            var linePen = new Pen(lineBrush, thickness);
+            if (linePen.CanFreeze)
+            {
+                linePen.Freeze();
+            }
+
+            drawingContext.DrawGeometry(null, linePen, line);
 
             if (renderedItems.Count <= 90)
             {
-                var nodeBrush = new SolidColorBrush(Color.FromRgb(74, 144, 226));
+                var nodePen = new Pen(nodeRingBrush, 1.5);
+                if (nodePen.CanFreeze)
+                {
+                    nodePen.Freeze();
+                }
+
                 foreach (var point in renderedPoints)
                 {
-                    drawingContext.DrawEllipse(nodeBrush, null, point, 3, 3);
+                    drawingContext.DrawEllipse(nodeFillBrush, nodePen, point, 3d, 3d);
                 }
             }
 
             DrawSparseLabels(drawingContext, plot, textBrush);
-            DrawHover(drawingContext, plot, textBrush);
+            DrawHover(drawingContext, plot, textBrush, nodeRingBrush);
         }
 
         protected override void OnMouseMove(MouseEventArgs e)
@@ -192,17 +291,24 @@ namespace PlaytimeInsights.Controls
 
         private Rect GetPlotRect()
         {
+            // axisGutter is cached by OnRender so this stays cheap for the
+            // per-mouse-move hit-test path and can never disagree with the
+            // geometry that was actually drawn.
+            var left = Math.Max(12d, axisGutter);
             return new Rect(
+                left,
                 12,
-                12,
-                Math.Max(1, ActualWidth - 24),
+                Math.Max(1, ActualWidth - left - 12),
                 Math.Max(1, ActualHeight - 42));
         }
 
         private IList<Point> CreatePoints(IList<PeriodActivityViewModel> items)
         {
             var plot = GetPlotRect();
-            var maximum = items.Count == 0 ? 0UL : items.Max(item => item.Seconds);
+
+            // Normalise against the rounded axis maximum, not the raw peak, so the
+            // top gridline is a real reference instead of a restatement of the peak.
+            var maximum = axisMaximumSeconds;
             var points = new List<Point>(items.Count);
             for (var index = 0; index < items.Count; index++)
             {
@@ -261,7 +367,11 @@ namespace PlaytimeInsights.Controls
             }
         }
 
-        private void DrawHover(DrawingContext context, Rect plot, Brush textBrush)
+        private void DrawHover(
+            DrawingContext context,
+            Rect plot,
+            Brush textBrush,
+            Brush nodeRingBrush)
         {
             if (hoverIndex < 0 || hoverIndex >= renderedPoints.Count)
             {
@@ -275,8 +385,6 @@ namespace PlaytimeInsights.Controls
                 Color.FromArgb(150, 74, 144, 226));
             var glyph = ResolveBrush("GlyphBrush",
                 Color.FromRgb(120, 177, 235));
-            var controlBackground = ResolveBrush("ControlBackgroundBrush",
-                Colors.Black);
             var crosshairPen = new Pen(
                 glyph,
                 1)
@@ -287,9 +395,11 @@ namespace PlaytimeInsights.Controls
                 crosshairPen,
                 new Point(point.X, plot.Top),
                 new Point(point.X, plot.Bottom));
+
+            // Same ring brush as the normal nodes, only a larger radius.
             context.DrawEllipse(
                 glyph,
-                new Pen(controlBackground, 1),
+                new Pen(nodeRingBrush, 1),
                 point,
                 4.5,
                 4.5);
@@ -413,6 +523,66 @@ namespace PlaytimeInsights.Controls
         {
             return TryFindResource(key) as Brush ??
                 new SolidColorBrush(fallback);
+        }
+
+        // TrendLineBrush and TrendAreaFillBrush are gradients, which the Color
+        // overload cannot express; both overloads short-circuit, so a present
+        // resource costs no allocation.
+        private Brush ResolveBrush(string key, Brush fallback)
+        {
+            return TryFindResource(key) as Brush ?? fallback;
+        }
+
+        private static Brush CreateFallbackTrendLineBrush()
+        {
+            var brush = new LinearGradientBrush(
+                Color.FromRgb(47, 140, 255),
+                Color.FromRgb(164, 92, 255),
+                new Point(0, 0),
+                new Point(1, 0));
+            if (brush.CanFreeze)
+            {
+                brush.Freeze();
+            }
+
+            return brush;
+        }
+
+        private static Brush CreateFallbackTrendAreaBrush()
+        {
+            // Must mirror TrendAreaFillBrush in the shared dictionary; a contract
+            // test asserts the two stay in sync.
+            var brush = new LinearGradientBrush
+            {
+                StartPoint = new Point(0.5, 0),
+                EndPoint = new Point(0.5, 1)
+            };
+            brush.GradientStops.Add(new GradientStop(
+                Color.FromArgb(90, 59, 130, 246),
+                0));
+            brush.GradientStops.Add(new GradientStop(
+                Color.FromArgb(46, 91, 124, 250),
+                0.62));
+            brush.GradientStops.Add(new GradientStop(
+                Color.FromArgb(0, 91, 124, 250),
+                1));
+            if (brush.CanFreeze)
+            {
+                brush.Freeze();
+            }
+
+            return brush;
+        }
+
+        private static Brush CreateFrozenBrush(Color color)
+        {
+            var brush = new SolidColorBrush(color);
+            if (brush.CanFreeze)
+            {
+                brush.Freeze();
+            }
+
+            return brush;
         }
 
         private static FormattedText CreateText(

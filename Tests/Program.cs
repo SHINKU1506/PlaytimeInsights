@@ -153,6 +153,9 @@ namespace PlaytimeInsights.Tests
             Run("Stage E architecture closure keeps event boundaries symmetric", TestStageEArchitectureClosure);
             Run("Trend periods publish one complete replacement", TestTrendPeriodsPublishAtomically);
             Run("Trend chart follows source lifecycle changes", TestTrendChartSourceLifecycle);
+            Run("Trend chart resolves themed area, line and node resources", TestTrendChartThemeResourceContract);
+            Run("Trend axis rounds the peak up to a labelled maximum", TestTrendAxisMaximumRounding);
+            Run("Trend chart reserves a measured gutter and labels the gridlines", TestTrendAxisGutterAndLabels);
             Run("Dashboard filters route selective refresh reasons", TestDashboardFilterRefreshReasons);
             Run("Dashboard refresh plans isolate dependencies", TestDashboardRefreshPlans);
             Run("Quick range selection emits at most one range refresh", TestQuickRangeRefreshPurity);
@@ -3887,6 +3890,266 @@ namespace PlaytimeInsights.Tests
                 RenderTrendChart(chart);
                 Equal(3, GetPrivateListCount(chart, "renderedItems"));
             });
+        }
+
+        private static void TestTrendChartThemeResourceContract()
+        {
+            var sourceRoot = FindSourceRoot();
+            var chartSource = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Controls",
+                "AdaptiveTrendChart.cs"));
+            var resourcesXaml = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Resources",
+                "PlaytimeInsightsVisualResources.xaml"));
+            var quote = ((char)34).ToString();
+
+            // The shared dictionary owns the trend colours, and OnRender only
+            // resolves them by key.
+            foreach (var key in new[]
+            {
+                "TrendLineBrush",
+                "TrendAreaFillBrush",
+                "TrendNodeFillBrush"
+            })
+            {
+                Equal(true, resourcesXaml.Contains(
+                    "x:Key=" + quote + key + quote));
+                Equal(true, chartSource.Contains(
+                    "ResolveBrush(" + quote + key + quote));
+            }
+
+            // Option A: the node ring is a theme brush, not a named trend
+            // resource, so a fixed near-white ring can never be introduced.
+            // Checked as a declaration/lookup, not a bare token, so both files
+            // may still document why the rejected key does not exist.
+            Equal(false, resourcesXaml.Contains(
+                "x:Key=" + quote + "TrendNodeRingBrush" + quote));
+            Equal(false, chartSource.Contains(
+                "ResolveBrush(" + quote + "TrendNodeRingBrush" + quote));
+            Equal(false, chartSource.Contains("FallbackTrendNodeRingBrush"));
+
+            // The line and area brushes are gradients, so a Colour-only
+            // fallback cannot express them.
+            Equal(true, chartSource.Contains(
+                "private Brush ResolveBrush(string key, Brush fallback)"));
+            Equal(true, chartSource.Contains(
+                "private Brush ResolveBrush(string key, Color fallback)"));
+            foreach (var fallback in new[]
+            {
+                "FallbackTrendLineBrush",
+                "FallbackTrendAreaBrush",
+                "FallbackTrendNodeFillBrush"
+            })
+            {
+                Equal(true, chartSource.Contains(
+                    "private static readonly Brush " + fallback));
+            }
+
+            // The area fill must stay strong enough to read on the dark module
+            // surface. Measured against #1B1C24: the top stop composites to
+            // 1.648:1, above the gridline's own 1.525:1. An earlier 0x30 -> 0x18
+            // ramp sat at 1.273:1 - fainter than the gridlines painted under it -
+            // and had no presence in dark mode.
+            Equal(true, resourcesXaml.Contains(
+                "Color=" + quote + "#5A3B82F6" + quote));
+            Equal(true, resourcesXaml.Contains(
+                "Color=" + quote + "#2E5B7CFA" + quote));
+            Equal(false, resourcesXaml.Contains("#303B82F6"));
+            Equal(false, resourcesXaml.Contains("#185B7CFA"));
+
+            // The frozen fallback must mirror the resource, or the chart changes
+            // appearance whenever the dictionary is out of scope.
+            Equal(true, chartSource.Contains(
+                "Color.FromArgb(90, 59, 130, 246)"));
+            Equal(true, chartSource.Contains(
+                "Color.FromArgb(46, 91, 124, 250)"));
+            Equal(false, chartSource.Contains(
+                "Color.FromArgb(48, 59, 130, 246)"));
+            Equal(false, chartSource.Contains(
+                "Color.FromArgb(24, 91, 124, 250)"));
+
+            var onRender = ExtractSourceBlock(
+                chartSource,
+                "protected override void OnRender(",
+                "protected override void OnMouseMove(");
+
+            // Nothing is rebuilt per frame any more.
+            Equal(false, onRender.Contains("new LinearGradientBrush"));
+            Equal(false, onRender.Contains("GradientStops.Add"));
+            Equal(false, onRender.Contains("Color.FromArgb(102, 63, 140, 255)"));
+            Equal(false, onRender.Contains("new SolidColorBrush"));
+
+            // Exactly one closed area geometry, filled exactly once.
+            Equal(1, CountSubstring(
+                onRender,
+                "CreateSmoothGeometry(renderedPoints, plot.Bottom, true)"));
+            Equal(1, CountSubstring(
+                onRender,
+                "DrawGeometry(areaBrush, null, area)"));
+
+            // Normal nodes gain a ring pen but keep the 90-point budget.
+            Equal(true, onRender.Contains("renderedItems.Count <= 90"));
+            Equal(true, onRender.Contains("renderedItems.Count >= 180"));
+            Equal(true, onRender.Contains(
+                "DrawEllipse(nodeFillBrush, nodePen, point, 3d, 3d)"));
+            Equal(true, onRender.Contains("new Pen(nodeRingBrush, 1.5)"));
+
+            // Normal and hover rings come from one resolved brush.
+            Equal(1, CountSubstring(
+                onRender,
+                "ResolveBrush(" + quote + "ControlBackgroundBrush" + quote));
+            Equal(true, onRender.Contains(
+                "DrawHover(drawingContext, plot, textBrush, nodeRingBrush)"));
+
+            var drawHover = ExtractSourceBlock(
+                chartSource,
+                "private void DrawHover(",
+                "private static Geometry CreateSmoothGeometry(");
+            Equal(true, drawHover.Contains("Brush nodeRingBrush"));
+            Equal(true, drawHover.Contains("new Pen(nodeRingBrush, 1)"));
+            Equal(false, drawHover.Contains(
+                "ResolveBrush(" + quote + "ControlBackgroundBrush" + quote));
+
+            // No fixed light ring constant survives in either render path.
+            foreach (var forbidden in new[]
+            {
+                "Brushes.White",
+                "F3F4F6",
+                "Color.FromRgb(243, 244, 246)"
+            })
+            {
+                Equal(false, onRender.Contains(forbidden));
+                Equal(false, drawHover.Contains(forbidden));
+            }
+        }
+
+        private static int CountSubstring(string source, string value)
+        {
+            var count = 0;
+            var index = source.IndexOf(value, StringComparison.Ordinal);
+            while (index >= 0)
+            {
+                count++;
+                index = source.IndexOf(
+                    value,
+                    index + value.Length,
+                    StringComparison.Ordinal);
+            }
+
+            return count;
+        }
+
+        private static void TestTrendAxisMaximumRounding()
+        {
+            // Ceiling only - no 1/2/5/10 ladder. Sub-hour peaks round up to the
+            // next 10 minutes, hour-and-above peaks to the next whole hour, so
+            // the midpoint label is always a clean multiple.
+            foreach (var sample in new[]
+            {
+                new { Peak = 0UL, Axis = 0UL },
+                new { Peak = 1UL, Axis = 600UL },
+                new { Peak = 599UL, Axis = 600UL },
+                new { Peak = 600UL, Axis = 600UL },
+                new { Peak = 601UL, Axis = 1200UL },
+                new { Peak = 3599UL, Axis = 3600UL },
+                new { Peak = 3600UL, Axis = 3600UL },
+                new { Peak = 3601UL, Axis = 7200UL },
+                new { Peak = 13620UL, Axis = 14400UL },
+                new { Peak = 18600UL, Axis = 21600UL }
+            })
+            {
+                Equal(
+                    sample.Axis,
+                    AdaptiveTrendChart.ResolveAxisMaximumSeconds(sample.Peak));
+            }
+        }
+
+        private static void TestTrendAxisGutterAndLabels()
+        {
+            RunOnSta(() =>
+            {
+                // A 3h47m peak rounds up to 4h, so the peak must sit strictly
+                // below the top gridline instead of touching it.
+                var chart = new AdaptiveTrendChart
+                {
+                    ItemsSource = new List<PeriodActivityViewModel>
+                    {
+                        new PeriodActivityViewModel
+                        {
+                            Label = "a",
+                            Seconds = 13620,
+                            DurationText = "3 小时 47 分"
+                        },
+                        new PeriodActivityViewModel
+                        {
+                            Label = "b",
+                            Seconds = 600,
+                            DurationText = "10 分钟"
+                        }
+                    }
+                };
+                RenderTrendChart(chart);
+
+                var plot = GetPrivatePlotRect(chart);
+
+                // The old geometry started the plot at a fixed 12 DIP with no
+                // room for value labels.
+                Equal(true, plot.Left > 12d);
+
+                var axisMaximum = GetPrivateAxisMaximum(chart);
+                Equal(14400UL, axisMaximum);
+
+                var points = GetPrivatePoints(chart);
+                Equal(2, points.Count);
+
+                // Peak normalised against 4h, not against itself.
+                var expectedPeakY = plot.Bottom -
+                    plot.Height * 13620d / 14400d;
+                Equal(true, Math.Abs(points[0].Y - expectedPeakY) < 0.01);
+                Equal(true, points[0].Y > plot.Top + 0.5);
+
+                // Wider labels must widen the gutter rather than clip.
+                var wide = new AdaptiveTrendChart
+                {
+                    ItemsSource = new List<PeriodActivityViewModel>
+                    {
+                        new PeriodActivityViewModel
+                        {
+                            Label = "a",
+                            Seconds = 360000,
+                            DurationText = "100 小时"
+                        }
+                    }
+                };
+                RenderTrendChart(wide);
+                Equal(true, GetPrivatePlotRect(wide).Left >= plot.Left);
+            });
+        }
+
+        private static Rect GetPrivatePlotRect(AdaptiveTrendChart chart)
+        {
+            var method = typeof(AdaptiveTrendChart).GetMethod(
+                "GetPlotRect",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            return (Rect)method.Invoke(chart, null);
+        }
+
+        private static ulong GetPrivateAxisMaximum(AdaptiveTrendChart chart)
+        {
+            var field = typeof(AdaptiveTrendChart).GetField(
+                "axisMaximumSeconds",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            return (ulong)field.GetValue(chart);
+        }
+
+        private static IList<Point> GetPrivatePoints(AdaptiveTrendChart chart)
+        {
+            var field = typeof(AdaptiveTrendChart).GetField(
+                "renderedPoints",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            return (IList<Point>)field.GetValue(chart);
         }
 
         private static void TestResponsiveMetricPanelColumns()
