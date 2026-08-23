@@ -41,6 +41,8 @@ namespace PlaytimeInsights.Services
 
         public ulong LongestSessionSeconds { get; set; }
 
+        public DateTime? LastSessionLocal { get; set; }
+
         public ulong AverageSessionSeconds =>
             SessionCount == 0 ? 0UL : Seconds / (ulong)SessionCount;
     }

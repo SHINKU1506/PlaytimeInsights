@@ -55,3 +55,7 @@
 - [x] schema 4 load <= 1400 ms: min 962 ms / avg 1,014 ms / max 1,115 ms
 
 The five-run evidence was collected without Playnite or a concurrent review agent consuming CPU and disk. An earlier contended run measured 1,023 ms / 2,045 ms and exposed that the regression assertions still used a 30-second diagnostic ceiling; the assertions are now aligned with the frozen 750/1,400 ms release budgets.
+
+## Known Ranking Behavior
+
+- The translucent full-row ranking wash always represents duration share. The first three rows retain their independent gold, silver, and bronze card glows beneath that shared blue wash. When the selected ranking metric is session count, active days, average session, or longest session, the primary value controls sorting while the wash remains the share of playtime shown in its tooltip.

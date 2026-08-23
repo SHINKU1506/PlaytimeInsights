@@ -13,8 +13,7 @@
     <!-- Trend chart semantic brushes. AdaptiveTrendChart.OnRender resolves these by
          key and never rebuilds a gradient per frame; the control keeps matching
          frozen static fallbacks for the case where this dictionary is absent.
-         The line brush is the product's primary blue-to-violet gesture and stays in
-         sync with RankingEnergyIndicatorBrush.
+         The line brush is the product's primary blue-to-violet gesture.
          The area fill is tuned against the dark module surface (#1B1C24). Measured
          on that surface: the top stop composites to 1.648:1, just above the
          gridline's own 1.525:1, so the fill reads as a distinct region; the mid stop

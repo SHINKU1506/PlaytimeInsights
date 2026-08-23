@@ -85,6 +85,19 @@ namespace PlaytimeInsights.Services
             IEnumerable<GameSession> sessions,
             AnalyticsQuery query)
         {
+            return CreateSnapshotWithContext(
+                games,
+                sessions,
+                query,
+                DateTime.Now);
+        }
+
+        private DashboardSnapshotResult CreateSnapshotWithContext(
+            IEnumerable<Game> games,
+            IEnumerable<GameSession> sessions,
+            AnalyticsQuery query,
+            DateTime snapshotNow)
+        {
             var gameList = games == null ? new List<Game>() : games.ToList();
             var sessionList = sessions == null ? new List<GameSession>() : sessions.ToList();
             query = query ?? new AnalyticsQuery();
@@ -104,7 +117,7 @@ namespace PlaytimeInsights.Services
 
             var range = ResolveDateRange(
                 query,
-                DateTime.Today,
+                snapshotNow.Date,
                 allSessionsStartDate);
             var firstDayOfWeek = GetFirstDayOfWeek(query.UseIsoWeekStart);
 
@@ -163,6 +176,19 @@ namespace PlaytimeInsights.Services
                 stats.Seconds += includedSeconds;
                 stats.SessionCount++;
                 stats.LongestSessionSeconds = Math.Max(stats.LongestSessionSeconds, includedSeconds);
+                var startedUtc = DateTime.SpecifyKind(
+                    session.StartedAtUtc,
+                    DateTimeKind.Utc);
+                var startedLocal = new DateTimeOffset(startedUtc)
+                    .ToOffset(TimeSpan.FromMinutes(
+                        session.StartUtcOffsetMinutes))
+                    .DateTime;
+                if (!stats.LastSessionStartedAtUtc.HasValue ||
+                    startedUtc > stats.LastSessionStartedAtUtc.Value)
+                {
+                    stats.LastSessionStartedAtUtc = startedUtc;
+                    stats.LastSessionLocal = startedLocal;
+                }
 
                 foreach (var allocation in includedAllocations)
                 {
@@ -205,7 +231,8 @@ namespace PlaytimeInsights.Services
                         Seconds = stats.Seconds,
                         SessionCount = stats.SessionCount,
                         ActiveDates = stats.ActiveDates.OrderBy(date => date).ToList(),
-                        LongestSessionSeconds = stats.LongestSessionSeconds
+                        LongestSessionSeconds = stats.LongestSessionSeconds,
+                        LastSessionLocal = stats.LastSessionLocal
                     }).ToList()
             };
             var trend = CreateTrendProjection(context, query.AggregationPeriod);
@@ -213,8 +240,15 @@ namespace PlaytimeInsights.Services
                 dailySeconds,
                 range,
                 firstDayOfWeek);
-            var ranking = CreateRankingProjection(context, query.RankingMetric, topGames);
-            var lifetimeRankings = CreateLifetimeRankings(gameList, topGames);
+            var ranking = CreateRankingProjection(
+                context,
+                query.RankingMetric,
+                topGames,
+                snapshotNow);
+            var lifetimeRankings = CreateLifetimeRankings(
+                gameList,
+                topGames,
+                snapshotNow);
             var activeDays = dailySeconds.Count(item => item.Value > 0);
             var averageSessionSeconds = rangeSessionCount == 0
                 ? 0UL
@@ -255,7 +289,7 @@ namespace PlaytimeInsights.Services
                         "所选范围包含 {0:N0} 个游戏、{1:N0} 次会话 · 最近刷新 {2:HH:mm:ss}",
                         gameStats.Count,
                         rangeSessionCount,
-                        DateTime.Now),
+                        snapshotNow),
                 PeriodActivities = trend.PeriodActivities,
                 HeatmapCells = heatmap.Cells,
                 HeatmapWeekdayLabels = WeekdayLabelService.CreateLabels(
@@ -339,6 +373,19 @@ namespace PlaytimeInsights.Services
             RankingMetric rankingMetric,
             int topGames)
         {
+            return CreateRankingProjection(
+                context,
+                rankingMetric,
+                topGames,
+                DateTime.Now);
+        }
+
+        private DashboardRankingProjection CreateRankingProjection(
+            DashboardAnalysisContext context,
+            RankingMetric rankingMetric,
+            int topGames,
+            DateTime now)
+        {
             if (context == null)
             {
                 throw new ArgumentNullException(nameof(context));
@@ -354,7 +401,8 @@ namespace PlaytimeInsights.Services
                 RangeGameRankings = CreateRangeRankings(
                     context.GameStatistics,
                     rankingMetric,
-                    topGames)
+                    topGames,
+                    now)
             };
         }
 
@@ -1108,7 +1156,8 @@ namespace PlaytimeInsights.Services
         private static IList<GameRankingViewModel> CreateRangeRankings(
             IEnumerable<DashboardGameRangeStatistics> stats,
             RankingMetric metric,
-            int topGames)
+            int topGames,
+            DateTime now)
         {
             var allStats = stats.ToList();
             var totalDuration = allStats.Aggregate<DashboardGameRangeStatistics, decimal>(
@@ -1126,35 +1175,47 @@ namespace PlaytimeInsights.Services
                 .Take(topGames)
                 .ToList();
 
-            return ranked.Select((item, index) => new GameRankingViewModel
+            var results = ranked.Select((item, index) =>
             {
-                GameId = item.Stats.GameId,
-                Position = index + 1,
-                Name = item.Stats.Name,
-                PrimaryValueText = FormatRankingValue(item.Stats, metric),
-                DetailText = LocalizationService.Format(
-                    "LOCPlaytimeInsightsRankingDetailFormat",
-                    "{0} · {1:N0} 次 · {2:N0} 个活跃日 · 平均 {3} · 最长 {4}",
-                    FormatDurationPrecise(item.Stats.Seconds),
-                    item.Stats.SessionCount,
-                    item.Stats.ActiveDates.Count,
-                    FormatDurationPrecise(item.Stats.AverageSessionSeconds),
-                    FormatDurationPrecise(item.Stats.LongestSessionSeconds)),
-                ProgressPercent = totalDuration == 0
+                var share = totalDuration == 0
                     ? 0
-                    : (double)((decimal)item.Stats.Seconds / totalDuration * 100),
-                ProgressTooltipText = LocalizationService.Format(
-                    "LOCPlaytimeInsightsShareOfTotalFormat",
-                    "占总游玩时长 {0:P1}",
-                    totalDuration == 0
-                        ? 0
-                        : (double)((decimal)item.Stats.Seconds / totalDuration))
+                    : (double)((decimal)item.Stats.Seconds / totalDuration);
+                var shareText = LocalizationService.Format(
+                    "LOCPlaytimeInsightsShareOfRangeFormat",
+                    "占本期总时长 {0:P0}",
+                    share);
+                return new GameRankingViewModel
+                {
+                    GameId = item.Stats.GameId,
+                    Position = index + 1,
+                    Name = item.Stats.Name,
+                    PrimaryValueText = FormatRankingValue(item.Stats, metric),
+                    DetailText = FormatRankingDetail(item.Stats, metric),
+                    ShareText = shareText,
+                    LastPlayedText = RecentActivityFormatter.Format(
+                        item.Stats.LastSessionLocal,
+                        now),
+                    AverageSessionText = FormatDurationPrecise(
+                        item.Stats.AverageSessionSeconds),
+                    AverageSessionLabelText = LocalizationService.Get(
+                        "LOCPlaytimeInsightsAverageSessionOption",
+                        "平均会话"),
+                    LongestSessionText = FormatDurationPrecise(
+                        item.Stats.LongestSessionSeconds),
+                    LongestSessionLabelText = LocalizationService.Get(
+                        "LOCPlaytimeInsightsLongestSessionOption",
+                        "最长会话"),
+                    ProgressPercent = share * 100,
+                };
             }).ToList();
+            ApplySparseLayout(results);
+            return results;
         }
 
         private static IList<GameRankingViewModel> CreateLifetimeRankings(
             IEnumerable<Game> games,
-            int topGames)
+            int topGames,
+            DateTime now)
         {
             var allPlayedGames = games
                 .Where(game => game.Playtime > 0)
@@ -1168,25 +1229,48 @@ namespace PlaytimeInsights.Services
                 .Take(topGames)
                 .ToList();
 
-            return ranked.Select((game, index) => new GameRankingViewModel
+            var results = ranked.Select((game, index) =>
             {
-                GameId = game.Id,
-                Position = index + 1,
-                Name = game.Name,
-                PrimaryValueText = FormatDuration(game.Playtime),
-                DetailText = LocalizationService.Get(
-                    "LOCPlaytimeInsightsPlayniteLifetimeBasis",
-                    "Playnite 当前累计口径"),
-                ProgressPercent = totalDuration == 0
+                var share = totalDuration == 0
                     ? 0
-                    : (double)((decimal)game.Playtime / totalDuration * 100),
-                ProgressTooltipText = LocalizationService.Format(
+                    : (double)((decimal)game.Playtime / totalDuration);
+                var shareText = LocalizationService.Format(
                     "LOCPlaytimeInsightsShareOfTotalFormat",
                     "占总游玩时长 {0:P1}",
-                    totalDuration == 0
-                        ? 0
-                        : (double)((decimal)game.Playtime / totalDuration))
+                    share);
+                var lastActivityLocal = game.LastActivity.HasValue
+                    ? DateTime.SpecifyKind(
+                        game.LastActivity.Value,
+                        DateTimeKind.Utc).ToLocalTime()
+                    : (DateTime?)null;
+                return new GameRankingViewModel
+                {
+                    GameId = game.Id,
+                    Position = index + 1,
+                    Name = game.Name,
+                    PrimaryValueText = FormatDuration(game.Playtime),
+                    DetailText = LocalizationService.Get(
+                        "LOCPlaytimeInsightsPlayniteLifetimeBasis",
+                        "Playnite 当前累计口径"),
+                    ShareText = shareText,
+                    LastPlayedText = RecentActivityFormatter.Format(
+                        lastActivityLocal,
+                        now),
+                    ProgressPercent = share * 100
+                };
             }).ToList();
+            ApplySparseLayout(results);
+            return results;
+        }
+
+        private static void ApplySparseLayout(
+            IList<GameRankingViewModel> rankings)
+        {
+            var isSparse = rankings.Count > 0 && rankings.Count <= 2;
+            foreach (var ranking in rankings)
+            {
+                ranking.IsSparseLayout = isSparse;
+            }
         }
 
         private static ulong GetRankingScore(
@@ -1233,6 +1317,30 @@ namespace PlaytimeInsights.Services
                 default:
                     return FormatDurationPrecise(stats.Seconds);
             }
+        }
+
+        private static string FormatRankingDetail(
+            DashboardGameRangeStatistics stats,
+            RankingMetric metric)
+        {
+            var values = new List<string>(2);
+            if (metric != RankingMetric.SessionCount)
+            {
+                values.Add(LocalizationService.Format(
+                    "LOCPlaytimeInsightsCountTimesFormat",
+                    "{0:N0} 次",
+                    stats.SessionCount));
+            }
+
+            if (metric != RankingMetric.ActiveDays)
+            {
+                values.Add(LocalizationService.Format(
+                    "LOCPlaytimeInsightsRankingActiveDaysDetailFormat",
+                    "{0:N0} 个活跃日",
+                    stats.ActiveDates.Count));
+            }
+
+            return string.Join(" · ", values);
         }
 
         private static DateTime GetPeriodStart(
@@ -1378,6 +1486,10 @@ namespace PlaytimeInsights.Services
             public HashSet<DateTime> ActiveDates { get; } = new HashSet<DateTime>();
 
             public ulong LongestSessionSeconds { get; set; }
+
+            public DateTime? LastSessionLocal { get; set; }
+
+            public DateTime? LastSessionStartedAtUtc { get; set; }
 
             public ulong AverageSessionSeconds =>
                 SessionCount == 0 ? 0UL : Seconds / (ulong)SessionCount;

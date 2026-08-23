@@ -66,6 +66,14 @@ namespace PlaytimeInsights.Tests
             Run("Weekly aggregation and range metrics", TestWeeklyAggregationAndRangeMetrics);
             Run("Range clips cross-midnight duration", TestRangeClipsCrossMidnightDuration);
             Run("Range ranking supports session count", TestRangeRankingBySessionCount);
+            Run("Range rankings expose share and latest activity", TestRangeRankingAuxiliaryText);
+            Run("Ranking details omit the active sort metric", TestRankingDetailDeduplication);
+            Run("Ranking secondary text uses readable hierarchy", TestRankingSecondaryTextHierarchy);
+            Run("Ranking row tooltip consolidates secondary statistics", TestRankingTooltipComposition);
+            Run("Ranking lists mark one and two rows as sparse", TestRankingSparseDensity);
+            Run("Ranking share wash keeps the historical full-row contract", TestRankingShareWashContract);
+            Run("Lifetime rankings convert Playnite activity to local time", TestLifetimeRankingActivityTimeZone);
+            Run("Dashboard snapshot shares one ranking timestamp", TestDashboardSnapshotUsesOneTimestamp);
             Run("Heatmap aligns ISO week and preserves calendar layout", TestHeatmapLayoutAndIntensity);
             Run("Heatmap uses absolute duration levels", TestHeatmapAbsoluteDurationLevels);
             Run("Heatmap month axis follows calendar-week columns", TestHeatmapMonthAxisProjection);
@@ -966,6 +974,591 @@ namespace PlaytimeInsights.Tests
             Equal(frequentGame, snapshot.LifetimeGameRankings[0].GameId);
             Equal(90.0, snapshot.LifetimeGameRankings[0].ProgressPercent);
             Equal(10.0, snapshot.LifetimeGameRankings[1].ProgressPercent);
+        }
+
+        private static void TestRangeRankingAuxiliaryText()
+        {
+            var firstGame = Guid.NewGuid();
+            var secondGame = Guid.NewGuid();
+            var now = new DateTime(2026, 8, 17, 12, 0, 0);
+            var service = new AnalyticsService();
+            var laterUtcSession = CreateSession(
+                firstGame,
+                "First",
+                new DateTime(2026, 8, 17, 3, 0, 0, DateTimeKind.Utc),
+                10);
+            laterUtcSession.StartUtcOffsetMinutes = 0;
+            laterUtcSession.EndUtcOffsetMinutes = 0;
+            laterUtcSession.TimeZoneId = "UTC";
+            var result = service.CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                new[]
+                {
+                    CreateSession(
+                        firstGame,
+                        "First",
+                        new DateTime(2026, 8, 17, 2, 0, 0, DateTimeKind.Utc),
+                        630),
+                    CreateSession(
+                        secondGame,
+                        "Second",
+                        new DateTime(2026, 8, 17, 1, 0, 0, DateTimeKind.Utc),
+                        370),
+                    laterUtcSession
+                },
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 8, 17),
+                    CustomEndDate = new DateTime(2026, 8, 17),
+                    RankingMetric = RankingMetric.Duration
+                });
+
+            var firstStats = result.Context.GameStatistics.Single(item =>
+                item.GameId == firstGame);
+            Equal(
+                new DateTime(2026, 8, 17, 3, 0, 0),
+                firstStats.LastSessionLocal.Value);
+
+            var projection = InvokeRangeRankingProjection(
+                service,
+                result.Context,
+                RankingMetric.Duration,
+                10,
+                now);
+            var first = projection.RangeGameRankings[0];
+            Equal("First", first.Name);
+            Equal("占本期总时长 63%", first.ShareText);
+            Equal("今天 03:00", first.LastPlayedText);
+
+            Equal(
+                "无最近游玩记录",
+                RecentActivityFormatter.Format(null, now));
+            Equal(
+                "今天 09:15",
+                RecentActivityFormatter.Format(
+                    new DateTime(2026, 8, 17, 9, 15, 0),
+                    now));
+            Equal(
+                "昨天 22:49",
+                RecentActivityFormatter.Format(
+                    new DateTime(2026, 8, 16, 22, 49, 0),
+                    now));
+            var older = new DateTime(2026, 8, 10, 8, 30, 0);
+            Equal(
+                older.ToString("g", CultureInfo.CurrentCulture),
+                RecentActivityFormatter.Format(older, now));
+        }
+
+        private static void TestRankingDetailDeduplication()
+        {
+            var service = new AnalyticsService();
+            var context = new DashboardAnalysisContext
+            {
+                GameStatistics = new[]
+                {
+                    new DashboardGameRangeStatistics
+                    {
+                        GameId = Guid.NewGuid(),
+                        Name = "Detail",
+                        Seconds = 600,
+                        SessionCount = 3,
+                        ActiveDates = new List<DateTime>
+                        {
+                            new DateTime(2026, 8, 16),
+                            new DateTime(2026, 8, 17)
+                        },
+                        LongestSessionSeconds = 400,
+                        LastSessionLocal = new DateTime(
+                            2026,
+                            8,
+                            17,
+                            10,
+                            0,
+                            0)
+                    }
+                }
+            };
+            var expected = new Dictionary<RankingMetric, string>
+            {
+                { RankingMetric.Duration, "3 次 · 2 个活跃日" },
+                { RankingMetric.SessionCount, "2 个活跃日" },
+                { RankingMetric.ActiveDays, "3 次" },
+                { RankingMetric.AverageSession, "3 次 · 2 个活跃日" },
+                { RankingMetric.LongestSession, "3 次 · 2 个活跃日" }
+            };
+
+            foreach (var pair in expected)
+            {
+                var projection = InvokeRangeRankingProjection(
+                    service,
+                    context,
+                    pair.Key,
+                    10,
+                    new DateTime(2026, 8, 17, 12, 0, 0));
+                Equal(pair.Value, projection.RangeGameRankings[0].DetailText);
+            }
+        }
+
+        private static void TestRankingSecondaryTextHierarchy()
+        {
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView();
+                var template = view.TryFindResource(
+                    "GameRankingItemTemplate") as DataTemplate;
+                Equal(true, template != null);
+                var model = new GameRankingViewModel
+                {
+                    Name = "Readable",
+                    DetailText = "3 次 · 2 个活跃日",
+                    ShareText = "占本期总时长 63%",
+                    LastPlayedText = "今天 03:00",
+                    PrimaryValueText = "10 分钟",
+                    ProgressPercent = 63
+                };
+                var presenter = new ContentPresenter
+                {
+                    Content = model,
+                    ContentTemplate = template
+                };
+                var window = new Window
+                {
+                    Content = presenter,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                    Left = -10000,
+                    Top = -10000,
+                    Width = 600,
+                    Height = 160
+                };
+                try
+                {
+                    window.Show();
+                    PumpDispatcher();
+                    presenter.UpdateLayout();
+                    var detail = FindVisualDescendants<TextBlock>(presenter)
+                        .Single(text => text.Text == model.DetailText);
+                    var lastPlayed = FindVisualDescendants<TextBlock>(presenter)
+                        .Single(text => text.Text == model.LastPlayedText);
+                    Equal(11d, detail.FontSize);
+                    Equal(0.72d, detail.Opacity);
+                    Equal(null, lastPlayed.ToolTip);
+                }
+                finally
+                {
+                    window.Content = null;
+                    window.Close();
+                }
+            });
+        }
+
+        private static void TestRankingTooltipComposition()
+        {
+            RunOnSta(() =>
+            {
+                var service = new AnalyticsService();
+                var projection = InvokeRangeRankingProjection(
+                    service,
+                    new DashboardAnalysisContext
+                    {
+                        GameStatistics = new[]
+                        {
+                            new DashboardGameRangeStatistics
+                            {
+                                GameId = Guid.NewGuid(),
+                                Name = "Tooltip",
+                                Seconds = 600,
+                                SessionCount = 3,
+                                ActiveDates = new List<DateTime>
+                                {
+                                    new DateTime(2026, 8, 16),
+                                    new DateTime(2026, 8, 17)
+                                },
+                                LongestSessionSeconds = 400,
+                                LastSessionLocal = new DateTime(
+                                    2026,
+                                    8,
+                                    17,
+                                    10,
+                                    0,
+                                    0)
+                            }
+                        }
+                    },
+                    RankingMetric.Duration,
+                    10,
+                    new DateTime(2026, 8, 17, 12, 0, 0));
+                var model = projection.RangeGameRankings[0];
+                var view = new PlaytimeInsightsDashboardView();
+                var template = view.TryFindResource(
+                    "GameRankingItemTemplate") as DataTemplate;
+                Equal(true, template != null);
+                var presenter = new ContentPresenter
+                {
+                    Content = model,
+                    ContentTemplate = template
+                };
+                var window = new Window
+                {
+                    Content = presenter,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                    Left = -10000,
+                    Top = -10000,
+                    Width = 600,
+                    Height = 160
+                };
+                ToolTip tooltip = null;
+                try
+                {
+                    window.Show();
+                    PumpDispatcher();
+                    presenter.UpdateLayout();
+                    var row = FindVisualDescendants<Border>(presenter).First();
+                    tooltip = row.ToolTip as ToolTip;
+                    Equal(true, tooltip != null);
+                    tooltip.PlacementTarget = row;
+                    tooltip.IsOpen = true;
+                    PumpDispatcher();
+                    tooltip.UpdateLayout();
+
+                    var texts = FindVisualDescendants<TextBlock>(tooltip)
+                        .Select(text => text.Text)
+                        .Where(text => !string.IsNullOrWhiteSpace(text))
+                        .ToList();
+                    var metricRows = FindVisualDescendants<Grid>(tooltip)
+                        .Where(grid =>
+                            grid.Visibility == Visibility.Visible &&
+                            grid.ColumnDefinitions.Count == 2)
+                        .ToList();
+                    Equal(2, metricRows.Count);
+                    var expectedTexts = new[]
+                    {
+                        "占本期总时长 100%",
+                        "平均会话",
+                        "3 分 20 秒",
+                        "最长会话",
+                        "6 分 40 秒"
+                    };
+                    var missingTexts = expectedTexts
+                        .Where(expected => !texts.Contains(expected))
+                        .ToList();
+                    if (missingTexts.Count > 0)
+                    {
+                        throw new InvalidOperationException(
+                            "Missing ranking tooltip text: " +
+                            string.Join(", ", missingTexts) +
+                            ". Actual: " + string.Join(" | ", texts));
+                    }
+                }
+                finally
+                {
+                    if (tooltip != null)
+                    {
+                        tooltip.IsOpen = false;
+                    }
+                    window.Content = null;
+                    window.Close();
+                }
+            });
+        }
+
+        private static void TestRankingSparseDensity()
+        {
+            var service = new AnalyticsService();
+            Func<int, DashboardRankingProjection> create = count =>
+                InvokeRangeRankingProjection(
+                    service,
+                    new DashboardAnalysisContext
+                    {
+                        GameStatistics = Enumerable.Range(1, count)
+                            .Select(index => new DashboardGameRangeStatistics
+                            {
+                                GameId = Guid.NewGuid(),
+                                Name = "Game " + index,
+                                Seconds = (ulong)(1000 - index),
+                                SessionCount = 1,
+                                ActiveDates = new List<DateTime>
+                                {
+                                    new DateTime(2026, 8, 17)
+                                },
+                                LastSessionLocal = new DateTime(
+                                    2026,
+                                    8,
+                                    17,
+                                    10,
+                                    0,
+                                    0)
+                            })
+                            .ToList()
+                    },
+                    RankingMetric.Duration,
+                    10,
+                    new DateTime(2026, 8, 17, 12, 0, 0));
+
+            Equal(0, create(0).RangeGameRankings.Count);
+            Equal(true, create(1).RangeGameRankings.All(item =>
+                item.IsSparseLayout));
+            Equal(true, create(2).RangeGameRankings.All(item =>
+                item.IsSparseLayout));
+            Equal(true, create(3).RangeGameRankings.All(item =>
+                !item.IsSparseLayout));
+        }
+
+        private static void TestRankingShareWashContract()
+        {
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView();
+                var style = view.TryFindResource(
+                    "RankingEnergyBackgroundBarStyle") as Style;
+                Equal(true, style != null);
+
+                var progress = new ProgressBar
+                {
+                    Style = style,
+                    Width = 200,
+                    Minimum = 0,
+                    Maximum = 100,
+                    Value = 63
+                };
+                progress.Measure(new Size(200, 80));
+                progress.Arrange(new Rect(0, 0, 200, 80));
+                progress.ApplyTemplate();
+
+                var track = progress.Template.FindName(
+                    "PART_Track",
+                    progress) as Border;
+                var indicator = progress.Template.FindName(
+                    "PART_Indicator",
+                    progress) as System.Windows.Shapes.Rectangle;
+                Equal(true, track != null);
+                Equal(true, indicator != null);
+                Equal(new CornerRadius(6), track.CornerRadius);
+                Equal(
+                    Colors.Transparent,
+                    ((SolidColorBrush)track.Background).Color);
+                var fill = indicator.Fill as SolidColorBrush;
+                Equal(true, fill != null);
+                Equal(
+                    Color.FromRgb(0x4A, 0x90, 0xE2),
+                    fill.Color);
+                Equal(0.10d, indicator.Opacity);
+
+                var template = view.TryFindResource(
+                    "GameRankingItemTemplate") as DataTemplate;
+                Equal(true, template != null);
+                var normalModel = new GameRankingViewModel
+                {
+                    Name = "Normal",
+                    ShareText = "share",
+                    LastPlayedText = "recent",
+                    IsSparseLayout = false
+                };
+                var sparseModel = new GameRankingViewModel
+                {
+                    Name = "Sparse",
+                    ShareText = "share",
+                    LastPlayedText = "recent",
+                    IsSparseLayout = true,
+                    Position = 1
+                };
+                var normalPresenter = new ContentPresenter
+                {
+                    Content = normalModel,
+                    ContentTemplate = template
+                };
+                var sparsePresenter = new ContentPresenter
+                {
+                    Content = sparseModel,
+                    ContentTemplate = template
+                };
+                var host = new StackPanel();
+                host.Children.Add(normalPresenter);
+                host.Children.Add(sparsePresenter);
+                var window = new Window
+                {
+                    Content = host,
+                    ShowInTaskbar = false,
+                    WindowStyle = WindowStyle.None,
+                    Left = -10000,
+                    Top = -10000,
+                    Width = 600,
+                    Height = 240
+                };
+                try
+                {
+                    window.Show();
+                    PumpDispatcher();
+                    host.UpdateLayout();
+                    var normal = FindVisualDescendants<Border>(
+                        normalPresenter).First();
+                    var sparse = FindVisualDescendants<Border>(
+                        sparsePresenter).First();
+                    Equal(64d, normal.Height);
+                    Equal(80d, sparse.Height);
+                    Equal(new Thickness(12), sparse.Padding);
+                    var sparseGlow = sparse.Background as LinearGradientBrush;
+                    Equal(true, sparseGlow != null);
+                    Equal(
+                        Color.FromArgb(0x1A, 0xFF, 0xD7, 0x00),
+                        sparseGlow.GradientStops[0].Color);
+                    var energyBar = FindVisualDescendants<ProgressBar>(sparse)
+                        .Single();
+                    Equal(true, double.IsNaN(energyBar.Height));
+                    Equal(true, energyBar.ActualHeight > 4d);
+                    Equal(
+                        VerticalAlignment.Stretch,
+                        energyBar.VerticalAlignment);
+                }
+                finally
+                {
+                    window.Content = null;
+                    window.Close();
+                }
+            });
+        }
+
+        private static void TestLifetimeRankingActivityTimeZone()
+        {
+            var utcReference = new DateTime(
+                2026,
+                8,
+                17,
+                0,
+                0,
+                0,
+                DateTimeKind.Utc);
+            var offset = TimeZoneInfo.Local.GetUtcOffset(utcReference);
+            var storedUtc = utcReference.Subtract(
+                TimeSpan.FromTicks(offset.Ticks / 2));
+            var persistedValue = DateTime.SpecifyKind(
+                storedUtc,
+                DateTimeKind.Unspecified);
+            var expectedLocal = DateTime.SpecifyKind(
+                persistedValue,
+                DateTimeKind.Utc).ToLocalTime();
+            var now = expectedLocal.Date.AddHours(12);
+
+            var rankings = InvokeLifetimeRankings(
+                new[]
+                {
+                    new Playnite.SDK.Models.Game
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = "Lifetime",
+                        Playtime = 3600,
+                        LastActivity = persistedValue
+                    }
+                },
+                10,
+                now);
+
+            Equal(1, rankings.Count);
+            Equal(
+                "今天 " + expectedLocal.ToString("HH:mm"),
+                rankings[0].LastPlayedText);
+            Equal(true, rankings[0].IsSparseLayout);
+        }
+
+        private static void TestDashboardSnapshotUsesOneTimestamp()
+        {
+            var gameId = Guid.NewGuid();
+            var now = new DateTime(2026, 8, 17, 23, 59, 58);
+            var result = InvokeSnapshotWithTimestamp(
+                new Playnite.SDK.Models.Game[0],
+                new[]
+                {
+                    CreateSession(
+                        gameId,
+                        "Clock",
+                        new DateTime(2026, 8, 17, 2, 0, 0, DateTimeKind.Utc),
+                        60)
+                },
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 8, 17),
+                    CustomEndDate = new DateTime(2026, 8, 17)
+                },
+                now);
+
+            Equal(true, result.Snapshot.StatusText.Contains("23:59:58"));
+            Equal(
+                "今天 10:00",
+                result.Snapshot.RangeGameRankings[0].LastPlayedText);
+        }
+
+        private static DashboardRankingProjection InvokeRangeRankingProjection(
+            AnalyticsService service,
+            DashboardAnalysisContext context,
+            RankingMetric metric,
+            int topGames,
+            DateTime now)
+        {
+            var method = typeof(AnalyticsService).GetMethod(
+                "CreateRankingProjection",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new[]
+                {
+                    typeof(DashboardAnalysisContext),
+                    typeof(RankingMetric),
+                    typeof(int),
+                    typeof(DateTime)
+                },
+                null);
+            Equal(true, method != null);
+            return (DashboardRankingProjection)method.Invoke(
+                service,
+                new object[] { context, metric, topGames, now });
+        }
+
+        private static IList<GameRankingViewModel> InvokeLifetimeRankings(
+            IEnumerable<Playnite.SDK.Models.Game> games,
+            int topGames,
+            DateTime now)
+        {
+            var method = typeof(AnalyticsService).GetMethod(
+                "CreateLifetimeRankings",
+                BindingFlags.Static | BindingFlags.NonPublic,
+                null,
+                new[]
+                {
+                    typeof(IEnumerable<Playnite.SDK.Models.Game>),
+                    typeof(int),
+                    typeof(DateTime)
+                },
+                null);
+            Equal(true, method != null);
+            return (IList<GameRankingViewModel>)method.Invoke(
+                null,
+                new object[] { games, topGames, now });
+        }
+
+        private static DashboardSnapshotResult InvokeSnapshotWithTimestamp(
+            IEnumerable<Playnite.SDK.Models.Game> games,
+            IEnumerable<GameSession> sessions,
+            AnalyticsQuery query,
+            DateTime now)
+        {
+            var method = typeof(AnalyticsService).GetMethod(
+                "CreateSnapshotWithContext",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                new[]
+                {
+                    typeof(IEnumerable<Playnite.SDK.Models.Game>),
+                    typeof(IEnumerable<GameSession>),
+                    typeof(AnalyticsQuery),
+                    typeof(DateTime)
+                },
+                null);
+            Equal(true, method != null);
+            return (DashboardSnapshotResult)method.Invoke(
+                new AnalyticsService(),
+                new object[] { games, sessions, query, now });
         }
 
         private static void TestDashboardTrendProjectionReuse()
@@ -5864,7 +6457,7 @@ namespace PlaytimeInsights.Tests
             foreach (var key in metricKeyOrder)
             {
                 var keyIndex = dashboard.IndexOf(
-                    key,
+                    "{DynamicResource " + key + "}",
                     StringComparison.Ordinal);
                 Equal(true, keyIndex > lastMetricKeyIndex);
                 lastMetricKeyIndex = keyIndex;

@@ -16,8 +16,20 @@ namespace PlaytimeInsights.ViewModels
 
         public string DetailText { get; set; }
 
-        public double ProgressPercent { get; set; }
+        public string ShareText { get; set; }
 
-        public string ProgressTooltipText { get; set; }
+        public string LastPlayedText { get; set; }
+
+        public string AverageSessionText { get; set; }
+
+        public string AverageSessionLabelText { get; set; }
+
+        public string LongestSessionText { get; set; }
+
+        public string LongestSessionLabelText { get; set; }
+
+        public bool IsSparseLayout { get; set; }
+
+        public double ProgressPercent { get; set; }
     }
 }

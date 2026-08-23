@@ -198,8 +198,14 @@
     <sys:String x:Key="LOCPlaytimeInsightsMinuteUnitShort">分</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSecondUnitShort">秒</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsChartTooltipFormat">{0}：{1}（点击查看会话）</sys:String>
-    <sys:String x:Key="LOCPlaytimeInsightsRankingDetailFormat">{0} · {1:N0} 次 · {2:N0} 个活跃日 · 平均 {3} · 最长 {4}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsRankingActiveDaysDetailFormat">{0:N0} 个活跃日</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsShareOfTotalFormat">占总游玩时长 {0:P1}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsShareOfRangeFormat">占本期总时长 {0:P0}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsRecentPlayedPrefix">最近游玩：</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsTodayAtFormat">今天 {0:HH:mm}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsYesterdayAtFormat">昨天 {0:HH:mm}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsNoRecentActivity">无最近游玩记录</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsRecentActivityDateFormat">{0:g}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPlayniteLifetimeBasis">Playnite 当前累计口径</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCountTimesFormat">{0:N0} 次</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCountDaysFormat">{0:N0} 天</sys:String>

@@ -527,18 +527,83 @@
             </Style.Triggers>
         </Style>
         <DataTemplate x:Key="GameRankingItemTemplate">
-            <Border Height="64"
-                    Margin="0,2"
-                    Style="{StaticResource RankingItemCardStyle}"
-                    ToolTip="{Binding ProgressTooltipText}">
+            <DataTemplate.Resources>
+                <Style x:Key="RankingTooltipMetricRowStyle"
+                       TargetType="{x:Type Grid}">
+                    <Setter Property="Margin" Value="0,5,0,0" />
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding AverageSessionText}"
+                                     Value="{x:Null}">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataTemplate.Resources>
+            <Border Margin="0,2">
+                <Border.ToolTip>
+                    <ToolTip Padding="10,8"
+                             DataContext="{Binding PlacementTarget.DataContext,
+                                                   RelativeSource={RelativeSource Self}}">
+                        <StackPanel MinWidth="190">
+                            <TextBlock Text="{Binding ShareText}"
+                                       FontWeight="SemiBold" />
+                            <Grid Style="{StaticResource RankingTooltipMetricRowStyle}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding AverageSessionLabelText}"
+                                           Opacity="{StaticResource TextOpacitySecondary}" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="16,0,0,0"
+                                           HorizontalAlignment="Right"
+                                           Text="{Binding AverageSessionText}" />
+                            </Grid>
+                            <Grid Style="{StaticResource RankingTooltipMetricRowStyle}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding LongestSessionLabelText}"
+                                           Opacity="{StaticResource TextOpacitySecondary}" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="16,0,0,0"
+                                           HorizontalAlignment="Right"
+                                           Text="{Binding LongestSessionText}" />
+                            </Grid>
+                        </StackPanel>
+                    </ToolTip>
+                </Border.ToolTip>
+                <Border.Style>
+                    <Style TargetType="{x:Type Border}"
+                           BasedOn="{StaticResource RankingItemCardStyle}">
+                        <Setter Property="Height" Value="64" />
+                        <Setter Property="Padding" Value="8,5" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSparseLayout}"
+                                         Value="True">
+                                <Setter Property="Height" Value="80" />
+                                <Setter Property="Padding" Value="12" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <Grid>
-                <Grid Margin="8,5">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="38" />
                         <ColumnDefinition Width="42" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
+                    <ProgressBar Grid.ColumnSpan="4"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="{Binding ProgressPercent}"
+                                 VerticalAlignment="Stretch"
+                                 HorizontalAlignment="Stretch"
+                                 Style="{StaticResource RankingEnergyBackgroundBarStyle}" />
                     <Border Style="{StaticResource RankingBadgeStyle}">
                         <TextBlock Text="{Binding Position}"
                                    Style="{StaticResource RankingPositionTextStyle}" />
@@ -558,25 +623,50 @@
                                Focusable="False"
                                IsHitTestVisible="False" />
                     </Border>
-                    <ProgressBar Grid.ColumnSpan="4"
-                                 Minimum="0"
-                                 Maximum="100"
-                                 Value="{Binding ProgressPercent}"
-                                 VerticalAlignment="Stretch"
-                                 HorizontalAlignment="Stretch"
-                                 Style="{StaticResource RankingEnergyBackgroundBarStyle}" />
-                    <StackPanel Grid.Column="2"
-                                Margin="12,0"
-                                VerticalAlignment="Center"
-                                ClipToBounds="True">
-                            <TextBlock Text="{Binding Name}"
-                                       FontWeight="SemiBold"
-                                       TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding DetailText}"
+                    <Grid Grid.Column="2"
+                          Margin="12,0"
+                          VerticalAlignment="Center"
+                          ClipToBounds="True">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="{Binding Name}"
+                                   FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Row="1"
+                                   Text="{Binding DetailText}"
+                                   FontSize="11"
+                                   Opacity="{StaticResource TextOpacitySecondary}"
+                                   TextTrimming="CharacterEllipsis" />
+                        <Grid Grid.Row="2" Margin="0,1,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding ShareText}"
+                                       FontSize="10"
+                                       Opacity="{StaticResource TextOpacitySecondary}" />
+                            <TextBlock Grid.Column="1"
+                                       Margin="4,0"
+                                       Text="·"
+                                       FontSize="10"
+                                       Opacity="{StaticResource TextOpacityTertiary}" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{DynamicResource LOCPlaytimeInsightsRecentPlayedPrefix}"
+                                       FontSize="10"
+                                       Opacity="{StaticResource TextOpacityTertiary}" />
+                            <TextBlock Grid.Column="3"
+                                       Margin="2,0,0,0"
+                                       Text="{Binding LastPlayedText}"
                                        FontSize="10"
                                        Opacity="{StaticResource TextOpacityTertiary}"
                                        TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
+                        </Grid>
+                    </Grid>
                     <TextBlock Grid.Column="3"
                                Text="{Binding PrimaryValueText}"
                                VerticalAlignment="Center"

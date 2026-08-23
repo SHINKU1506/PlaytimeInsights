@@ -198,8 +198,14 @@
     <sys:String x:Key="LOCPlaytimeInsightsMinuteUnitShort">m</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSecondUnitShort">s</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsChartTooltipFormat">{0}: {1} (select to inspect sessions)</sys:String>
-    <sys:String x:Key="LOCPlaytimeInsightsRankingDetailFormat">{0} · {1:N0} sessions · {2:N0} active days · average {3} · longest {4}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsRankingActiveDaysDetailFormat">{0:N0} active days</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsShareOfTotalFormat">{0:P1} of total playtime</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsShareOfRangeFormat">{0:P0} of playtime in this period</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsRecentPlayedPrefix">Last played:</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsTodayAtFormat">Today at {0:HH:mm}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsYesterdayAtFormat">Yesterday at {0:HH:mm}</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsNoRecentActivity">No recent play activity</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsRecentActivityDateFormat">{0:g}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPlayniteLifetimeBasis">Current Playnite lifetime value</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCountTimesFormat">{0:N0} sessions</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCountDaysFormat">{0:N0} days</sys:String>
