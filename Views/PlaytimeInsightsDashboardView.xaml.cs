@@ -215,18 +215,6 @@ namespace PlaytimeInsights.Views
             }
         }
 
-        private void HeatmapCell_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            var element = sender as FrameworkElement;
-            var cell = element?.Tag as HeatmapCellViewModel;
-            var command = (DataContext as DashboardViewModel)?
-                .SelectHeatmapDateCommand;
-            if (command?.CanExecute(cell) == true)
-            {
-                command.Execute(cell);
-            }
-        }
-
         private void NestedScrollViewer_PreviewMouseWheel(
             object sender,
             MouseWheelEventArgs e)

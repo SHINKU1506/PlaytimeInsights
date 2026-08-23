@@ -1477,41 +1477,172 @@
                             </ItemsControl>
                         </Grid>
                     </ScrollViewer>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="{DynamicResource LOCPlaytimeInsightsCalendarHeatmap}"
-                                   FontSize="18"
-                                   FontWeight="SemiBold" />
-                        <Button Content="?"
-                                Style="{StaticResource HelpIconButtonStyle}"
-                                AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsHelp}"
-                                ToolTip="{DynamicResource LOCPlaytimeInsightsCalendarHint}" />
-                    </StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsCalendarHeatmap}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                            <Button Content="?"
+                                    Style="{StaticResource HelpIconButtonStyle}"
+                                    AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsHelp}"
+                                    ToolTip="{DynamicResource LOCPlaytimeInsightsCalendarHint}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center"
+                                    Margin="12,0,0,0">
+                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsHeatmapLess}"
+                                       FontSize="10"
+                                       Opacity="{StaticResource TextOpacityTertiary}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,6,0" />
+                            <Border Width="12"
+                                    Height="12"
+                                    CornerRadius="2"
+                                    Background="{StaticResource HeatmapNoneBrush}"
+                                    BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                    BorderThickness="1"
+                                    Margin="0,0,3,0"
+                                    ToolTip="{DynamicResource LOCPlaytimeInsightsHeatmapZeroHours}" />
+                            <Border Width="12"
+                                    Height="12"
+                                    CornerRadius="2"
+                                    Background="{StaticResource HeatmapLowBrush}"
+                                    BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                    BorderThickness="1"
+                                    Margin="0,0,3,0"
+                                    ToolTip="{DynamicResource LOCPlaytimeInsightsHeatmapUnderOneHour}" />
+                            <Border Width="12"
+                                    Height="12"
+                                    CornerRadius="2"
+                                    Background="{StaticResource HeatmapMediumBrush}"
+                                    BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                    BorderThickness="1"
+                                    Margin="0,0,3,0"
+                                    ToolTip="{DynamicResource LOCPlaytimeInsightsHeatmapOneToThreeHours}" />
+                            <Border Width="12"
+                                    Height="12"
+                                    CornerRadius="2"
+                                    Background="{StaticResource HeatmapHighBrush}"
+                                    BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                    BorderThickness="1"
+                                    Margin="0,0,6,0"
+                                    ToolTip="{DynamicResource LOCPlaytimeInsightsHeatmapOverThreeHours}" />
+                            <TextBlock Text="{DynamicResource LOCPlaytimeInsightsHeatmapMore}"
+                                       FontSize="10"
+                                       Opacity="{StaticResource TextOpacityTertiary}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
                     <ScrollViewer HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Disabled"
                                   PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
                                   HorizontalContentAlignment="Center">
                         <Grid HorizontalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="46" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <ItemsControl ItemsSource="{Binding HeatmapWeekdayLabels}">
+                            <ItemsControl Grid.Row="0"
+                                          Grid.Column="1"
+                                          ItemsSource="{Binding HeatmapMonthLabels}"
+                                          Margin="0,0,0,4">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <StackPanel />
+                                        <controls:HeatmapMonthAxisPanel ColumnCount="{Binding HeatmapColumnCount}"
+                                                                        ColumnPitch="26" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ContentPresenter}">
+                                        <Setter Property="controls:HeatmapMonthAxisPanel.ColumnIndex" Value="{Binding ColumnIndex}" />
+                                        <Setter Property="controls:HeatmapMonthAxisPanel.ColumnSpan" Value="{Binding ColumnSpan}" />
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Label}"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   Opacity="{StaticResource TextOpacitySecondary}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   HorizontalAlignment="Left"
+                                                   VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ItemsControl Grid.Row="1"
+                                          Grid.Column="1"
+                                          ItemsSource="{Binding HeatmapWeekLabels}"
+                                          Margin="0,0,0,4">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="{Binding HeatmapColumnCount}" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding}"
-                                                   Height="26"
-                                                   VerticalAlignment="Center"
-                                                   FontSize="10"
+                                                   Width="26"
+                                                   FontSize="9"
+                                                   TextAlignment="Center"
+                                                   HorizontalAlignment="Center"
                                                    Opacity="{StaticResource TextOpacityTertiary}" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <ItemsControl Grid.Column="1"
+                            <ItemsControl Grid.Row="2"
+                                          Grid.Column="0"
+                                          ItemsSource="{Binding HeatmapWeekdayLabels}"
+                                          AlternationCount="7">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ContentPresenter}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=(ItemsControl.AlternationIndex)}"
+                                                         Value="1">
+                                                <Setter Property="Visibility" Value="Hidden" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=(ItemsControl.AlternationIndex)}"
+                                                         Value="3">
+                                                <Setter Property="Visibility" Value="Hidden" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=(ItemsControl.AlternationIndex)}"
+                                                         Value="5">
+                                                <Setter Property="Visibility" Value="Hidden" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Height="26">
+                                            <TextBlock Text="{Binding}"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Stretch"
+                                                       FontSize="10"
+                                                       TextAlignment="Center"
+                                                       Opacity="{StaticResource TextOpacityTertiary}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ItemsControl Grid.Row="2"
+                                          Grid.Column="1"
                                           ItemsSource="{Binding HeatmapCells}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -1520,28 +1651,61 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Width="24"
-                                                Height="24"
-                                                Margin="1"
-                                                CornerRadius="3"
-                                                Visibility="{Binding CellVisibility}"
+                                        <Button Width="26"
+                                                Height="26"
+                                                Padding="0"
                                                 Background="Transparent"
-                                                BorderBrush="{DynamicResource PanelSeparatorBrush}"
-                                                BorderThickness="1"
-                                                ToolTip="{Binding TooltipText}"
-                                                Tag="{Binding}"
+                                                BorderThickness="0"
                                                 Cursor="Hand"
-                                                MouseLeftButtonUp="HeatmapCell_MouseLeftButtonUp">
-                                            <Grid>
-                                                <Border Background="{DynamicResource TextBrush}"
-                                                        Opacity="0.06"
-                                                        IsHitTestVisible="False" />
-                                                <Border CornerRadius="2"
-                                                        Background="{StaticResource HeatmapActiveBrush}"
-                                                        Opacity="{Binding HeatOpacity}"
-                                                        IsHitTestVisible="False" />
-                                            </Grid>
-                                        </Border>
+                                                Visibility="{Binding CellVisibility}"
+                                                Command="{Binding DataContext.SelectHeatmapDateCommand,
+                                                    RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                CommandParameter="{Binding}"
+                                                AutomationProperties.Name="{Binding TooltipText}"
+                                                ToolTip="{Binding TooltipText}">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="{x:Type Button}">
+                                                    <Border x:Name="CellButtonRoot"
+                                                            Width="26"
+                                                            Height="26"
+                                                            Background="Transparent"
+                                                            SnapsToDevicePixels="True">
+                                                        <Border x:Name="CellSwatch"
+                                                                Width="24"
+                                                                Height="24"
+                                                                CornerRadius="3"
+                                                                HorizontalAlignment="Center"
+                                                                VerticalAlignment="Center"
+                                                                Background="{StaticResource HeatmapNoneBrush}"
+                                                                BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                                                BorderThickness="1"
+                                                                SnapsToDevicePixels="True" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="None">
+                                                            <Setter TargetName="CellSwatch" Property="Background" Value="{StaticResource HeatmapNoneBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="Low">
+                                                            <Setter TargetName="CellSwatch" Property="Background" Value="{StaticResource HeatmapLowBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="Medium">
+                                                            <Setter TargetName="CellSwatch" Property="Background" Value="{StaticResource HeatmapMediumBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="High">
+                                                            <Setter TargetName="CellSwatch" Property="Background" Value="{StaticResource HeatmapHighBrush}" />
+                                                        </DataTrigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="CellSwatch" Property="BorderBrush" Value="{DynamicResource TextBrush}" />
+                                                            <Setter TargetName="CellSwatch" Property="Opacity" Value="0.9" />
+                                                        </Trigger>
+                                                        <Trigger Property="IsKeyboardFocused" Value="True">
+                                                            <Setter TargetName="CellSwatch" Property="BorderBrush" Value="{DynamicResource TextBrush}" />
+                                                            <Setter TargetName="CellSwatch" Property="BorderThickness" Value="1" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

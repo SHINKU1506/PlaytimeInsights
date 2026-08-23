@@ -300,4 +300,11 @@
     <sys:String x:Key="LOCPlaytimeInsightsHourDistributionAll">24-hour distribution · All weekdays</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsHourDistributionSelectedFormat">24-hour distribution · {0}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsWeekdayFilterAutomationFormat">Filter the 24-hour distribution by {0}; select again to show all weekdays</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapLess">Less</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapMore">More</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapZeroHours">0h</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapUnderOneHour">&lt;1h</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapOneToThreeHours">1–3h</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapOverThreeHours">&gt;3h</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapWeekNumberFormat">{0}</sys:String>
 </ResourceDictionary>

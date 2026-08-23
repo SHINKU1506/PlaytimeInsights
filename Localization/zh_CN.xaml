@@ -300,4 +300,11 @@
     <sys:String x:Key="LOCPlaytimeInsightsHourDistributionAll">24 小时分布 · 全部星期</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsHourDistributionSelectedFormat">24 小时分布 · {0}</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsWeekdayFilterAutomationFormat">按 {0} 筛选 24 小时分布；再次选择可恢复全部星期</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapLess">少</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapMore">多</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapZeroHours">0小时</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapUnderOneHour">&lt;1小时</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapOneToThreeHours">1–3小时</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapOverThreeHours">&gt;3小时</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsHeatmapWeekNumberFormat">{0}</sys:String>
 </ResourceDictionary>

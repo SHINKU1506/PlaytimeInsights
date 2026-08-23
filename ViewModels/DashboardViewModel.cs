@@ -260,6 +260,10 @@ namespace PlaytimeInsights.ViewModels
 
         public IReadOnlyList<string> HeatmapWeekdayLabels => Distribution.HeatmapWeekdayLabels;
 
+        public IReadOnlyList<HeatmapMonthLabelViewModel> HeatmapMonthLabels => Distribution.HeatmapMonthLabels;
+
+        public IReadOnlyList<string> HeatmapWeekLabels => Distribution.HeatmapWeekLabels;
+
         public IReadOnlyList<TrendPointViewModel> TrendPoints => Distribution.TrendPoints;
 
         public IReadOnlyList<GameRankingViewModel> RangeGameRankings => Metrics.RangeGameRankings;

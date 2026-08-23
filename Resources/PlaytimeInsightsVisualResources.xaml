@@ -9,6 +9,56 @@
     <SolidColorBrush x:Key="RankingBronzeBrush" Color="#FFC9824A" />
     <SolidColorBrush x:Key="RankingBronzeFillBrush" Color="#33C9824A" />
     <SolidColorBrush x:Key="RankingEnergyBrush" Color="#FF4A90E2" />
+
+    <!-- Calendar heatmap levels: a one-hue ICE-CYAN ordinal ramp on the dark module
+         surface (ModuleBackgroundBrush, effective #1B1C24), with a visible per-cell
+         aurora sheen matching the Week x Hour grid's.
+         The cyan family is deliberate: the Week x Hour heatmap above it keeps the
+         blue-violet HeatmapActiveBrush, and the two grids use INCOMPATIBLE scales -
+         Calendar is absolute (fixed 0 / <1h / 1-3h / >3h buckets), Week x Hour is
+         relative to the current range maximum. Cyan stays in the same cool family
+         (so the card still reads as one surface) while clearing the blue-violet grid:
+         EVERY stop below measures dE >= 15 (normal vision) from both Week x Hour
+         stops #2457D6 and #A45CFF. The bluest stop allowed anywhere in this ramp is
+         about #0C5F7A (dE 15.4 from #2457D6); #0B5F80 already fails at 14.4, so the
+         sheen is widened GREEN-ward, never further toward blue.
+         Do NOT use a navy anchor. #1D4ED8 was evaluated and rejected: it sits
+         dE 2.2 (normal) from #2457D6, i.e. visually the same color as the grid above,
+         and a navy-to-cyan ramp spans 53 deg of hue, failing the one-hue check.
+         SHEEN STRENGTH. Reference: the Week x Hour brush's two stops sit dE 19.1
+         apart. This ramp's per-level stop pairs measure dE 11.6 / 11.8 / 19.6
+         (Low / Medium / High) - deliberately growing with level, mirroring the
+         original where sheen scaled with HeatOpacity. Low and Medium stop short of
+         19 on purpose: the Week x Hour grid is a CONTINUOUS opacity scale with no
+         discrete levels, so it can spend lightness freely on sheen, whereas these
+         four buckets are encoded BY lightness - intra-cell lightness spread directly
+         eats inter-level separability. Low/Medium therefore get their sheen mostly
+         from hue rotation (which costs no level signal) plus a small lightness tilt.
+         Validated as an ordinal ramp against #1B1C24 by gradient midpoint
+         (#16685F / #129D9E / #28D4E0): monotone L, adjacent dL >= 0.06,
+         light end 2.57:1, hue spread 19 deg. Both anchor sub-ramps also validate
+         (sky-ward light end 2.26:1, green-ward 2.92:1), so no corner of any cell
+         drops through the contrast floor.
+         High keeps the previously approved mean brightness: its stops are 7.66:1 and
+         11.49:1, averaging ~9.6:1 against the flat #22D3EE it replaces (9.39:1) -
+         the cell now shimmers without the grid getting louder. All Sessions can
+         realize 1800+ cells, so do not raise the medium or high steps further.
+         The None level is deliberately recessive - it means "no play", not a ramp
+         step, and the 1 DIP PanelSeparatorBrush outline is what makes the empty
+         cell read as a grid slot. Do not reintroduce per-level hue shifts. -->
+    <SolidColorBrush x:Key="HeatmapNoneBrush" Color="#14FFFFFF" />
+    <LinearGradientBrush x:Key="HeatmapLowBrush" StartPoint="0,1" EndPoint="1,0">
+        <GradientStop Color="#FF0C5C74" Offset="0" />
+        <GradientStop Color="#FF20734A" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="HeatmapMediumBrush" StartPoint="0,1" EndPoint="1,0">
+        <GradientStop Color="#FF0692B8" Offset="0" />
+        <GradientStop Color="#FF1EA884" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="HeatmapHighBrush" StartPoint="0,1" EndPoint="1,0">
+        <GradientStop Color="#FF0EBAFF" Offset="0" />
+        <GradientStop Color="#FF42EEC0" Offset="1" />
+    </LinearGradientBrush>
     <Style x:Key="RankingEnergyBackgroundBarStyle"
            TargetType="{x:Type ProgressBar}">
         <Setter Property="Foreground" Value="{StaticResource RankingEnergyBrush}" />
