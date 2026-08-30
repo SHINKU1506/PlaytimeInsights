@@ -517,7 +517,7 @@ public IReadOnlyList<string> HeatmapWeekLabels { get; private set; }
 
 - [ ] **Step 5: Add heatmap semantic brushes**
 
-热力图四档是**单一色相的 ordinal ramp**，不是四个不同颜色。原实现（`b9e06a2` 的 `HeatmapActiveBrush`）是一条 `#FF2457D6 → #FFA45CFF` 的对角蓝紫渐变，所有格子共用同一渐变、只用 `HeatOpacity` 改变强度——色相恒定、明度单调，这也是它看起来协调的原因。改成离散四档时不得退化为逐档换色相。
+热力图四档是**单一冷色家族内的 ordinal ramp**，不是四个互不相关的颜色。原实现（`b9e06a2` 的 `HeatmapActiveBrush`）是一条 `#FF2457D6 → #FFA45CFF` 的对角蓝紫渐变，所有格子共用同一渐变、只用 `HeatOpacity` 改变强度。离散四档改为已批准的冰青—青绿光泽后，等级仍主要由单调明度表达；允许受控的色相变化来形成格内对角光泽，但不得按档位跳到无关色相。验收口径以本节后文已实测通过的 19° 中点跨度为准。
 
 **色相归属（已定）：Calendar 用冰青，Week×Hour 保留蓝紫。** `DistributionModule`（Border 起于 `Views/PlaytimeInsightsDashboardView.xaml:1298`）里同时装了两个热力图：Week×Hour 在 1399 行，Calendar 在 1486 行，中间只隔一个小标题。两者刻度**不兼容**：
 
@@ -587,7 +587,7 @@ High 维持此前已认可的平均亮度：两个 stop 为 7.66:1 与 11.49:1�
 
 实机高对比度验证不通过时调整资源，不在 DataTemplate 内直接改色；任何调整后必须重跑 ordinal 校验，并保持以下五条不变：
 
-1. 中点序列单一色相、明度单调、相邻 ΔL ≥ 0.06；
+1. 中点序列保持冰青—青绿冷色系、色相跨度 ≤ 20°、明度单调、相邻 ΔL ≥ 0.06；
 2. 每个 stop 相对模块底色 ≥ 2:1（两条锚点子 ramp 都要单独校验，不能只看中点）；
 3. 每个 stop 对 `#2457D6` 和 `#A45CFF` 的 ΔE ≥ 15，蓝侧不得超过 `#0C5F7A`；
 4. 每档 stop 间距（光泽强度）随档位递增，High 不低于 ΔE 18；
@@ -1690,8 +1690,11 @@ git commit -m "feat: anchor dashboard drilldown to selection source"
 
 ### Task 7: Integrate Contracts and Execute the Acceptance Matrix
 
+> **状态（2026-08-30）：自动护栏、Release 门禁、真实热力图布局成本、证据记录、范围审查与最终提交已完成。** 最终连续五轮回归通过；100k / schema 4 最大值分别为 692 / 1,031 ms。实机宽度与主题矩阵只记录实际观察项，精确内容宽度、其他主题/语言/DPI、键盘与读屏器仍保持未勾选；All Sessions 1,820 格 Measure + Arrange 最大 707.6 ms，登记为后续待收敛项。最终提交同时包含用户验收发现的比较胶囊纵向排列修复及其真实 WPF 布局回归，不改变 8 卡响应式架构。
+
 **Files:**
 - Modify: `Tests/Program.cs`
+- Modify: `Views/PlaytimeInsightsDashboardView.xaml`
 - Modify: `docs/CLIENT_ACCEPTANCE_1.1.0.md`
 - Verify: every file in this plan's File Map
 
@@ -1699,7 +1702,7 @@ git commit -m "feat: anchor dashboard drilldown to selection source"
 - Consumes: all Tasks 1–6 outputs（含 Task 2.5）
 - Produces: final automated gate and explicit manual visual evidence record
 
-- [ ] **Step 1: Replace obsolete static guards**
+- [x] **Step 1: Replace obsolete static guards**
 
 删除或更新以下旧假设：
 
@@ -1725,13 +1728,13 @@ git commit -m "feat: anchor dashboard drilldown to selection source"
 - 星期标签隐藏 Trigger 位于 `ItemContainerStyle`，不在 `DataTemplate` 内；
 - 趋势图只有一个 Area Geometry 绘制；
 - `AdaptiveTrendChart` 存在 `ResolveBrush(string, Brush)` 重载；节点外圈解析 `ControlBackgroundBrush`，且源码中不存在 `TrendNodeRingBrush`；
-- 热力图四档画刷为单一色相 ordinal ramp，逐档只改明度不改色相；
+- 热力图四档画刷为冰青—青绿冷色系 ordinal ramp，等级主要由明度表达，中点色相跨度 ≤ 20°；
 - Calendar 四档画刷属冰青色系，`HeatmapActiveBrush`（Week×Hour）仍为蓝紫且未被修改；Calendar 任一档不得出现与 `#2457D6` 的 ΔE < 15 的色值（海军蓝锚点已因此否决）；
 - Drilldown 是否最小滚动只由其 96 DIP 标题带是否位于 `DashboardScrollViewer` 视口决定，与宽屏/窄屏无关；
 - Task 6 不新增 Opacity/Translate reveal Storyboard，也不转移键盘焦点；
 - 滞回文档与测试一致：内容宽度 1160 与 1180 为双栏，1159 为单栏。
 
-- [ ] **Step 2: Run the complete Release gate**
+- [x] **Step 2: Run the complete Release gate**
 
 ```powershell
 dotnet build PlaytimeInsights.sln -c Release --no-restore -p:PlayniteInstallDir="D:\software\Playnite"
@@ -1766,7 +1769,7 @@ Expected:
 
 数据状态至少覆盖：空范围、1/2/3/10 个排行项、0/1/100/250 条下钻、跨月、六周月份、一年、All Sessions。
 
-- [ ] **Step 3b: Measure the heatmap layout cost**
+- [x] **Step 3b: Measure the heatmap layout cost**
 
 在 All Sessions 和一年范围下各计一次 Distribution 模块的 Measure + Arrange 耗时，并记录热力格总数。热力格是非虚拟化 `ItemsControl` + `UniformGrid`，每格是完整 `Button`；一年约 371 格，All Sessions 跨多年可达 1800 格以上，且每次刷新全量实例化。
 
@@ -1789,13 +1792,13 @@ Expected:
 - All Sessions 下整片中档不过吵，高档作为稀有强调仍能跳出；每格的对角光泽在 24 DIP 上确实可见（这是把每档 stop 间距从 ΔE 4 左右提到 11.6 / 11.8 / 19.6 的目的，需实机确认判断成立）；
 - 区间榜与累计榜的“最近游玩”在同一时刻显示同一相对日期口径（跨零点前后各查一次）。
 
-- [ ] **Step 5: Record actual evidence, not expected evidence**
+- [x] **Step 5: Record actual evidence, not expected evidence**
 
 在 `docs/CLIENT_ACCEPTANCE_1.1.0.md` 中只勾选实际完成的矩阵项。截图应记录内容宽度、视图宽度、主题、语言、数据状态和日期。无法验证的高对比度、读屏或焦点项目保持未勾选并注明原因。
 
 不要向 `docs/CLIENT_ACCEPTANCE_1.0.0.md` 写入本轮内容。
 
-- [ ] **Step 6: Review the final diff for scope creep**
+- [x] **Step 6: Review the final diff for scope creep**
 
 Run:
 
@@ -1807,13 +1810,13 @@ git diff -- Controls/AdaptiveDashboardPanel.cs Controls/ResponsiveUniformPanel.c
 
 Expected: 最后一条命令无差异。若有差异，必须在提交前解释并重新审查本计划的架构边界。
 
-- [ ] **Step 7: Commit final guards and acceptance evidence**
+- [x] **Step 7: Commit final guards and acceptance evidence**
 
 提交范围（时机由用户决定，见 Task 0 Step 4）：
 
 ```powershell
-git add Tests/Program.cs docs/CLIENT_ACCEPTANCE_1.1.0.md docs/CLIENT_ACCEPTANCE_1.0.0.md
-git commit -m "test: lock dashboard visual elevation contracts"
+git add Tests/Program.cs Views/PlaytimeInsightsDashboardView.xaml docs/CLIENT_ACCEPTANCE_1.1.0.md docs/superpowers/plans/2026-08-17-dashboard-visual-elevation-implementation.md
+git commit -m "fix: finalize dashboard visual acceptance"
 ```
 
 ---
@@ -1839,7 +1842,7 @@ git commit -m "test: lock dashboard visual elevation contracts"
 - 24 DIP 色块拥有 26 DIP Button 和键盘命令，周次与星期坐标轴文字分别水平、垂直居中。
 - 星期标签隐藏 Trigger 位于 `ItemContainerStyle` 并有可见性序列证明。
 - Legend、月份轴、周次轴与热力格共享滚动坐标。
-- 热力图四档是单一色相 ordinal ramp：渐变中点明度单调、相邻 ΔL ≥ 0.06、亮端相对模块底色 ≥ 2:1、三档色相跨度 ≤ 10°。0 档允许退到底色，靠描边读出网格。
+- 热力图四档是冰青—青绿冷色系 ordinal ramp：渐变中点明度单调、相邻 ΔL ≥ 0.06、亮端相对模块底色 ≥ 2:1、三档中点色相跨度 ≤ 20°。0 档允许退到底色，靠描边读出网格。
 - Calendar（冰青）与 Week×Hour（蓝紫）同属冷色但拉开距离：Calendar 低档对 Week×Hour 蓝端 ΔE ≥ 15（正常视觉与 deutan 均满足），高档对紫端更远；图例色块与 Calendar 网格同色，不会被误读为管辖 Week×Hour。
 - Trend 只有一层 Area Fill；普通节点与 Hover 节点外圈同源，且同源指向 `ControlBackgroundBrush` 而非固定色值；不存在 `TrendNodeRingBrush` 这个 key。
 - `AdaptiveTrendChart` 提供 `ResolveBrush(string, Brush)` 重载，`OnRender` 不再逐帧构造渐变 Brush。

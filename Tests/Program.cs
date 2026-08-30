@@ -80,6 +80,8 @@ namespace PlaytimeInsights.Tests
             Run("Heatmap supports six-calendar-week months", TestHeatmapSixWeekMonth);
             Run("Heatmap month axis panel measures and arranges spans", TestHeatmapMonthAxisPanel);
             Run("Calendar heatmap keeps aligned visual contracts", TestCalendarHeatmapVisualContract);
+            Run("Calendar heatmap maps levels to the real swatches", TestCalendarHeatmapRuntimeMapping);
+            Run("Calendar heatmap records one-year and all-session layout cost", TestCalendarHeatmapLayoutCost);
             Run("Trend points scale to period maximum", TestTrendPointScaling);
             Run("Period drilldown bounds clip to range", TestPeriodBoundsClipToRange);
             Run("Session drilldown clips duration and labels recovery", TestSessionDrilldown);
@@ -122,6 +124,7 @@ namespace PlaytimeInsights.Tests
             Run("Responsive metric panel contains invalid inputs", TestResponsiveMetricPanelEdgeCases);
             Run("Responsive metric panel remeasures for arrange width", TestResponsiveMetricPanelRemeasuresForArrangeWidth);
             Run("Dashboard metrics use responsive semantic visual foundation", TestResponsiveMetricVisualFoundation);
+            Run("Duration comparison pills stack without horizontal clipping", TestDurationComparisonPillsStackVertically);
             Run("Dashboard metric additions expose behavior", TestDashboardMetricAdditionsBehavior);
             Run("Advanced filter toggle keeps real interaction contract", TestAdvancedFilterToggleInteraction);
             Run("Dashboard list hover overlays keep microinteraction contracts", TestDashboardListHoverContracts);
@@ -1942,6 +1945,41 @@ namespace PlaytimeInsights.Tests
             Equal(true, resourcesXaml.Contains("HeatmapLowBrush"));
             Equal(true, resourcesXaml.Contains("HeatmapMediumBrush"));
             Equal(true, resourcesXaml.Contains("HeatmapHighBrush"));
+            var legendStart = dashboardXaml.IndexOf(
+                "LOCPlaytimeInsightsCalendarHeatmap}",
+                StringComparison.Ordinal);
+            Equal(true, legendStart >= 0 && legendStart < calendarStart);
+            var legendBlock = dashboardXaml.Substring(
+                legendStart,
+                calendarStart - legendStart);
+            var expectedLegendPairs = new[]
+            {
+                "HeatmapNoneBrush|LOCPlaytimeInsightsHeatmapZeroHours",
+                "HeatmapLowBrush|LOCPlaytimeInsightsHeatmapUnderOneHour",
+                "HeatmapMediumBrush|LOCPlaytimeInsightsHeatmapOneToThreeHours",
+                "HeatmapHighBrush|LOCPlaytimeInsightsHeatmapOverThreeHours"
+            };
+            var legendEntries = Regex.Matches(
+                legendBlock,
+                "<Border\\s+[^>]*Background=\"\\{StaticResource\\s+" +
+                "(?<brush>Heatmap(?:None|Low|Medium|High)Brush)\\}\"[^>]*" +
+                "ToolTip=\"\\{DynamicResource\\s+(?<tooltip>[^}]+)\\}\"[^>]*/>",
+                RegexOptions.Singleline | RegexOptions.CultureInvariant);
+            Equal(expectedLegendPairs.Length, legendEntries.Count);
+            for (var index = 0; index < expectedLegendPairs.Length; index++)
+            {
+                Equal(
+                    expectedLegendPairs[index],
+                    legendEntries[index].Groups["brush"].Value + "|" +
+                    legendEntries[index].Groups["tooltip"].Value);
+            }
+            Equal(true, legendBlock.IndexOf(
+                "LOCPlaytimeInsightsHeatmapLess",
+                StringComparison.Ordinal) < legendEntries[0].Index);
+            Equal(true, legendBlock.IndexOf(
+                "LOCPlaytimeInsightsHeatmapMore",
+                StringComparison.Ordinal) >
+                legendEntries[legendEntries.Count - 1].Index);
 
             // STA runtime proof of alternating weekday visibility: [Visible, Hidden, Visible, Hidden, Visible, Hidden, Visible]
             RunOnSta(() =>
@@ -1997,6 +2035,479 @@ namespace PlaytimeInsights.Tests
 
                 window.Close();
             });
+        }
+
+        private static void TestCalendarHeatmapRuntimeMapping()
+        {
+            RunOnSta(() =>
+            {
+                var viewModel = CreateDashboardViewModelForLayout();
+                var snapshot = CreateHeatmapLayoutSnapshot(4);
+                snapshot.HeatmapCells[0].IntensityLevel =
+                    HeatmapIntensityLevel.None;
+                snapshot.HeatmapCells[1].IntensityLevel =
+                    HeatmapIntensityLevel.Low;
+                snapshot.HeatmapCells[2].IntensityLevel =
+                    HeatmapIntensityLevel.Medium;
+                snapshot.HeatmapCells[3].IntensityLevel =
+                    HeatmapIntensityLevel.High;
+                viewModel.Distribution.Apply(snapshot);
+
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 1248,
+                    DataContext = viewModel
+                };
+                LayoutDashboardViewAt(view, 1248);
+
+                var distribution = (FrameworkElement)view.FindName(
+                    "DistributionModule");
+                var cellButtons = FindVisualDescendants<Button>(distribution)
+                    .Where(button => button.DataContext is HeatmapCellViewModel)
+                    .OrderBy(button =>
+                        ((HeatmapCellViewModel)button.DataContext).Date)
+                    .ToList();
+                Equal(4, cellButtons.Count);
+                var expectedKeys = new[]
+                {
+                    "HeatmapNoneBrush",
+                    "HeatmapLowBrush",
+                    "HeatmapMediumBrush",
+                    "HeatmapHighBrush"
+                };
+                for (var index = 0; index < cellButtons.Count; index++)
+                {
+                    var swatch = (Border)cellButtons[index].Template.FindName(
+                        "CellSwatch",
+                        cellButtons[index]);
+                    Equal(true, swatch != null);
+                    Equal(
+                        view.TryFindResource(expectedKeys[index]),
+                        swatch.Background);
+                }
+
+                var weekdayLabels = snapshot.HeatmapWeekdayLabels;
+                var weekdayControl = FindVisualDescendants<ItemsControl>(
+                        distribution)
+                    .Single(control =>
+                        control.Items.Count == 7 &&
+                        Equals(control.Items[0], weekdayLabels[0]));
+                var expectedVisibility = new[]
+                {
+                    Visibility.Visible,
+                    Visibility.Hidden,
+                    Visibility.Visible,
+                    Visibility.Hidden,
+                    Visibility.Visible,
+                    Visibility.Hidden,
+                    Visibility.Visible
+                };
+                for (var index = 0; index < expectedVisibility.Length; index++)
+                {
+                    var container = (UIElement)weekdayControl
+                        .ItemContainerGenerator.ContainerFromIndex(index);
+                    Equal(expectedVisibility[index], container.Visibility);
+                }
+
+                cellButtons[1].Command.Execute(cellButtons[1].CommandParameter);
+                PumpDispatcher();
+                view.UpdateLayout();
+                var host = (ContentControl)view.FindName(
+                    "DistributionDrilldownHost");
+                Equal(Visibility.Visible, host.Visibility);
+                Equal(false, host.HasAnimatedProperties);
+
+                var low = (LinearGradientBrush)view.TryFindResource(
+                    "HeatmapLowBrush");
+                var medium = (LinearGradientBrush)view.TryFindResource(
+                    "HeatmapMediumBrush");
+                var high = (LinearGradientBrush)view.TryFindResource(
+                    "HeatmapHighBrush");
+                var weekHour = (LinearGradientBrush)view.TryFindResource(
+                    "HeatmapActiveBrush");
+                Equal(true, low != null && medium != null && high != null);
+                Equal(true, weekHour != null);
+                Equal(
+                    "#FF2457D6|#FFA45CFF",
+                    string.Join(
+                        "|",
+                        weekHour.GradientStops.Select(
+                            stop => stop.Color.ToString())));
+                var calendarBrushes = new[] { low, medium, high };
+                var expectedCalendarStops = new[]
+                {
+                    "#FF0C5C74|#FF20734A",
+                    "#FF0692B8|#FF1EA884",
+                    "#FF0EBAFF|#FF42EEC0"
+                };
+                for (var index = 0;
+                    index < calendarBrushes.Length;
+                    index++)
+                {
+                    Equal(
+                        expectedCalendarStops[index],
+                        string.Join(
+                            "|",
+                            calendarBrushes[index].GradientStops.Select(
+                                stop => stop.Color.ToString())));
+                }
+                var weekHourAnchors = weekHour.GradientStops
+                    .Select(stop => stop.Color)
+                    .ToList();
+                var moduleBackground = Color.FromRgb(0x1B, 0x1C, 0x24);
+                var sheenDistances = new List<double>();
+                foreach (var brush in calendarBrushes)
+                {
+                    Equal(2, brush.GradientStops.Count);
+                    sheenDistances.Add(Cie76Distance(
+                        brush.GradientStops[0].Color,
+                        brush.GradientStops[1].Color));
+                    foreach (var stop in brush.GradientStops)
+                    {
+                        Equal(
+                            true,
+                            ContrastRatio(stop.Color, moduleBackground) >= 2d);
+                        foreach (var anchor in weekHourAnchors)
+                        {
+                            Equal(
+                                true,
+                                Cie76Distance(stop.Color, anchor) >= 15d);
+                            Equal(
+                                true,
+                                Cie76Distance(
+                                    SimulateDeuteranopia(stop.Color),
+                                    SimulateDeuteranopia(anchor)) >= 15d);
+                        }
+                    }
+                }
+                Equal(true, sheenDistances[1] > sheenDistances[0]);
+                Equal(true, sheenDistances[2] > sheenDistances[1]);
+                var midpointLightness = new[] { low, medium, high }
+                    .Select(brush => CieLabLightness(AverageColor(
+                        brush.GradientStops[0].Color,
+                        brush.GradientStops[1].Color)))
+                    .ToList();
+                Equal(true,
+                    midpointLightness[1] - midpointLightness[0] >= 6d);
+                Equal(true,
+                    midpointLightness[2] - midpointLightness[1] >= 6d);
+            });
+        }
+
+        private static void TestCalendarHeatmapLayoutCost()
+        {
+            RunOnSta(() =>
+            {
+                MeasureHeatmapLayout(
+                    "warm-up",
+                    CreateHeatmapLayoutSnapshot(7),
+                    false);
+                var oneYear = CreateHeatmapBenchmarkSnapshot(false);
+                var allSessions = CreateHeatmapBenchmarkSnapshot(true);
+                Equal(371, oneYear.HeatmapCells.Count);
+                Equal(1820, allSessions.HeatmapCells.Count);
+                Equal(true, oneYear.HeatmapMonthLabels.Count >= 12);
+                Equal(true, allSessions.HeatmapMonthLabels.Count >= 60);
+                Equal(168, oneYear.Advanced.WeekHourCells.Count);
+                Equal(168, allSessions.Advanced.WeekHourCells.Count);
+                MeasureHeatmapLayout("one year", oneYear, true);
+                MeasureHeatmapLayout("all sessions", allSessions, true);
+            });
+        }
+
+        private static void MeasureHeatmapLayout(
+            string label,
+            DashboardSnapshot snapshot,
+            bool writeEvidence)
+        {
+            var viewModel = CreateDashboardViewModelForLayout();
+            viewModel.Distribution.Apply(snapshot);
+            var view = new PlaytimeInsightsDashboardView
+            {
+                Width = 1248,
+                DataContext = viewModel
+            };
+            var distribution = (FrameworkElement)view.FindName(
+                "DistributionModule");
+            var stopwatch = Stopwatch.StartNew();
+            distribution.Measure(new Size(856.84d, double.PositiveInfinity));
+            distribution.Arrange(new Rect(
+                0d,
+                0d,
+                856.84d,
+                distribution.DesiredSize.Height));
+            distribution.UpdateLayout();
+            stopwatch.Stop();
+
+            var realizedCount = FindVisualDescendants<Button>(distribution)
+                .Count(button => button.DataContext is HeatmapCellViewModel);
+            Equal(snapshot.HeatmapCells.Count, realizedCount);
+            if (writeEvidence)
+            {
+                Console.WriteLine(
+                    "       heatmap UI / {0} / {1:N0} cells: {2:N1} ms",
+                    label,
+                    realizedCount,
+                    stopwatch.Elapsed.TotalMilliseconds);
+            }
+        }
+
+        private static DashboardSnapshot CreateHeatmapBenchmarkSnapshot(
+            bool allSessions)
+        {
+            var gameId = Guid.NewGuid();
+            var games = new[]
+            {
+                new Playnite.SDK.Models.Game
+                {
+                    Id = gameId,
+                    Name = allSessions
+                        ? "All Sessions heatmap fixture"
+                        : "One-year heatmap fixture"
+                }
+            };
+            var sessions = new[]
+            {
+                CreateSession(
+                    gameId,
+                    games[0].Name,
+                    allSessions
+                        ? new DateTime(
+                            2021,
+                            1,
+                            4,
+                            12,
+                            0,
+                            0,
+                            DateTimeKind.Utc)
+                        : new DateTime(
+                            2025,
+                            1,
+                            1,
+                            12,
+                            0,
+                            0,
+                            DateTimeKind.Utc),
+                    3600),
+                CreateSession(
+                    gameId,
+                    games[0].Name,
+                    new DateTime(
+                        2025,
+                        12,
+                        28,
+                        12,
+                        0,
+                        0,
+                        DateTimeKind.Utc),
+                    10801)
+            };
+            var query = new AnalyticsQuery
+            {
+                RangePreset = allSessions
+                    ? DateRangePreset.AllSessions
+                    : DateRangePreset.Custom,
+                CustomStartDate = new DateTime(2025, 1, 1),
+                CustomEndDate = new DateTime(2025, 12, 31),
+                AggregationPeriod = AggregationPeriod.Month,
+                UseIsoWeekStart = true,
+                TopGames = 10
+            };
+            return InvokeSnapshotWithTimestamp(
+                games,
+                sessions,
+                query,
+                new DateTime(
+                    2025,
+                    12,
+                    28,
+                    20,
+                    0,
+                    0,
+                    DateTimeKind.Local)).Snapshot;
+        }
+
+        private static DashboardViewModel CreateDashboardViewModelForLayout()
+        {
+            var settings =
+                (PlaytimeInsightsSettingsViewModel)
+                System.Runtime.Serialization.FormatterServices
+                    .GetUninitializedObject(
+                        typeof(PlaytimeInsightsSettingsViewModel));
+            settings.Settings = new PlaytimeInsightsSettings();
+            return new DashboardViewModel(
+                null,
+                null,
+                new AnalyticsService(),
+                new SessionQueryService(new TestGameMetadataAccessor()),
+                settings);
+        }
+
+        private static DashboardSnapshot CreateHeatmapLayoutSnapshot(
+            int cellCount)
+        {
+            var columnCount = Math.Max(1, (int)Math.Ceiling(cellCount / 7d));
+            return new DashboardSnapshot
+            {
+                PeriodActivities = new List<PeriodActivityViewModel>(),
+                HeatmapCells = Enumerable.Range(0, cellCount)
+                    .Select(index => new HeatmapCellViewModel
+                    {
+                        Date = new DateTime(2021, 1, 4).AddDays(index),
+                        Seconds = (ulong)(index % 4) * 3600UL,
+                        IntensityLevel = (HeatmapIntensityLevel)(index % 4),
+                        CellVisibility = Visibility.Visible,
+                        TooltipText = "Cell " + index
+                    })
+                    .ToList(),
+                HeatmapWeekdayLabels = new List<string>
+                {
+                    "Mon-fixture",
+                    "Tue-fixture",
+                    "Wed-fixture",
+                    "Thu-fixture",
+                    "Fri-fixture",
+                    "Sat-fixture",
+                    "Sun-fixture"
+                },
+                HeatmapMonthLabels = new List<HeatmapMonthLabelViewModel>(),
+                HeatmapWeekLabels = Enumerable.Range(1, columnCount)
+                    .Select(index => index.ToString(CultureInfo.InvariantCulture))
+                    .ToList(),
+                HeatmapColumnCount = columnCount,
+                TrendLinePoints = new PointCollection(),
+                TrendLineGeometry = Geometry.Empty,
+                TrendAreaGeometry = Geometry.Empty,
+                TrendPoints = new List<TrendPointViewModel>(),
+                RangeGameRankings = new List<GameRankingViewModel>(),
+                LifetimeGameRankings = new List<GameRankingViewModel>(),
+                Advanced = new AdvancedAnalyticsSnapshot
+                {
+                    WeekdayDistribution = new List<DistributionBarViewModel>(),
+                    HourDistribution = new List<DistributionBarViewModel>(),
+                    WeekHourCells = new List<WeekHourCellViewModel>(),
+                    WeekdayLabels = new List<string>(),
+                    HourLabels = new List<string>(),
+                    AnomalyVisibility = Visibility.Collapsed,
+                    Anomalies = new List<AnomalySessionViewModel>()
+                }
+            };
+        }
+
+        private static Color AverageColor(Color first, Color second)
+        {
+            return Color.FromArgb(
+                (byte)((first.A + second.A) / 2),
+                (byte)((first.R + second.R) / 2),
+                (byte)((first.G + second.G) / 2),
+                (byte)((first.B + second.B) / 2));
+        }
+
+        private static double Cie76Distance(Color first, Color second)
+        {
+            var firstLab = ToCieLab(first);
+            var secondLab = ToCieLab(second);
+            return Math.Sqrt(
+                Math.Pow(firstLab[0] - secondLab[0], 2d) +
+                Math.Pow(firstLab[1] - secondLab[1], 2d) +
+                Math.Pow(firstLab[2] - secondLab[2], 2d));
+        }
+
+        private static double CieLabLightness(Color color)
+        {
+            return ToCieLab(color)[0];
+        }
+
+        private static double ContrastRatio(Color first, Color second)
+        {
+            var lighter = Math.Max(
+                RelativeLuminance(first),
+                RelativeLuminance(second));
+            var darker = Math.Min(
+                RelativeLuminance(first),
+                RelativeLuminance(second));
+            return (lighter + 0.05d) / (darker + 0.05d);
+        }
+
+        private static double RelativeLuminance(Color color)
+        {
+            Func<byte, double> linearize = component =>
+            {
+                var value = component / 255d;
+                return value <= 0.04045d
+                    ? value / 12.92d
+                    : Math.Pow((value + 0.055d) / 1.055d, 2.4d);
+            };
+            return linearize(color.R) * 0.2126d +
+                linearize(color.G) * 0.7152d +
+                linearize(color.B) * 0.0722d;
+        }
+
+        private static Color SimulateDeuteranopia(Color color)
+        {
+            Func<byte, double> linearize = component =>
+            {
+                var value = component / 255d;
+                return value <= 0.04045d
+                    ? value / 12.92d
+                    : Math.Pow((value + 0.055d) / 1.055d, 2.4d);
+            };
+            Func<double, byte> encode = value =>
+            {
+                value = Math.Max(0d, Math.Min(1d, value));
+                var encoded = value <= 0.0031308d
+                    ? value * 12.92d
+                    : 1.055d * Math.Pow(value, 1d / 2.4d) - 0.055d;
+                return (byte)Math.Round(encoded * 255d);
+            };
+            var red = linearize(color.R);
+            var green = linearize(color.G);
+            var blue = linearize(color.B);
+            return Color.FromArgb(
+                color.A,
+                encode(
+                    0.367322d * red +
+                    0.860646d * green -
+                    0.227968d * blue),
+                encode(
+                    0.280085d * red +
+                    0.672501d * green +
+                    0.047413d * blue),
+                encode(
+                    -0.011820d * red +
+                    0.042940d * green +
+                    0.968881d * blue));
+        }
+
+        private static double[] ToCieLab(Color color)
+        {
+            Func<byte, double> linearize = component =>
+            {
+                var value = component / 255d;
+                return value <= 0.04045d
+                    ? value / 12.92d
+                    : Math.Pow((value + 0.055d) / 1.055d, 2.4d);
+            };
+            var red = linearize(color.R);
+            var green = linearize(color.G);
+            var blue = linearize(color.B);
+            var x = (red * 0.4124d + green * 0.3576d + blue * 0.1805d) /
+                0.95047d;
+            var y = red * 0.2126d + green * 0.7152d + blue * 0.0722d;
+            var z = (red * 0.0193d + green * 0.1192d + blue * 0.9505d) /
+                1.08883d;
+            Func<double, double> pivot = value => value > 0.008856d
+                ? Math.Pow(value, 1d / 3d)
+                : 7.787d * value + 16d / 116d;
+            var fx = pivot(x);
+            var fy = pivot(y);
+            var fz = pivot(z);
+            return new[]
+            {
+                116d * fy - 16d,
+                500d * (fx - fy),
+                200d * (fy - fz)
+            };
         }
 
         private static void TestTrendPointScaling()
@@ -5145,6 +5656,8 @@ namespace PlaytimeInsights.Tests
                 Equal(true, panel.IsWideLayout);
                 LayoutAdaptivePanel(panel, 1180);
                 Equal(true, panel.IsWideLayout);
+                LayoutAdaptivePanel(panel, 1160);
+                Equal(true, panel.IsWideLayout);
                 LayoutAdaptivePanel(panel, 1159);
                 Equal(false, panel.IsWideLayout);
             });
@@ -5425,6 +5938,12 @@ namespace PlaytimeInsights.Tests
             drilldown.ResetSelection();
             Equal("None", anchorProperty.GetValue(drilldown).ToString());
             Equal(Visibility.Collapsed, drilldown.SessionDetailVisibility);
+            Equal(
+                Visibility.Collapsed,
+                (Visibility)trendVisibilityProperty.GetValue(drilldown));
+            Equal(
+                Visibility.Collapsed,
+                (Visibility)distributionVisibilityProperty.GetValue(drilldown));
         }
 
         private static void TestDashboardDrilldownHostLayout()
@@ -5552,25 +6071,41 @@ namespace PlaytimeInsights.Tests
         {
             RunOnSta(() =>
             {
+                foreach (var viewWidth in new[] { 900d, 1248d })
+                {
+                var viewModel = CreateDashboardViewModelForLayout();
                 var view = new PlaytimeInsightsDashboardView
                 {
-                    Width = 400,
-                    Height = 220
+                    Width = viewWidth,
+                    Height = 420,
+                    DataContext = viewModel
                 };
                 var scrollViewer = (ScrollViewer)view.FindName(
                     "DashboardScrollViewer");
-                var host = new Border
-                {
-                    Height = 160
-                };
-                var content = new StackPanel();
-                content.Children.Add(new Border { Height = 320 });
-                content.Children.Add(host);
-                content.Children.Add(new Border { Height = 320 });
-                scrollViewer.Content = content;
-                view.Measure(new Size(400, 220));
-                view.Arrange(new Rect(0, 0, 400, 220));
+                view.Measure(new Size(viewWidth, 420));
+                view.Arrange(new Rect(0, 0, viewWidth, 420));
                 view.UpdateLayout();
+                var adaptivePanel =
+                    FindVisualDescendants<AdaptiveDashboardPanel>(view)
+                        .Single();
+                Equal(viewWidth == 1248d, adaptivePanel.IsWideLayout);
+
+                viewModel.Drilldown.ResetContext(
+                    new Playnite.SDK.Models.Game[0],
+                    new GameSession[0]);
+                viewModel.Drilldown.SelectPeriod(new PeriodActivityViewModel
+                {
+                    PeriodStart = new DateTime(2026, 8, 10),
+                    PeriodEnd = new DateTime(2026, 8, 10),
+                    Label = "2026/8/10",
+                    DurationText = "0 分钟"
+                });
+                PumpDispatcher();
+                view.UpdateLayout();
+                var host = (FrameworkElement)view.FindName(
+                    "TrendDrilldownHost");
+                Equal(Visibility.Visible, host.Visibility);
+                Equal(true, host.ActualHeight >= 96d);
 
                 var handler = typeof(PlaytimeInsightsDashboardView)
                     .GetMethod(
@@ -5602,7 +6137,23 @@ namespace PlaytimeInsights.Tests
                         0d,
                         host.ActualWidth,
                         96d));
+                Func<double> expectedOffset = () =>
+                {
+                    var bounds = headerBounds();
+                    var delta = bounds.Top < 0d
+                        ? bounds.Top
+                        : bounds.Bottom > scrollViewer.ViewportHeight
+                            ? bounds.Bottom - scrollViewer.ViewportHeight
+                            : 0d;
+                    return Math.Max(
+                        0d,
+                        Math.Min(
+                            scrollViewer.ScrollableHeight,
+                            scrollViewer.VerticalOffset + delta));
+                };
 
+                scrollViewer.ScrollToVerticalOffset(0d);
+                view.UpdateLayout();
                 var currentBounds = headerBounds();
                 scrollViewer.ScrollToVerticalOffset(
                     scrollViewer.VerticalOffset + currentBounds.Top - 24d);
@@ -5624,8 +6175,13 @@ namespace PlaytimeInsights.Tests
                 Equal(
                     true,
                     headerBounds().Bottom > scrollViewer.ViewportHeight);
+                var belowExpectedOffset = expectedOffset();
                 invokeReveal();
-                Equal(true, scrollViewer.VerticalOffset > 0d);
+                Equal(
+                    true,
+                    Math.Abs(
+                        scrollViewer.VerticalOffset - belowExpectedOffset) <
+                        0.01d);
                 var revealedBounds = headerBounds();
                 Equal(true, revealedBounds.Top >= 0d);
                 Equal(
@@ -5637,12 +6193,15 @@ namespace PlaytimeInsights.Tests
                 view.UpdateLayout();
                 var clippedOffset = scrollViewer.VerticalOffset;
                 Equal(true, headerBounds().Top < 0d);
+                var aboveExpectedOffset = expectedOffset();
                 invokeReveal();
                 Equal(
                     true,
                     Math.Abs(
-                        scrollViewer.VerticalOffset - clippedOffset) >
+                        scrollViewer.VerticalOffset - aboveExpectedOffset) <
                         0.01d);
+                Equal(true, Math.Abs(clippedOffset - aboveExpectedOffset) > 0.01d);
+                }
             });
         }
 
@@ -6841,6 +7400,96 @@ namespace PlaytimeInsights.Tests
             });
         }
 
+        private static void TestDurationComparisonPillsStackVertically()
+        {
+            RunOnSta(() =>
+            {
+                var previous = new ComparisonMetricViewModel
+                {
+                    TagText = "↑ 123 小时 45 分（环比）",
+                    TrendKind = "Increase",
+                    TooltipText = "Previous period comparison"
+                };
+                var yearOverYear = new ComparisonMetricViewModel
+                {
+                    TagText = "↓ 98 小时 30 分（同比）",
+                    TrendKind = "Decrease",
+                    TooltipText = "Year-over-year comparison"
+                };
+                var snapshot = new DashboardSnapshot
+                {
+                    RangeDurationDisplay = new DurationDisplayViewModel(
+                        "245",
+                        "小时",
+                        "15",
+                        "分",
+                        "245 小时 15 分"),
+                    Advanced = new AdvancedAnalyticsSnapshot
+                    {
+                        ComparisonVisibility = Visibility.Visible,
+                        PreviousPeriodComparison = previous,
+                        YearOverYearComparison = yearOverYear
+                    }
+                };
+                var viewModel = CreateDashboardViewModelForLayout();
+                viewModel.Metrics.Apply(
+                    snapshot,
+                    Enumerable.Empty<Playnite.SDK.Models.Game>());
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    DataContext = viewModel
+                };
+
+                LayoutDashboardViewAt(view, 560);
+
+                var previousPill = FindVisualDescendants<Border>(view)
+                    .Single(border => ReferenceEquals(
+                        border.DataContext,
+                        previous));
+                var yearOverYearPill = FindVisualDescendants<Border>(view)
+                    .Single(border => ReferenceEquals(
+                        border.DataContext,
+                        yearOverYear));
+                var host = VisualTreeHelper.GetParent(previousPill)
+                    as FrameworkElement;
+                Equal(true, host != null);
+                Equal(host, VisualTreeHelper.GetParent(yearOverYearPill));
+
+                var previousSlot = GetLayoutSlot(previousPill);
+                var yearOverYearSlot = GetLayoutSlot(yearOverYearPill);
+                Equal(true, yearOverYearSlot.Top >= previousSlot.Bottom - 0.01);
+                Equal(true, previousSlot.Right <= host.ActualWidth + 0.01);
+                Equal(true, yearOverYearSlot.Right <= host.ActualWidth + 0.01);
+                foreach (var pill in new[]
+                {
+                    previousPill,
+                    yearOverYearPill
+                })
+                {
+                    Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
+                    Equal(true, pill.ActualWidth < host.ActualWidth - 0.01);
+                    var text = FindVisualDescendants<TextBlock>(pill).Single();
+                    Equal(TextWrapping.NoWrap, text.TextWrapping);
+                    Equal(TextTrimming.None, text.TextTrimming);
+                    var textOrigin = text.TransformToAncestor(pill)
+                        .Transform(new Point(0, 0));
+                    Equal(true, textOrigin.X >= pill.BorderThickness.Left);
+                    var expectedPillWidth = text.ActualWidth +
+                        pill.Padding.Left +
+                        pill.Padding.Right +
+                        pill.BorderThickness.Left +
+                        pill.BorderThickness.Right;
+                    Equal(
+                        true,
+                        Math.Abs(pill.ActualWidth - expectedPillWidth) < 0.01);
+                    Equal(
+                        true,
+                        textOrigin.X + text.ActualWidth <=
+                            pill.ActualWidth - pill.BorderThickness.Right + 0.01);
+                }
+            });
+        }
+
         private static void TestDashboardVisualRefactorStaticContract()
         {
             var sourceRoot = FindSourceRoot();
@@ -7152,6 +7801,25 @@ namespace PlaytimeInsights.Tests
                 "Loaded += PlaytimeInsightsDashboardView_Loaded;"));
             Equal(false, dashboardCode.Contains("IsCompactHeroLayout"));
             Equal(false, dashboardCode.Contains("SizeChanged"));
+            var drilldownReveal = ExtractSourceBlock(
+                dashboardCode,
+                "private void DrilldownHost_IsVisibleChanged(",
+                "private static bool IsHeaderBandVisible(");
+            Equal(false, drilldownReveal.Contains("BeginAnimation"));
+            Equal(false, drilldownReveal.Contains(".Focus("));
+            Equal(false, drilldownReveal.Contains("Keyboard.Focus"));
+            foreach (var hostName in new[]
+            {
+                "TrendDrilldownHost",
+                "DistributionDrilldownHost"
+            })
+            {
+                var host = modulesByName[hostName];
+                Equal(false, host.DescendantsAndSelf().Attributes().Any(
+                    attribute =>
+                        attribute.Name.LocalName == "Opacity" ||
+                        attribute.Name.LocalName == "RenderTransform"));
+            }
         }
 
         private static void TestDashboardVisualRefactorContract()
@@ -7183,6 +7851,11 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Controls",
                 "AdaptiveTrendChart.cs"));
+
+            Equal(
+                true,
+                Enum.GetNames(typeof(DashboardLayoutZone)).SequenceEqual(
+                    new[] { "Primary", "Secondary" }));
 
             var adaptivePanels = dashboard.Descendants()
                 .Where(element =>
