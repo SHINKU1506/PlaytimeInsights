@@ -1,5 +1,7 @@
 # Playtime Insights 主页面视觉重构与技术路线文档
 
+> **历史文档 / 已被最终方案覆盖（2026-08-30）：** 本路线图保留设计演进记录，不再作为当前实现状态来源。最终事实以 [`2026-08-17-dashboard-visual-elevation-implementation.md`](superpowers/plans/2026-08-17-dashboard-visual-elevation-implementation.md) 和 [`CLIENT_ACCEPTANCE_1.1.0.md`](CLIENT_ACCEPTANCE_1.1.0.md) 为准。最终方案为单面板 8 张指标卡、跳过 Task 5、排行榜整行 10% 时长占比背景、按触发来源就近展开下钻；Task 7 人工矩阵与 All Sessions UI 性能项仍未完成。下文的 9 项 KPI、Hero/Tier 2、4 DIP 排行条等描述均是历史提案，不应据此回改当前实现。
+
 **文档版本**：v1.1（复审定稿）<br>
 **制定日期**：2026-08-14<br>
 **审查基准**：严格依据 `docs/DASHBOARD_VISUAL_REFACTOR_ROADMAP_REVIEW.md` 审查结论修订<br>

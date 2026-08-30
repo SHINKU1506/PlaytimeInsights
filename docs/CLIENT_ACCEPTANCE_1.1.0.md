@@ -77,6 +77,17 @@
 
 当检测到用户重新操作前台窗口时，Codex 已停止继续控制 Playnite，因此未争夺窗口来补齐剩余人工矩阵。未验证项保持未勾选。
 
+## Final Delivery Record
+
+- [x] 最终提交 `e59f9bf` 已推送到 `origin/codex/dashboard-visual-refactor`；本地分支与远端一致。
+- [x] 最终部署使用 Release 严格 9 个文件，源产物与安装目录逐文件哈希一致。
+- [x] 当前源产物与已安装 `PlaytimeInsights.dll` 的 SHA-256 均为 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`。
+- [x] 部署前备份位于 `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260830-215523`。
+- [x] 覆盖前后 7 个 `ExtensionsData` 用户数据文件联合指纹一致；Playnite 日志确认 Playtime Insights 1.0.0 已加载。
+- [x] Playnite 仅在本次启动进程内使用 `HTTP_PROXY` / `HTTPS_PROXY=http://127.0.0.1:10456`；未写入仓库、测试或系统全局代理设置。
+
+最终部署后的审查修订只涉及测试与文档；重新构建后的当前源 DLL 与已安装 DLL 哈希仍一致，因此已部署的生产代码对应最终提交。正式 1.1.0 发版（版本号、CHANGELOG、PEXT、标签和公开发布）是独立后续工作，不属于本次 Task 7 验收状态。
+
 ## Known Ranking Behavior
 
 整行蓝色背景长度始终表示该游戏在当前排行范围内的时长占比，与当前所选排序指标无关。切换为会话次数或活跃天数排序时，主数值决定排序，而背景仍表达时长占比；Tooltip 明确给出分母。前三名的金、银、铜 Glow、徽章和文字仍独立显示。

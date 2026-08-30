@@ -1,8 +1,18 @@
 # Playtime Insights 实现状态
 
-最后更新：2026-08-14
+最后更新：2026-08-30
 
-当前阶段：1.0.0 发布候选；架构、响应式视觉和侧边栏性能优化已整合，等待版本专属客户端复验与远程发布激活
+当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵部分完成，All Sessions 热力图 UI 性能待收敛；正式 1.1.0 发版尚未开始
+
+## 2026-08-30 Dashboard Visual Elevation 最终状态
+
+- 分支 `codex/dashboard-visual-refactor` 已推送至 `origin`，最终提交为 `e59f9bf`；Task 0–7 的已实施提交映射见 `docs\superpowers\plans\2026-08-17-dashboard-visual-elevation-implementation.md`；
+- 当前方案固定为单一响应式面板中的 8 张指标卡；Task 5 的 Hero/Tier 2 拆分已跳过；排行榜使用整行 10% 透明时长占比背景；下钻按 Trend / Calendar 触发来源就近展开；
+- 最终 Release 构建与自动化门禁通过：两个构建 0 warning / 0 error，最终连续五轮完整回归通过；100k 会话分析最大 692 ms，schema 4 加载最大 1,031 ms；
+- 2026-08-30 最终部署的严格 9 个文件与当前源产物一致，`PlaytimeInsights.dll` SHA-256 为 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`；备份目录为 `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260830-215523`；
+- 部署前后 7 个用户数据文件联合指纹一致；Playnite 仅在本次启动进程内使用 10456 端口的 HTTP/HTTPS 代理，未写入仓库、测试或系统全局配置；
+- 尚未完成：Task 7 的精确宽度、完整数据状态、主题、语言、DPI、键盘、减弱动效和实际读屏器矩阵；All Sessions 1,820 个热力格 Measure + Arrange 最大 707.6 ms，仍是后续性能决策项；
+- 正式 1.1.0 发版尚未开始，当前 `extension.yaml`、程序集和最近公开标签仍为 1.0.0；版本升级、CHANGELOG、PEXT、标签与公开发布应另立发版任务。
 
 ## 2026-08-14 1.0.0 发布候选整合
 
@@ -1029,6 +1039,6 @@ Windows 地区而显示中文月份，0.9.2 最终候选已改为插件控制的
 
 ## 下一动作
 
-等待用户启动 Playnite 验收主看板滚轮：在三个横向图表区确认整页可滚，在异常列表和会话
-钻取列表确认内部可滚且到达上下边界后自动接力整页；同时可复查会话页操作层级与紧凑表格。
-确认后再进入 1.0 发布冻结并整理公开发布截图与 Add-on Database 元数据。
+1. 按需要继续补齐 `docs\CLIENT_ACCEPTANCE_1.1.0.md` 中未勾选的 Task 7 人工矩阵，并只记录实际完成的证据；
+2. 决定是否为 All Sessions 热力图约 0.71 秒的 UI 布局成本实施虚拟化、轻量可聚焦元素或按月分段；
+3. 视觉与性能口径确认后，另立正式 1.1.0 发版任务，统一版本号、CHANGELOG、PEXT、标签和公开发布流程。

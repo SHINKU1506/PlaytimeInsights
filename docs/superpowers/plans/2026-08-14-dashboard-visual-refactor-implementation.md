@@ -1,5 +1,7 @@
 # Dashboard Visual Refactor Implementation Plan
 
+> **历史基线 / 已被最终方案覆盖（2026-08-30）：** 本计划保留原始实施配方；下方未勾选 Steps 不是当前待办清单。最终呈现与状态以 [`2026-08-17-dashboard-visual-elevation-implementation.md`](2026-08-17-dashboard-visual-elevation-implementation.md) 和 [`../../CLIENT_ACCEPTANCE_1.1.0.md`](../../CLIENT_ACCEPTANCE_1.1.0.md) 为准：当前为单面板 8 张指标卡、Task 5 已跳过、排行榜使用整行 10% 时长占比背景、下钻按触发来源就近展开。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在不改变既有统计口径、选择性刷新边界和性能预算的前提下，将 Playtime Insights 主仪表盘实现为主题兼容、宽屏双栏、九项指标完整、可键盘操作且可实机验收的 WPF 数据界面。

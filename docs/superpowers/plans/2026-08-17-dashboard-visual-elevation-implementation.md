@@ -53,16 +53,16 @@
 10. **整行背景填充长度恒为时长占比，属于已知且刻意保留的不一致。** `ProgressPercent` 与当前选中的排行指标无关；切到“会话次数”或“活跃天数”排序时，背景长度与主数值不对应。低透明满铺背景让这种差异较克制，但 Tooltip 仍必须讲清分母，并在计划中登记为已知行为，而不是当成缺陷临时改口径。
 11. **排行项的常显信息只保留不重复的高频事实。** `PrimaryValueText` 始终显示当前排序指标；`DetailText` 最多显示会话次数和活跃日，并排除当前排序指标。时长由主数值和整行背景表达，平均/最长移入统一行级 Tooltip；最近游玩继续常显，但不再给自身套一份相同 Tooltip。
 
-## Current Implementation State (2026-08-22 Reconciliation)
+## Current Implementation State (2026-08-30 Final Reconciliation)
 
-本节是执行入口，优先于下方各 Task 的原始 RED 假设。
+本节是当前事实入口，优先于下方各 Task 保留的历史 RED 假设和提交命令。
 
-- Task 0、Task 1、Task 2 的产物**已经实现**，但**全部处于未提交状态**，位于实施工作树 `.worktrees/dashboard-visual-refactor`（分支 `codex/dashboard-visual-refactor`，HEAD 仍为 `b9e06a2`）。
-- 未提交内容包括 3 个新文件（`Controls/HeatmapMonthAxisPanel.cs`、`Services/HeatmapIntensityScale.cs`、`ViewModels/Dashboard/HeatmapMonthLabelViewModel.cs`）和 12 个已修改文件（含 `Services/AnalyticsService.cs`、`Views/PlaytimeInsightsDashboardView.xaml`、`Resources/PlaytimeInsightsVisualResources.xaml`、`Tests/Program.cs`、`Localization/*.xaml`、`docs/CLIENT_ACCEPTANCE_1.0.0.md`）。
-- 因此 **Task 1 Step 2 和 Task 2 Step 2 的 RED 期望已不可复现**，这两步改为“确认实现存在且回归为 GREEN”。不要为了制造 RED 而回退已有实现。
-- 这些改动是本计划自身的交付物，不是无关的用户改动。Task 0 原有的“只记录并避开用户改动”不适用于它们；同时仍然禁止 `git reset`、`git checkout --` 和 `git clean`。
-- `docs/superpowers/reviews/2026-08-18-dashboard-task-0-2-acceptance-review.md` 已对这批实现出具验收意见，结论是 Task 0 未通过、Task 1 基本通过、Task 2 条件通过。该文档列出的批次 A/B/C 已收编为下方的 **Task 2.5**，是继续 Task 3 之前的必经关口。
-- 修订后的执行顺序见 `Execution Handoff`。
+- Task 0–7 的已实施范围均已提交并推送到 `origin/codex/dashboard-visual-refactor`；生产实现的最终提交为 `e59f9bf`。本次状态更新前，本地分支与远端一致且工作树干净；本次仅文档状态更新尚未提交。
+- 最终提交映射：Task 0 为 `71a599d`；Task 1 为 `cda8081`；Task 2 与 Task 2.5 为 `0180a81`；Task 3 与 Task 3.5 为 `108a4c4`；Task 4 与 Task 4.5 为 `301708c`；Task 6 为 `a0983ee`；Task 7 及最终比较胶囊修复为 `e59f9bf`。
+- Task 5 已于 2026-08-28 明确跳过，未实施 Hero/Tier 2 拆分；其未勾选 Steps 是已否决方案的历史记录，不是当前待办。
+- Task 1 Step 2 和 Task 2 Step 2 的 RED 期望在 2026-08-22 对账时已不可复现，因此按“确认实现存在且回归为 GREEN”完成；没有为制造 RED 回退已有实现。
+- Task 7 的精确宽度、完整数据状态、主题、语言、DPI、键盘、减弱动效和实际读屏器矩阵仍未完成；All Sessions 1,820 格的 UI Measure + Arrange 最大 707.6 ms，仍登记为待收敛性能项。
+- 2026-08-30 最终部署的严格 9 个文件与当前 Release 源产物一致；DLL SHA-256 为 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`。详细证据见 `docs/CLIENT_ACCEPTANCE_1.1.0.md`。
 
 ## Relationship to the 2026-08-14 Plan
 
@@ -73,31 +73,31 @@
 
 ## File Map
 
-`Action` 列已按 2026-08-22 对账更新：标记为 `Created (uncommitted)` 的文件在工作树中已经存在，不要重复创建。
+`Action` 列已按 2026-08-30 最终状态更新；这些文件均已提交，表格表示本计划实际交付范围，不再表示待执行动作。
 
 | File | Action | Responsibility |
 | --- | --- | --- |
-| `ViewModels/Dashboard/HeatmapCellViewModel.cs` | Modified (uncommitted) | 绝对强度枚举和单元格等级；Task 2.5 删除残留 `HeatOpacity` |
-| `ViewModels/Dashboard/HeatmapMonthLabelViewModel.cs` | Created (uncommitted) | 月份标签的列起点、跨度和文本 |
-| `Services/HeatmapIntensityScale.cs` | Created (uncommitted) | 将秒数稳定映射到四档 Heatmap 强度 |
-| `ViewModels/Dashboard/DashboardSnapshot.cs` | Modified (uncommitted) | 快照携带月份标签和周次标签 |
-| `ViewModels/Dashboard/DashboardDistributionViewModel.cs` | Modified (uncommitted) | 原子发布热力图轴数据 |
-| `ViewModels/DashboardViewModel.cs` | Modified (uncommitted) | 代理热力图轴集合 |
-| `Services/AnalyticsService.cs` | Modify | 绝对强度、月份跨度、周次已落地；本轮追加最近游玩投影和区间占比文案 |
-| `Services/RecentActivityFormatter.cs` | Create | 可测试地格式化今天、昨天、较早日期和未知活动 |
-| `Services/DashboardAnalysisContext.cs` | Modify | 区间排行榜统计携带最近会话本地时间 |
-| `ViewModels/Dashboard/GameRankingViewModel.cs` | Modify | 显式占比、最近游玩、短列表密度 |
-| `Controls/HeatmapMonthAxisPanel.cs` | Created (uncommitted) | 按周列起点与跨度排列月份标签 |
-| `Controls/AdaptiveTrendChart.cs` | Modify | 主题化 Area、Line、Node 和 Hover 绘制资源；新增 `ResolveBrush(string, Brush)` 重载 |
-| `Resources/PlaytimeInsightsVisualResources.xaml` | Modify | 趋势、热力图与 Ranking Energy 语义资源 |
-| `ViewModels/Dashboard/DashboardDrilldownViewModel.cs` | Modify | 记录 Trend/Distribution 下钻锚点并驱动两个就近宿主二选一显示 |
-| `Views/PlaytimeInsightsDashboardView.xaml` | Modify | 热力图轴/Legend 已落地；本轮追加共享下钻模板、两个上下文宿主和排行榜模板 |
-| `Views/PlaytimeInsightsDashboardView.xaml.cs` | Modify | 仅在活动下钻标题区不在视口时执行最小滚动，不新增下钻出现动画 |
-| `Localization/en_US.xaml` | Modify | 热力图、最近游玩和 Legend 英文文本 |
-| `Localization/zh_CN.xaml` | Modify | 热力图、最近游玩和 Legend 中文文本 |
-| `Tests/Program.cs` | Modify | 数据语义、Panel、XAML 契约、动效与性能回归 |
-| `docs/CLIENT_ACCEPTANCE_1.1.0.md` | Create | 本轮视觉增强的截图矩阵和验收记录 |
-| `docs/CLIENT_ACCEPTANCE_1.0.0.md` | Restore | 还原为 `main` 上的 1.0.0 发布记录，移出本轮追加内容 |
+| `ViewModels/Dashboard/HeatmapCellViewModel.cs` | Modified (committed) | 绝对强度枚举和单元格等级；Task 2.5 删除残留 `HeatOpacity` |
+| `ViewModels/Dashboard/HeatmapMonthLabelViewModel.cs` | Created (committed) | 月份标签的列起点、跨度和文本 |
+| `Services/HeatmapIntensityScale.cs` | Created (committed) | 将秒数稳定映射到四档 Heatmap 强度 |
+| `ViewModels/Dashboard/DashboardSnapshot.cs` | Modified (committed) | 快照携带月份标签和周次标签 |
+| `ViewModels/Dashboard/DashboardDistributionViewModel.cs` | Modified (committed) | 原子发布热力图轴数据 |
+| `ViewModels/DashboardViewModel.cs` | Modified (committed) | 代理热力图轴集合 |
+| `Services/AnalyticsService.cs` | Modified (committed) | 绝对强度、月份跨度、周次、最近游玩投影和区间占比文案 |
+| `Services/RecentActivityFormatter.cs` | Created (committed) | 可测试地格式化今天、昨天、较早日期和未知活动 |
+| `Services/DashboardAnalysisContext.cs` | Modified (committed) | 区间排行榜统计携带最近会话本地时间 |
+| `ViewModels/Dashboard/GameRankingViewModel.cs` | Modified (committed) | 显式占比、最近游玩、短列表密度 |
+| `Controls/HeatmapMonthAxisPanel.cs` | Created (committed) | 按周列起点与跨度排列月份标签 |
+| `Controls/AdaptiveTrendChart.cs` | Modified (committed) | 主题化 Area、Line、Node 和 Hover 绘制资源；新增 `ResolveBrush(string, Brush)` 重载 |
+| `Resources/PlaytimeInsightsVisualResources.xaml` | Modified (committed) | 趋势、热力图与 Ranking Energy 语义资源 |
+| `ViewModels/Dashboard/DashboardDrilldownViewModel.cs` | Modified (committed) | 记录 Trend/Distribution 下钻锚点并驱动两个就近宿主二选一显示 |
+| `Views/PlaytimeInsightsDashboardView.xaml` | Modified (committed) | 热力图轴/Legend、共享下钻模板、两个上下文宿主和排行榜模板 |
+| `Views/PlaytimeInsightsDashboardView.xaml.cs` | Modified (committed) | 仅在活动下钻标题区不在视口时执行最小滚动，不新增下钻出现动画 |
+| `Localization/en_US.xaml` | Modified (committed) | 热力图、最近游玩和 Legend 英文文本 |
+| `Localization/zh_CN.xaml` | Modified (committed) | 热力图、最近游玩和 Legend 中文文本 |
+| `Tests/Program.cs` | Modified (committed) | 数据语义、Panel、XAML 契约、动效与性能回归 |
+| `docs/CLIENT_ACCEPTANCE_1.1.0.md` | Created (committed) | 本轮视觉增强的截图矩阵和验收记录 |
+| `docs/CLIENT_ACCEPTANCE_1.0.0.md` | Restored (committed) | 还原为 `main` 上的 1.0.0 发布记录，移出本轮追加内容 |
 
 `Controls/AdaptiveDashboardPanel.cs` 和 `Controls/ResponsiveUniformPanel.cs` 不在预期修改范围内。Task 6 只新增两个普通 Primary 子项并通过 Collapsed/Visible 切换活动宿主；若实现发现必须修改 Panel，应暂停并先证明现有源顺序和 Zone 无法满足本计划。
 
@@ -105,7 +105,7 @@
 
 ### Task 0: Reconcile the Partially Implemented Baseline
 
-> **状态：** Task 0–2 的产物已存在于实施工作树但尚未提交。本任务不再期望 RED，只做状态对账、验收契约修正和提交编排。
+> **状态（2026-08-30）：已完成并提交（`71a599d`）。** Task 0–2 对账、1.1.0 验收契约拆分和提交编排均已完成；下方 RED/命令保留为历史执行记录。
 
 **Files:**
 - Create: `docs/CLIENT_ACCEPTANCE_1.1.0.md`
@@ -119,7 +119,7 @@
 - Consumes: 已实现的 `AdaptiveDashboardPanel`、`HeatmapMonthAxisPanel`、`HeatmapIntensityScale`、四档绝对强度 Heatmap、8 张等尺寸 KPI、Primary 栏卡片式 Drilldown
 - Produces: 与真实工作树一致的基线记录，以及独立于 1.0.0 发布记录的 1.1.0 增量验收章节
 
-- [ ] **Step 1: Inventory the uncommitted Task 0–2 work**
+- [x] **Step 1: Inventory the uncommitted Task 0–2 work**
 
 Run:
 
@@ -133,7 +133,7 @@ Expected: 分支为 `codex/dashboard-visual-refactor`，HEAD 为 `b9e06a2` 或�
 
 把每个改动文件归类为“Task 1 产物”、“Task 2 产物”或“计划外改动”，并把归类结果记录下来。它们是本计划自身的交付物，不适用“只记录并避开用户改动”；同时禁止 `git reset`、`git checkout --` 和 `git clean`。
 
-- [ ] **Step 2: Create the 1.1.0 acceptance record and restore the 1.0.0 record**
+- [x] **Step 2: Create the 1.1.0 acceptance record and restore the 1.0.0 record**
 
 先还原发布记录：若工作树已向 `docs/CLIENT_ACCEPTANCE_1.0.0.md` 追加过本轮内容（对账时约 41 行），把这部分内容迁出，使该文件回到 `main` 上 `4b4be9a` 的状态。
 
@@ -189,9 +189,9 @@ git -C .worktrees\dashboard-visual-refactor diff main -- docs/CLIENT_ACCEPTANCE_
 - [ ] Heatmap layout timing measured for one year and all sessions
 ```
 
-所有条目保持未勾选，直到 Task 7 取得实机证据。KPI 必须记录为单一响应式面板中的 8 张卡；Task 5 已跳过，不再记录 Hero/Tier 2 验收项。
+以上代码块是 2026-08-22 创建验收文档时使用的历史模板，不代表当前执行状态；实际勾选和未完成项只以 `docs/CLIENT_ACCEPTANCE_1.1.0.md` 为准。KPI 必须记录为单一响应式面板中的 8 张卡；Task 5 已跳过，不再记录 Hero/Tier 2 验收项。
 
-- [ ] **Step 3: Run the current worktree state as the working baseline**
+- [x] **Step 3: Run the current worktree state as the working baseline**
 
 Run:
 
@@ -205,7 +205,7 @@ Expected: 两次构建均为 0 warning、0 error；测试输出 `All Playtime In
 
 记录时必须写明这是“含未提交 Task 1/Task 2 实现的当前基线”，而不是“未改动的分支基线”。真正的 `b9e06a2` 基线已无法在不丢弃实现的前提下复现，不要为了取得它而回退工作树。
 
-- [ ] **Step 4: Plan the commits, do not commit unilaterally**
+- [x] **Step 4: Plan the commits, do not commit unilaterally**
 
 Task 0–2 的实现应拆成三个提交，而不是一个：
 
@@ -235,13 +235,13 @@ feat: refine calendar heatmap navigation and legend
 
 原计划这一步只 `git add docs/CLIENT_ACCEPTANCE_1.0.0.md`，会把 Task 1/Task 2 的代码继续留在未提交状态——这正是当前状态的成因，不要重复。
 
-提交时机由用户决定。在收到明确指示前，只确认上述拆分方案，不执行 `git add` 或 `git commit`。若用户要求先完成 Task 2.5 再落盘，则把 Task 2.5 的修正合并进后两个提交。
+提交已按用户指示完成：`71a599d`、`cda8081`、`0180a81` 分别对应文档契约、绝对日历语义、日历导航与 Task 2.5 收口。
 
 ---
 
 ### Task 1: Replace Relative Heat Intensity with Absolute Duration Levels
 
-> **状态：已在工作树实现，未提交。** 本任务的 Steps 1–7 保留为规格记录；Step 2 的 RED 期望已不可复现，改为验证。剩余缺口（`HeatOpacity` 残留、Culture 与裁剪边界测试）已收编为 Task 2.5。
+> **状态（2026-08-30）：已实现并提交（`cda8081`）。** Step 2 的 RED 期望在对账时已不可复现，按验证完成；剩余缺口已由 Task 2.5 收口。
 
 **Files:**
 - Modify: `ViewModels/Dashboard/HeatmapCellViewModel.cs`
@@ -259,7 +259,7 @@ feat: refine calendar heatmap navigation and legend
 - Produces: `DashboardSnapshot.HeatmapMonthLabels` and `DashboardSnapshot.HeatmapWeekLabels`
 - Preserves: `HeatmapCellViewModel.Date`、`Seconds`、`CellVisibility`、`TooltipText`
 
-- [ ] **Step 1: Register failing heatmap semantic tests**
+- [x] **Step 1: Register failing heatmap semantic tests**
 
 在 `Main()` 注册：
 
@@ -289,7 +289,7 @@ private static void TestHeatmapAbsoluteDurationLevels()
 
 月份轴测试至少覆盖 2026 年 8 月。该月从周一制日历的 2026-07-27 周开始，到 2026-08-31 周结束，必须允许 6 个周列，不能把文案需求中的“第1周～第5周”误写成固定五列。
 
-- [ ] **Step 2: Verify the tests exist and are GREEN**
+- [x] **Step 2: Verify the tests exist and are GREEN**
 
 Run:
 
@@ -301,7 +301,7 @@ Expected: `HeatmapIntensityLevel`、`HeatmapIntensityScale` 和轴投影属性�
 
 不要为了制造 RED 而删除或回退已有实现。如果某一项测试其实不存在，只补该项，并按原始 RED-GREEN 顺序处理它。
 
-- [ ] **Step 3: Add the heatmap contracts**
+- [x] **Step 3: Add the heatmap contracts**
 
 在 `HeatmapCellViewModel.cs` 增加：
 
@@ -344,7 +344,7 @@ public IList<HeatmapMonthLabelViewModel> HeatmapMonthLabels { get; set; }
 public IList<string> HeatmapWeekLabels { get; set; }
 ```
 
-- [ ] **Step 4: Implement deterministic intensity resolution**
+- [x] **Step 4: Implement deterministic intensity resolution**
 
 创建 `Services/HeatmapIntensityScale.cs`：
 
@@ -375,7 +375,7 @@ public static class HeatmapIntensityScale
 
 在 `CreateHeatmapCells` 中通过 `HeatmapIntensityScale.FromSeconds(seconds)` 设置 `IntensityLevel`，并移除对 `maximumSeconds` 的颜色计算依赖。
 
-- [ ] **Step 5: Project month spans and week labels**
+- [x] **Step 5: Project month spans and week labels**
 
 增加一个私有结果类型或两个 `out` 参数，使热力图创建阶段同时返回：
 
@@ -396,7 +396,7 @@ private static HeatmapProjection CreateHeatmapProjection(
 
 `HeatmapProjection` 包含 `Cells`、`ColumnCount`、`MonthLabels`、`WeekLabels`，避免继续增加 `out` 参数。
 
-- [ ] **Step 6: Run the heatmap data tests**
+- [x] **Step 6: Run the heatmap data tests**
 
 Run:
 
@@ -406,7 +406,7 @@ dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release -p:PlayniteI
 
 Expected: 新增三项 Heatmap 测试通过；既有 `Heatmap aligns ISO week and scales intensity` 测试应改名并更新为绝对等级断言，不得继续检查相对最大值缩放。
 
-- [ ] **Step 7: Commit the heatmap semantic model**
+- [x] **Step 7: Commit the heatmap semantic model**
 
 提交范围（时机由用户决定，见 Task 0 Step 4）：
 
@@ -419,7 +419,7 @@ git commit -m "feat: add absolute calendar heatmap semantics"
 
 ### Task 2: Build the Aligned Calendar Axis, Legend, and Keyboard Cells
 
-> **状态：已在工作树实现，未提交。** `HeatmapMonthAxisPanel`、26/24 DIP Button 结构、`SelectHeatmapDateCommand`、四档 Legend 和横向共享滚动均已落地，`HeatmapCell_MouseLeftButtonUp` 已删除。Step 2 的 RED 期望改为验证；星期标签 Trigger 归属和结构尺寸断言的缺口已收编为 Task 2.5。
+> **状态（2026-08-30）：已实现并提交（`0180a81`）。** `HeatmapMonthAxisPanel`、26/24 DIP Button 结构、`SelectHeatmapDateCommand`、四档 Legend 和横向共享滚动均已落地，`HeatmapCell_MouseLeftButtonUp` 已删除；Task 2.5 的结构护栏也已随本提交收口。
 
 **Files:**
 - Create: `Controls/HeatmapMonthAxisPanel.cs`
@@ -438,7 +438,7 @@ git commit -m "feat: add absolute calendar heatmap semantics"
 - Produces attached properties: `HeatmapMonthAxisPanel.ColumnIndex` and `ColumnSpan`
 - Replaces: mouse-only `HeatmapCell_MouseLeftButtonUp` with `SelectHeatmapDateCommand` binding
 
-- [ ] **Step 1: Register failing Panel and XAML contract tests**
+- [x] **Step 1: Register failing Panel and XAML contract tests**
 
 注册：
 
@@ -469,11 +469,11 @@ Equal(104d, GetLayoutSlot(panel.Children[1]).Width);
 
 静态 XAML 测试必须确认：存在月份轴、周次轴、四档 Legend、26 DIP Button、24 DIP 内部色块、Command/CommandParameter；周次文字水平居中，星期文字在 26 DIP 行容器中垂直居中；并且不再存在 `MouseLeftButtonUp="HeatmapCell_MouseLeftButtonUp"`。
 
-- [ ] **Step 2: Verify the Panel and XAML contracts are GREEN**
+- [x] **Step 2: Verify the Panel and XAML contracts are GREEN**
 
 Run 完整测试。Expected: `HeatmapMonthAxisPanel` 已存在，XAML 契约测试通过。不要为了制造 RED 而回退控件或 XAML。
 
-- [ ] **Step 3: Implement HeatmapMonthAxisPanel**
+- [x] **Step 3: Implement HeatmapMonthAxisPanel**
 
 新控件职责仅限月份标签布局：
 
@@ -504,7 +504,7 @@ public sealed class HeatmapMonthAxisPanel : Panel
 
 `ColumnCountProperty` 默认值为 1，`ColumnPitchProperty` 默认值为 26d，两者 metadata 均包含 `AffectsMeasure | AffectsArrange`。`MeasureOverride` 使用 `ColumnCount * ColumnPitch` 作为宽度，每个可见子元素测量宽度为 `max(1, ColumnSpan) * ColumnPitch`；`ArrangeOverride` 使用 `ColumnIndex * ColumnPitch` 定位。非法列索引钳制到 0，跨度钳制到剩余列数；Collapsed 子元素排列到空矩形。
 
-- [ ] **Step 4: Publish axis collections atomically**
+- [x] **Step 4: Publish axis collections atomically**
 
 在 `DashboardDistributionViewModel` 增加只读集合属性，并在 `Apply(DashboardSnapshot)` 中与 `HeatmapCells` 同一批次替换：
 
@@ -515,7 +515,7 @@ public IReadOnlyList<string> HeatmapWeekLabels { get; private set; }
 
 在根 `DashboardViewModel` 增加代理属性。更新原子发布测试，确认旧集合引用被一次替换且每个属性只通知一次。
 
-- [ ] **Step 5: Add heatmap semantic brushes**
+- [x] **Step 5: Add heatmap semantic brushes**
 
 热力图四档是**单一冷色家族内的 ordinal ramp**，不是四个互不相关的颜色。原实现（`b9e06a2` 的 `HeatmapActiveBrush`）是一条 `#FF2457D6 → #FFA45CFF` 的对角蓝紫渐变，所有格子共用同一渐变、只用 `HeatOpacity` 改变强度。离散四档改为已批准的冰青—青绿光泽后，等级仍主要由单调明度表达；允许受控的色相变化来形成格内对角光泽，但不得按档位跳到无关色相。验收口径以本节后文已实测通过的 19° 中点跨度为准。
 
@@ -595,7 +595,7 @@ High 维持此前已认可的平均亮度：两个 stop 为 7.66:1 与 11.49:1�
 
 焦点描边直接使用 `{DynamicResource TextBrush}`。注意一个已知风险：Dashboard 模块底色是硬编码深色，而 `TextBrush` 随 Playnite 主题变化，因此 Light 主题下焦点描边会变成深色压在深色卡片上。这属于 Task 7 Step 4 的实机核对项，若确认不可见，改动焦点描边资源而不是改动这四个档位画刷。
 
-- [ ] **Step 6: Recompose the calendar heatmap header and body**
+- [x] **Step 6: Recompose the calendar heatmap header and body**
 
 卡片标题使用 Grid：左侧标题和帮助，右侧 Legend；当可用宽度不足时使用 WrapPanel 或第二行容器让 Legend 下移。
 
@@ -613,7 +613,7 @@ Legend 固定四档：
 
 月份标签 ItemsControl 使用 `HeatmapMonthAxisPanel`，并在 ItemContainerStyle 中绑定 attached properties。
 
-- [ ] **Step 7: Replace each mouse-only cell with a keyboard Button**
+- [x] **Step 7: Replace each mouse-only cell with a keyboard Button**
 
 Button 外框固定 26×26 DIP，模板内部居中放置 24×24 DIP Border。周次标签在 26 DIP 列内水平居中；星期标签使用 26 DIP 高的行容器，并让文本自然尺寸垂直居中。Button 使用：
 
@@ -633,11 +633,11 @@ ToolTip="{Binding TooltipText}"
 
 隐藏索引 1/3/5 依赖“周一为周首列”的冻结前提（见 Global Constraints）。
 
-- [ ] **Step 8: Remove the obsolete mouse handler**
+- [x] **Step 8: Remove the obsolete mouse handler**
 
 删除 `HeatmapCell_MouseLeftButtonUp` 以及只为该事件存在的代码。不得影响趋势图的 `PeriodSelected` 路径。
 
-- [ ] **Step 9: Add localization keys**
+- [x] **Step 9: Add localization keys**
 
 至少新增并保持中英文参数一致：
 
@@ -651,11 +651,11 @@ LOCPlaytimeInsightsHeatmapOverThreeHours
 LOCPlaytimeInsightsHeatmapWeekNumberFormat
 ```
 
-- [ ] **Step 10: Run Panel, localization, XAML, and full regression tests**
+- [x] **Step 10: Run Panel, localization, XAML, and full regression tests**
 
 Run完整测试。Expected: Panel 和 Calendar Heatmap 新测试通过；本地化 parity、源键完整性和 Dashboard 可访问性测试继续通过。
 
-- [ ] **Step 11: Commit the calendar heatmap UI**
+- [x] **Step 11: Commit the calendar heatmap UI**
 
 提交范围（时机由用户决定，见 Task 0 Step 4）：
 
@@ -668,7 +668,7 @@ git commit -m "feat: refine calendar heatmap navigation and legend"
 
 ### Task 2.5: Close the Task 0–2 Review Findings
 
-> 来源：`docs/superpowers/reviews/2026-08-18-dashboard-task-0-2-acceptance-review.md` 的批次 A/B/C。**这是进入 Task 3 之前的必经关口**，未完成前不要开始 Task 3 或 Task 4。
+> **状态（2026-08-30）：已完成并随 `0180a81` 提交，后续最终护栏纳入 `e59f9bf`。** 来源为 `docs/superpowers/reviews/2026-08-18-dashboard-task-0-2-acceptance-review.md` 的批次 A/B/C；该必经关口已在进入 Task 3 前完成。
 
 **Files:**
 - Modify: `ViewModels/Dashboard/HeatmapCellViewModel.cs`
@@ -683,7 +683,7 @@ git commit -m "feat: refine calendar heatmap navigation and legend"
 - Preserves: `WeekHourCellViewModel.HeatOpacity` 的连续强度计算
 - Preserves: 所有已通过的 Task 1/Task 2 测试
 
-- [ ] **Step 1: Remove the residual Calendar HeatOpacity**
+- [x] **Step 1: Remove the residual Calendar HeatOpacity**
 
 `Views/` 已只消费 `IntensityLevel`，因此删除 Calendar 侧的第二个颜色来源：
 
@@ -708,7 +708,7 @@ Equal(false, heatmapProjection.Contains("HeatOpacity"));
 
 另加一条断言确认 `WeekHourCellViewModel` 仍包含 `HeatOpacity`，避免误删周×小时矩阵功能。
 
-- [ ] **Step 2: Move the weekday AlternationIndex trigger into ItemContainerStyle**
+- [x] **Step 2: Move the weekday AlternationIndex trigger into ItemContainerStyle**
 
 把当前位于 `DataTemplate.Triggers` 的隐藏规则改到 `ItemContainerStyle`，并删除 DataTemplate 内的旧 Trigger，避免两个来源竞争：
 
@@ -743,7 +743,7 @@ Equal(false, heatmapProjection.Contains("HeatOpacity"));
 
 STA 测试能构造完整 View 时，断言 7 个 `ContentPresenter` 的可见性序列为 `Visible, Hidden, Visible, Hidden, Visible, Hidden, Visible`（周一至周日）。
 
-- [ ] **Step 3: Strengthen the structural contract test**
+- [x] **Step 3: Strengthen the structural contract test**
 
 `TestCalendarHeatmapVisualContract` 目前主要检查控件名、命令和四个 Brush key。补齐尺寸与资源约束：
 
@@ -758,13 +758,13 @@ Legend 包含四档资源，且阈值文案与 HeatmapIntensityScale.FromSeconds
 焦点状态使用 DynamicResource TextBrush
 ```
 
-- [ ] **Step 4: Add month-projection Culture and clipping tests**
+- [x] **Step 4: Add month-projection Culture and clipping tests**
 
 新增范围测试 `2026-07-15 → 2026-08-15` 和 `2026-08-01 → 2026-08-31`，断言：标签数量与文本；起始列与跨度；月份切换后周次重置；范围外隐藏日期不产生额外标签；zh-CN 和 en-US 下月份文本正确。
 
 测试必须显式设置 Culture，不得依赖执行机默认文化。
 
-- [ ] **Step 5: Align and stabilize the schema 4 load budget**
+- [x] **Step 5: Align and stabilize the schema 4 load budget**
 
 先核对 `Tests/Program.cs` 中 schema 4 加载的实际 PASS 阈值是否为 1400 ms；与文档不一致时以冻结的 1400 ms 为准统一。
 
@@ -780,7 +780,7 @@ for ($i = 1; $i -le 5; $i++) {
 
 已知参考值：审查中出现过 1465 ms 与 1343 ms 两次结果，说明证据不稳定。若 5 次最大值仍超过 1400 ms，进入存储加载路径 profiling，不得通过放宽文档阈值掩盖超预算。
 
-- [ ] **Step 6: Run the full regression**
+- [x] **Step 6: Run the full regression**
 
 Expected: 两次 Release 构建 0 warning、0 error；输出 `All Playtime Insights tests passed.`；新增护栏与 Culture 测试通过；5 次 schema 4 加载最大值 ≤ 1400 ms。
 
@@ -902,7 +902,7 @@ Run完整测试。Expected: Trend 生命周期、绘制、主题契约和性能�
 
 实际结果：两个 Release 构建 0 warning、0 error；`All Playtime Insights tests passed.`；6 项 Trend 相关测试全部 PASS；100k 分析 650 ms（预算 750），schema 4 加载 1,058 ms（预算 1,400）。
 
-- [ ] **Step 7: Commit the chart elevation**
+- [x] **Step 7: Commit the chart elevation**
 
 提交范围（时机由用户决定）：
 
@@ -980,7 +980,7 @@ Expected: two Release builds 0 warning / 0 error; `All Playtime Insights tests p
 
 同时核对了一处坐标一致性风险：`DashboardTrendProjection` 仍在按**原始峰值**产出 `TrendPoints` / `TrendLineGeometry` / `TrendAreaGeometry` / `TrendLinePoints` / `TrendChartWidth`，与控件新的取整归一化不一致。经查这些属性在 `Views/PlaytimeInsightsDashboardView.xaml` 中**完全没有绑定**——趋势图只绑 `ItemsSource="{Binding PeriodActivities}"` 并自行计算几何，所以它们是遗留投影输出，不会造成错位。`BarHeight` 的两处绑定属于星期/小时分布条，与趋势图无关。若将来要复用这些投影属性渲染，必须先让它们改用 `ResolveAxisMaximumSeconds`。
 
-- [ ] **Step 6: Commit the trend axis**
+- [x] **Step 6: Commit the trend axis**
 
 ```powershell
 git add Controls/AdaptiveTrendChart.cs Tests/Program.cs
@@ -1236,7 +1236,7 @@ Expected: 新排名测试和完整回归通过；10 万会话分析仍不高于 
 
 部署复验（2026-08-23）：158/158 回归通过，Release 构建 0 warning、0 error；已安装目录保持严格 9 文件，`PlaytimeInsights.dll` SHA-256 为 `23988409C564B5DD63C7631A18213C68860B4F8BD05F116EE8F1051DB398A5F6`，部署期间用户数据指纹未变化，Playnite 日志确认插件 1.0.0 已加载。该记录只证明部署基线，不代替 Task 7 的人工视觉验收。
 
-- [ ] **Step 11: Commit the ranking refinement**
+- [x] **Step 11: Commit the ranking refinement**
 
 ```powershell
 git add Services/DashboardAnalysisContext.cs Services/AnalyticsService.cs Services/RecentActivityFormatter.cs ViewModels/Dashboard/GameRankingViewModel.cs Resources/PlaytimeInsightsVisualResources.xaml Views/PlaytimeInsightsDashboardView.xaml Localization/en_US.xaml Localization/zh_CN.xaml Tests/Program.cs
@@ -1247,7 +1247,7 @@ git commit -m "feat: enrich sparse dashboard rankings"
 
 ### Task 4.5: De-duplicate Ranking Details and Consolidate the Row Tooltip
 
-> **状态（2026-08-24）：** 已在隔离工作树实现并完成 RED→GREEN、最终 Release 验证和本地部署；尚未提交或人工验收。Task 4 的整行蓝色时长占比背景保持不变。
+> **状态（2026-08-30）：已实现、部署、完成用户复核并随 `301708c` 提交。** Task 4 的整行蓝色时长占比背景保持不变。
 
 **Files:**
 - Modify: `Services/AnalyticsService.cs`
@@ -1329,9 +1329,9 @@ DetailText 从 `FontSize="10"` 调整到 `FontSize="11"`，Opacity 从 `TextOpac
 
 一次完整回归的 100k 分析样本测得 768 ms，单次超过 750 ms 预算；同一构建立即连续复测三次为 650 / 694 / 653 ms，三次均通过，确认是计时抖动，未放宽预算。最终干净 Release 验证为：两个构建 0 warning、0 error，161/161 回归通过，100k 分析 596 ms，schema 4 加载 976 ms，`git diff --check` 通过。
 
-- [ ] **Step 8: Commit after user review**
+- [x] **Step 8: Commit after user review**
 
-提交由用户单独触发，未获明确指示前不得自动执行。
+用户已明确触发提交，本任务随 `301708c` 落盘。
 
 - [x] **Step 9: Deploy for manual acceptance**
 
@@ -1917,7 +1917,7 @@ git commit -m "fix: finalize dashboard visual acceptance"
 
 ## Execution Handoff
 
-2026-08-22 修订后的执行顺序：
+2026-08-30 最终执行记录：
 
 ```text
 Task 0（对账 + 1.1.0 验收文档）
@@ -1929,8 +1929,8 @@ Task 0（对账 + 1.1.0 验收文档）
   → Task 7
 ```
 
-Task 1 和 Task 2 已在工作树实现，不再作为独立执行阶段；它们的章节保留为规格记录，其中 Step 2 的 RED 期望已改为验证。
+Task 1 和 Task 2 的章节保留为规格记录，其中 Step 2 的 RED 期望已改为验证；实际提交分别为 `cda8081` 与 `0180a81`。
 
-推荐使用 `superpowers:subagent-driven-development`：Task 3 与 Task 4 在 Task 2.5 完成后没有共享代码依赖，可以由独立执行者分别处理；Task 3.5 和 Task 4.5 分别在对应前置任务后执行。Task 5 已于 2026-08-28 跳过，Task 6 直接以上一项已完成实现及现有单面板指标区为基线，并在完成后运行完整回归。
+Task 3 / 3.5 已由 `108a4c4` 提交，Task 4 / 4.5 已由 `301708c` 提交，Task 5 已于 2026-08-28 跳过，Task 6 已由 `a0983ee` 提交，Task 7 与最终比较胶囊修复已由 `e59f9bf` 提交。
 
-提交时机由用户决定。各 Task 的 commit 步骤给出的是提交范围和信息，未获明确指示前不要执行 `git add` 或 `git commit`；Task 0–2 的既有实现按 Task 0 Step 4 的三段拆分落盘。
+所有已实施任务均已按用户指示提交并推送；各 Task 内的 `git add` / `git commit` 命令只保留为历史执行记录。当前尚未完成的是 Task 7 的人工矩阵与 All Sessions 热力图 UI 性能收敛，不应通过补勾提交步骤掩盖。
