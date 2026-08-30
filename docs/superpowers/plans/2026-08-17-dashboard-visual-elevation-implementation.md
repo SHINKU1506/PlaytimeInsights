@@ -1,10 +1,10 @@
-# Dashboard Visual Elevation and Secondary Drilldown Implementation Plan
+# Dashboard Visual Elevation and Context-Anchored Drilldown Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在现有 Dashboard 视觉重构实现上，完成右栏下钻承接、趋势图微质感、带绝对时长语义的日历热力图、2 Hero + 6 Tier 2 KPI 层级，以及排行榜短列表与时长占比背景精修，同时保持既有统计口径、刷新边界、虚拟化和性能预算。
+**Goal:** 在现有 Dashboard 视觉重构实现上，完成按触发来源就近展开的下钻、趋势图微质感、带绝对时长语义的日历热力图，以及排行榜短列表与时长占比背景精修，同时保持既有 8 卡指标布局、统计口径、刷新边界、虚拟化和性能预算。
 
-**Architecture:** 本计划是 `codex/dashboard-visual-refactor` 分支的增量计划，不重写现有 Dashboard 架构。布局继续由 `AdaptiveDashboardPanel` 负责宽窄切换和双栏独立累加，只调整模块 Zone、源码顺序和下钻出现行为；热力图语义在 `AnalyticsService` 生成并经 `DashboardSnapshot` 投影到 `DashboardDistributionViewModel`；视觉资源集中在 `PlaytimeInsightsVisualResources.xaml`，`AdaptiveTrendChart` 只解析命名资源并执行绘制。
+**Architecture:** 本计划是 `codex/dashboard-visual-refactor` 分支的增量计划，不重写现有 Dashboard 架构。布局继续由 `AdaptiveDashboardPanel` 负责宽窄切换和双栏独立累加；下钻卡片抽为一个共享模板，由趋势模块后的 `TrendDrilldownHost` 与分布模块后的 `DistributionDrilldownHost` 按触发来源二选一承载，不再固定到 Secondary；热力图语义在 `AnalyticsService` 生成并经 `DashboardSnapshot` 投影到 `DashboardDistributionViewModel`；视觉资源集中在 `PlaytimeInsightsVisualResources.xaml`，`AdaptiveTrendChart` 只解析命名资源并执行绘制。
 
 **Tech Stack:** C# 7.3、.NET Framework 4.6.2、WPF、Playnite SDK、MVVM、`DrawingContext`、自定义 `Panel`、现有控制台回归套件 `Tests/Program.cs`。
 
@@ -17,13 +17,11 @@
 - 上述阈值是 `AdaptiveDashboardPanel` 自身的可用宽度（下称“内容宽度”），不是窗口或 UserControl 宽度。Dashboard 根容器是 `StackPanel Margin="24,22,24,24"`，因此内容宽度 = 视图宽度 − 48（垂直滚动条可见时还要再减其宽度）。所有宽度断言、验收矩阵和截图记录必须显式区分这两者。
 - 滞回判定语义固定为 `Controls/AdaptiveDashboardPanel.cs` 中的 `IsWideLayout ? width >= ExitWideWidth : width >= EnterWideWidth`。对应结论：内容宽度 1199 为单栏，1200 进入双栏，1160 和 1180 保持双栏，1159 退出双栏。任何文档、矩阵或测试都不得写成“1160 退出双栏”。
 - 日历热力图保留在 Primary 栏；不得移动到 Secondary。
-- `DrilldownModule` 在宽屏属于 Secondary，位于 `RankingModule` 之后、`AnomalyModule` 之前；窄屏源码顺序为 Trend → Ranking → Distribution → Drilldown → Anomaly。
+- 下钻不固定进入 Secondary：趋势点触发时显示紧随 `TrendModule` 的 `TrendDrilldownHost`，日历热力格触发时显示紧随 `DistributionModule` 的 `DistributionDrilldownHost`；两个宿主都属于 Primary，任一时刻最多一个可见。
 - “双栏高度完美对称”不作为实现或测试目标；不得通过拉伸卡片、伪造最小高度或插入空白占位强制对齐底边。
 - 下钻列表继续使用 `ListView`、`VirtualizingStackPanel`、`CanContentScroll="True"` 和 `VirtualizationMode="Recycling"`，单页继续加载 100 条。
-- KPI 数量固定为 8：2 张 Hero（区间游玩时长、会话次数）和 6 张 Tier 2（活跃天数、最长会话、累计总时长、连续天数、异常提示、峰值时段）。
-- Tier 2 在典型 1200 DIP Dashboard 内容宽度使用 3 列；本轮不实现 6 列断点和跨列 Panel。
-- 两个响应式 Panel 的列数由 `PreferredItemWidth` 决定（`MinItemWidth` 只用于事后降列）。由此得出的断点必须在文档和测试中保持一致：Hero 进入 2 列需要内容宽度 ≥ 972，Tier 2 进入 3 列需要内容宽度 ≥ 984。内容宽度 852（视图 900）下 Hero 仍为 1 列，属预期行为，不得在验收时当作缺陷临时调参。
-- Hero 主数值使用 30 DIP；Tier 2 主数值使用 23–24 DIP。不得新增会话次数环比/同比统计，现有比较 Pills 仍只表示已有时长比较数据。
+- KPI 数量固定为 8，并继续共用当前单一 `ResponsiveUniformPanel`；宽屏保持紧凑的 4×2，1000×900 窗口下允许稳定重排为 3–3–2。Task 5 已于 2026-08-28 跳过，不得重新引入 2 Hero + 6 Tier 2 拆分。
+- 指标卡继续使用现有主数值层级。不得新增会话次数环比/同比统计，现有比较 Pills 仍只表示已有时长比较数据。
 - 热力图颜色改为绝对时长分档：0、低于 1 小时、1–3 小时、超过 3 小时；同一天的颜色不得因查询范围最大值变化而改变。
 - 热力图列节拍固定为 26 DIP，交互容器固定为 26×26 DIP，可见色块固定为 24×24 DIP；不得恢复为 14×14 DIP 小色块。周次文字在列内水平居中，星期文字在 26 DIP 行容器中垂直居中，确保坐标轴文字与格子对齐。
 - 热力图月份和周次必须与热力格共享横向滚动坐标；不得在 ScrollViewer 外使用独立宽度估算。
@@ -43,12 +41,12 @@
 
 ## Frozen Product Decisions
 
-1. **选择 Drilldown，而不是 Calendar Heatmap 进入 Secondary。** Calendar Heatmap 会随着月份、周次标签和长时间范围继续横向增长，38% Secondary 宽度会增加滚动和标签冲突；Drilldown 当前卡片模板已适合窄栏。
+1. **Drilldown 按触发来源就近展开，不进入固定 Secondary 位置。** 趋势点和日历热力格都能触发会话明细；固定放到累计时长排行榜下方既会产生错误的语义归属，也不能保证结果进入视口。趋势下钻紧随 Trend，日期下钻紧随 Distribution。
 2. **采用确定性 Zone，不采用自动 Masonry。** 模块不会因为内容高度变化在左右栏之间跳动，键盘阅读顺序和窄屏源码顺序保持稳定。
-3. **不实现强制等高。** 页面高度继续取两栏最大值；Drilldown 使用有限高度和内部滚动吸收动态内容，不通过伸展 Ranking 或 Trend 制造对称。
+3. **不实现强制等高。** 页面高度继续取两栏最大值；下钻使用有限高度和内部滚动吸收动态内容，不通过伸展 Ranking、Trend 或 Distribution 制造对称。
 4. **热力图 Legend 使用固定时长语义。** 既然 Legend 显示 `0h / <1h / 1–3h / >3h`，数据层必须输出离散等级，不能继续使用“除以当前最大值”的相对强度。
 5. **24 DIP 是视觉色块，26 DIP 是列节拍与点击目标。** 外层使用 26×26 DIP 可聚焦 Button，内部居中放置 24×24 DIP 色块，并保留 Tooltip 和自动化名称；不得使用 14×14 DIP 小色块。
-6. **KPI 使用两个现有响应式 Panel。** Hero 与 Tier 2 分开布局，不给 `ResponsiveUniformPanel` 增加 ColumnSpan 或复杂断点 DSL。
+6. **KPI 保留单一响应式 Panel。** Task 5 的 Hero/Tier 2 拆分已跳过；不新增 ColumnSpan、复杂断点 DSL 或第二个指标面板。
 7. **排行榜保留历史整行时长占比背景。** 进度层统一使用 `RankingEnergyBrush` 蓝色和 `Opacity="0.10"`，在排行项内容下方按 `ProgressPercent` 填充整行高度；Track 透明且不可见，Indicator 不使用渐变或固定高度。第一至第三名的金、银、铜 Glow、徽章和文字仍是独立层，不给进度层增加 `Position` Trigger，也不把进度色本身改成金、银、铜。底部 4 DIP 能量条是已撤销的中间方案，不得恢复。
 8. **区间榜与累计榜的“最近游玩”统一为本地时间。** 区间榜使用会话自带的 `StartUtcOffsetMinutes`，累计榜的 Playnite `LastActivity` 先由 UTC 转本地，再交给同一个 formatter。两个 Tab 的“今天 / 昨天”必须是同一口径。
 9. **ShareText 使用区间专用文案，不复用累计文案。** 区间榜占比的分母是本期总时长，累计榜占比的分母是 Playnite 累计总时长，二者不能共用同一个本地化 key。
@@ -70,7 +68,7 @@
 
 - `2026-08-14-dashboard-visual-refactor-implementation.md` 仍是基础重构计划，本文件不重复日期预设、筛选器、共享资源字典、封面缓存或 Dashboard 子 ViewModel 拆分任务。
 - 本文件以基础计划已经在 `codex/dashboard-visual-refactor` 落地为前提。
-- 本文件覆盖并取代基础计划中与以下内容有关的最终呈现约束：单个 8 卡 `ResponsiveUniformPanel`、Drilldown 位于 Primary、Heatmap 连续相对透明度、Ranking 全高 Energy 背景，以及 Trend 节点仅有单层实心圆。
+- 本文件覆盖并取代基础计划中与以下内容有关的最终呈现约束：Primary 内单一固定位置的 Drilldown、Heatmap 连续相对透明度、Ranking 全高 Energy 背景，以及 Trend 节点仅有单层实心圆。单个 8 卡 `ResponsiveUniformPanel` 继续保留。
 - 若两个计划发生冲突，以本文件的 `Global Constraints` 和 `Frozen Product Decisions` 为准；未冲突部分继续遵循 2026-08-14 计划。
 
 ## File Map
@@ -91,18 +89,17 @@
 | `ViewModels/Dashboard/GameRankingViewModel.cs` | Modify | 显式占比、最近游玩、短列表密度 |
 | `Controls/HeatmapMonthAxisPanel.cs` | Created (uncommitted) | 按周列起点与跨度排列月份标签 |
 | `Controls/AdaptiveTrendChart.cs` | Modify | 主题化 Area、Line、Node 和 Hover 绘制资源；新增 `ResolveBrush(string, Brush)` 重载 |
-| `Resources/PlaytimeInsightsVisualResources.xaml` | Modify | 趋势、热力图、Ranking Energy 语义资源，以及 `HeroMetricCardTintBrush` |
-| `Views/PlaytimeInsightsDashboardView.xaml` | Modify | 热力图轴/Legend 已落地；本轮追加 KPI 分层、右栏下钻、排行榜模板，以及 Hero/Tier 2 的 Style（必须定义在本文件的 `UserControl.Resources`） |
-| `Views/PlaytimeInsightsDashboardView.xaml.cs` | Modify | 宽窄模式下钻滚动与出现动效 |
+| `Resources/PlaytimeInsightsVisualResources.xaml` | Modify | 趋势、热力图与 Ranking Energy 语义资源 |
+| `ViewModels/Dashboard/DashboardDrilldownViewModel.cs` | Modify | 记录 Trend/Distribution 下钻锚点并驱动两个就近宿主二选一显示 |
+| `Views/PlaytimeInsightsDashboardView.xaml` | Modify | 热力图轴/Legend 已落地；本轮追加共享下钻模板、两个上下文宿主和排行榜模板 |
+| `Views/PlaytimeInsightsDashboardView.xaml.cs` | Modify | 仅在活动下钻标题区不在视口时执行最小滚动，不新增下钻出现动画 |
 | `Localization/en_US.xaml` | Modify | 热力图、最近游玩和 Legend 英文文本 |
 | `Localization/zh_CN.xaml` | Modify | 热力图、最近游玩和 Legend 中文文本 |
 | `Tests/Program.cs` | Modify | 数据语义、Panel、XAML 契约、动效与性能回归 |
 | `docs/CLIENT_ACCEPTANCE_1.1.0.md` | Create | 本轮视觉增强的截图矩阵和验收记录 |
 | `docs/CLIENT_ACCEPTANCE_1.0.0.md` | Restore | 还原为 `main` 上的 1.0.0 发布记录，移出本轮追加内容 |
 
-`Controls/AdaptiveDashboardPanel.cs` 和 `Controls/ResponsiveUniformPanel.cs` 不在预期修改范围内。若实现发现必须修改其中任一文件，应暂停对应任务并先证明固定 Zone 和两个独立响应式 Panel 无法满足本计划。
-
-`AdaptiveDashboardPanel.IsWideLayout` 已经是 `public bool { get; private set; }`，Task 6 的 code-behind 可以直接读取，无需为此修改该控件。
+`Controls/AdaptiveDashboardPanel.cs` 和 `Controls/ResponsiveUniformPanel.cs` 不在预期修改范围内。Task 6 只新增两个普通 Primary 子项并通过 Collapsed/Visible 切换活动宿主；若实现发现必须修改 Panel，应暂停并先证明现有源顺序和 Zone 无法满足本计划。
 
 ---
 
@@ -153,9 +150,9 @@ git -C .worktrees\dashboard-visual-refactor diff main -- docs/CLIENT_ACCEPTANCE_
 
 ## Frozen Layout Contract
 
-- KPI inventory: 2 Hero + 6 Tier 2 = 8
+- KPI inventory: 8 cards in one responsive panel
 - Calendar heatmap: Primary column
-- Drilldown: Secondary column after Ranking
+- Drilldown: context-anchored in Primary; Trend selection after Trend, Calendar selection after Distribution
 - Heatmap column pitch: 26 DIP
 - Heatmap visual cell: 24x24 DIP
 - Heatmap hit target: 26x26 DIP
@@ -167,12 +164,14 @@ git -C .worktrees\dashboard-visual-refactor diff main -- docs/CLIENT_ACCEPTANCE_
 
 ### Frozen Composition
 - [ ] Wide: Trend/Distribution in Primary
-- [ ] Wide: Ranking/Drilldown/Anomaly in Secondary
-- [ ] Narrow source order: Trend, Ranking, Distribution, Drilldown, Anomaly
+- [ ] Wide: Ranking/Anomaly in Secondary; active Drilldown host remains adjacent to its Primary trigger module
+- [ ] Narrow source order: Trend, TrendDrilldownHost, Ranking, Distribution, DistributionDrilldownHost, Anomaly（inactive host is Collapsed）
 - [ ] Calendar heatmap stays in Primary
 
 ### Interaction States
 - [ ] No drilldown selection
+- [ ] Trend-anchored drilldown
+- [ ] Distribution-anchored drilldown
 - [ ] Drilldown with 0 exact sessions
 - [ ] Drilldown with 1 session
 - [ ] Drilldown with 100 visible sessions and more available
@@ -186,11 +185,11 @@ git -C .worktrees\dashboard-visual-refactor diff main -- docs/CLIENT_ACCEPTANCE_
 - [ ] Ranges: one month, range crossing a month boundary, six-calendar-week month, one year, all sessions
 - [ ] Ranking counts: 0, 1, 2, 3, 10
 - [ ] Drilldown rows: 0, 1, 100, 250
-- [ ] Keyboard: Tab, Space/Enter, focus outline, polite state announcement
+- [ ] Keyboard: Tab, Space/Enter, focus outline, net462-compatible UI Automation name-change notification
 - [ ] Heatmap layout timing measured for one year and all sessions
 ```
 
-所有条目保持未勾选，直到 Task 7 取得实机证据。KPI 数量必须写 `2 Hero + 6 Tier 2 = 8`；若沿用了旧的 `2 Hero + 7 Tier 2 = 9`，按本轮冻结方案改正。
+所有条目保持未勾选，直到 Task 7 取得实机证据。KPI 必须记录为单一响应式面板中的 8 张卡；Task 5 已跳过，不再记录 Hero/Tier 2 验收项。
 
 - [ ] **Step 3: Run the current worktree state as the working baseline**
 
@@ -1342,6 +1341,8 @@ DetailText 从 `FontSize="10"` 调整到 `FontSize="11"`，Opacity 从 `TextOpac
 
 ### Task 5: Split KPI Metrics into Hero and Tier 2 Panels
 
+> **状态（2026-08-28）：跳过，不实施。** 当前单一响应式指标面板在宽屏下保持紧凑的 4×2 排列，在 1000×900 窗口下可稳定重排为 3–3–2，未发现截断、重叠或可读性缺陷。拆分为 2 张 Hero 与 6 张 Tier 2 只会提供偏好型层级增强，并会在中等宽度下显著增加纵向占用、把趋势图和排行榜推至更下方。以下 Steps 仅作为已否决方案的历史记录，不再进入实施、提交或验收范围；除非用户明确重新开启本任务，否则保留现有单面板 `MetricCardsHost`。
+
 **Files:**
 - Modify: `Views/PlaytimeInsightsDashboardView.xaml`
 - Modify: `Resources/PlaytimeInsightsVisualResources.xaml`（仅 `HeroMetricCardTintBrush`，Style 不进共享字典）
@@ -1536,124 +1537,130 @@ git commit -m "feat: establish dashboard metric hierarchy"
 
 ---
 
-### Task 6: Move Drilldown into Secondary with Width-Aware Reveal Behavior
+### Task 6: Anchor Drilldown to the Triggering Visualization
+
+> **状态（2026-08-30）：已实现、部署、完成视觉人工验收并提交；读屏器验收待 Task 7。** 已完成 Anchor 状态、两个上下文宿主、共享模板、视口感知最小滚动、无动画与虚拟化回归；视觉验收中发现的深色主题来源标签黑字问题也已修复并补充真实模板回归。目标框架 net462 不提供 `AutomationProperties.LiveSetting` 或 `LiveRegionChanged`，因此无障碍通知改用活动宿主的 `AutomationProperties.Name` 与 `AutomationElementIdentifiers.NameProperty` 变更事件；Task 7 必须用进程外实际读屏器验证该兼容路径，不得声称具备原生 Polite live-region 语义。本测试环境中，同一 STA 进程使用 UIA 客户端监听自身 WPF 树实测会阻塞并触发测试超时；自动化回归只验证 Name 绑定、通知方法存在及 Trend→Distribution→Reset 生命周期，不把自监听结果伪装成读屏器验收。
 
 **Files:**
 - Modify: `Views/PlaytimeInsightsDashboardView.xaml`
 - Modify: `Views/PlaytimeInsightsDashboardView.xaml.cs`
+- Modify: `ViewModels/Dashboard/DashboardDrilldownViewModel.cs`
 - Modify: `Tests/Program.cs`
 
 **Interfaces:**
-- Consumes: `AdaptiveDashboardPanel.IsWideLayout` and existing `SessionDetailVisibility`
-- Produces: deterministic module order and width-aware reveal
+- Consumes: existing `SelectPeriodCommand`, `SelectHeatmapDateCommand`, `SessionDetailVisibility` and `DashboardScrollViewer`
+- Produces: `DashboardDrilldownAnchor.None/Trend/Distribution`, `TrendDrilldownHost`, `DistributionDrilldownHost` and one shared `DrilldownCardTemplate`
+- Selects exactly one host from the trigger source: Trend point → Trend host; Calendar heatmap cell → Distribution host
 - Preserves: existing Drilldown ListView, paging, clear command, cover cache, Recycling virtualization
 
-- [ ] **Step 1: Update the static layout test first**
+- [x] **Step 1: Add failing anchor-state and layout tests**
 
-修改 `expectedZones`：
+新增：
 
 ```csharp
-var expectedZones = new Dictionary<string, string>
-{
-    { "TrendModule", "Primary" },
-    { "RankingModule", "Secondary" },
-    { "DistributionModule", "Primary" },
-    { "DrilldownModule", "Secondary" },
-    { "AnomalyModule", "Secondary" }
-};
+Run("Dashboard drilldown anchors to its triggering visualization", TestDashboardDrilldownAnchors);
+Run("Dashboard drilldown hosts preserve source adjacency", TestDashboardDrilldownHostLayout);
+Run("Dashboard drilldown reveal scrolls only when its header is outside the viewport", TestDashboardDrilldownViewportReveal);
 ```
 
-源码顺序固定为：
+状态测试必须证明：
+
+- 初始与 `ResetSelection()` 后 Anchor 为 `None`，两个宿主都 Collapsed；
+- `SelectPeriod(...)` 后 Anchor 为 `Trend`，只显示 `TrendDrilldownHost`；
+- `SelectHeatmapDate(...)` 后 Anchor 为 `Distribution`，只显示 `DistributionDrilldownHost`；
+- 从 Trend 连续切换到 Distribution 时，旧宿主先退出布局，任一时刻不出现两张明细卡；
+- 既有 `SessionDetailVisibility` 继续表示“存在活动下钻”，供清除命令和旧绑定兼容使用。
+
+XAML 源码顺序固定为：
 
 ```csharp
 var moduleOrder = new[]
 {
     "TrendModule",
+    "TrendDrilldownHost",
     "RankingModule",
     "DistributionModule",
-    "DrilldownModule",
+    "DistributionDrilldownHost",
     "AnomalyModule"
 };
 ```
 
-增加运行态断言，但**必须用内容宽度而不是视图宽度**：视图 1200 只给 `AdaptiveDashboardPanel` 1152 DIP（根 `StackPanel Margin="24,22,24,24"`），低于 1200 进入阈值，仍是单栏，按视图 1200 断言双栏必然失败。
+两个 Host 都固定为 `AdaptiveDashboardPanel.Zone="Primary"`。在内容宽度 1200 的双栏与内容宽度 900 的单栏分别断言：Trend Host 紧随 Trend，Distribution Host 紧随 Distribution；未激活宿主为 Collapsed，不占布局高度。宽度测试继续显式区分内容宽度与视图宽度。
 
-两种可选写法，任选其一并写清所用口径：
+模板测试断言 `DrilldownCardTemplate` 只定义一次，两个 Host 都引用它；不得复制两份 ListView 标记。活动宿主内仍只有一个可见 ListView，非活动宿主不得生成已实现的列表项容器。
 
-- 直接对 Panel 布局，复用既有 `LayoutAdaptivePanel(panel, width)` 辅助方法，传入内容宽度 1200 与 900；
-- 对完整 View 布局，则视图宽度取 `1200 + 48 = 1248` 以上（垂直滚动条可见时再加其宽度）来断言双栏，取 900 断言单栏。
+- [x] **Step 2: Run tests to verify RED**
 
-断言内容：
+Expected: 当前只有一个位于 Distribution 之后的 `DrilldownModule`，没有 Anchor 状态、两个上下文宿主或视口判断。
 
-- 双栏（内容宽度 ≥ 1200）时 Drilldown 的 X 坐标等于 Ranking 的 X 坐标；
-- 单栏（内容宽度 900）时 Drilldown 的 X 为 0 且位于 Distribution 下方；
-- 断言前必须先让 `SessionDetailVisibility` 为 `Visible`，否则 Collapsed 的 Drilldown 不产生可比较的布局槽位。
+- [x] **Step 3: Add explicit drilldown anchor state**
 
-- [ ] **Step 2: Run tests to verify RED**
-
-Expected: 当前 Drilldown 仍是 Primary 且位于 Anomaly 之后。
-
-- [ ] **Step 3: Reorder and rezone modules**
-
-给 Panel 增加名称：
-
-```xml
-<controls:AdaptiveDashboardPanel x:Name="DashboardAdaptivePanel" ...>
-```
-
-将 `DrilldownModule` 移到 `AnomalyModule` 前，并设置：
-
-```xml
-controls:AdaptiveDashboardPanel.Zone="Secondary"
-```
-
-为 Drilldown Border 增加独立 `TranslateTransform`，避免复用入口动画宿主 Transform。
-
-- [ ] **Step 4: Make BringIntoView conditional on narrow layout**
-
-修改 `DrilldownModule_IsVisibleChanged`：
+在 `DashboardDrilldownViewModel.cs` 增加：
 
 ```csharp
-if (visibility != Visibility.Visible ||
-    !(sender is FrameworkElement element))
+public enum DashboardDrilldownAnchor
+{
+    None,
+    Trend,
+    Distribution
+}
+```
+
+`SelectPeriod(...)` 请求 `Trend`，`SelectHeatmapDate(...)` 请求 `Distribution`；会话查询、封面投影和分页准备成功后再原子切换 `SelectedAnchor` 与可见性，加载失败时保留上一份已发布状态。`ResetSelection()` 回到 `None`。提供只读 `TrendHostVisibility` 与 `DistributionHostVisibility`，并在 Anchor 变化时通知二者。`SessionDetailVisibility` 继续与 `Anchor != None` 同步，避免破坏清除命令及既有绑定。
+
+`SelectedDetailTitle` 已包含周期/日期、时长和会话数量，继续作为语义标题，不新增“属于排行榜”的文案，也不需要新增本地化 key。
+
+- [x] **Step 4: Extract one shared card template and add two adjacent hosts**
+
+把现有 `DrilldownModule` 内部卡片提取为 `UserControl.Resources` 中的：
+
+```xml
+<DataTemplate x:Key="DrilldownCardTemplate">
+    <!-- existing Drilldown card, ListView, paging and clear command -->
+</DataTemplate>
+```
+
+在 `TrendModule` 后插入 `TrendDrilldownHost`，在 `DistributionModule` 后插入 `DistributionDrilldownHost`。两者都属于 Primary、都以当前 `DashboardViewModel` 为 Content、都引用同一个模板，并分别绑定 `Drilldown.TrendHostVisibility` 与 `Drilldown.DistributionHostVisibility`。
+
+模板中的 `SourceText` 必须显式使用 `{DynamicResource TextBrush}`，不能跨 `ContentControl`、`ListView` 和 `ListViewItem` 边界依赖默认前景色继承；否则深色主题会退回黑色。`TestDrilldownSourceTagForeground` 使用真实 `DataTemplate` 在黑色默认前景、白色主题 `TextBrush` 下验证最终文字画刷。
+
+不要保留旧 `DrilldownModule`，不要把 Host 放到 `RankingModule` 下方，也不要复制卡片模板。Anomaly 继续属于 Secondary。
+
+- [x] **Step 5: Replace unconditional scrolling with viewport-aware minimal reveal**
+
+将事件统一为 `DrilldownHost_IsVisibleChanged`。Host 变为 Visible 且布局完成后，只检查其顶部标题带（建议 96 DIP）相对 `DashboardScrollViewer` 视口的位置：
+
+```csharp
+if (visibility != Visibility.Visible || !(sender is FrameworkElement host))
 {
     return;
 }
 
 Dispatcher.BeginInvoke(new Action(() =>
 {
-    AnimateDrilldownReveal(element);
-    if (DashboardAdaptivePanel?.IsWideLayout != true)
-    {
-        element.BringIntoView();
-    }
+    ScrollHeaderBandIntoView(host, DashboardScrollViewer, 96d);
 }), DispatcherPriority.Loaded);
 ```
 
-宽屏不自动滚动整个 Dashboard，用户点击左栏图表后仍能看到触发源和右栏结果；窄屏继续滚动到结果区域。
+不得再用 `AdaptiveDashboardPanel.IsWideLayout` 决定是否滚动。宽屏和窄屏遵循同一规则：标题带已经在视口内就不滚动；下方越界时只增加 `VerticalOffset` 到标题底部进入视口，上方裁切时只减少越界量。直接使用 `ScrollToVerticalOffset`，避免 `BringIntoView` 依赖 PresentationSource 后产生不可预测跳转；滚动不转移键盘焦点。
 
-`AdaptiveDashboardPanel.IsWideLayout` 已经是 `public bool { get; private set; }`，code-behind 可直接读取，无需为此修改该控件、也无需把它提升为 DependencyProperty。
+- [x] **Step 6: Do not add a drilldown reveal animation**
 
-注意既有护栏：`Tests/Program.cs` 断言 `DashboardViewModel` 源码中**不得出现** `IsWideLayout` 字样。因此这个判断只能留在 code-behind，不要为了“更 MVVM”把布局宽度状态搬进 ViewModel。
+本次问题是位置和语义，不需要 160ms Opacity/Translate 动画。Host 出现后立即使用最终 Opacity 与 Transform；Reduced motion 不需要 Task 6 专用分支。保留全局动效护栏，但不得为下钻新增 Storyboard。
 
-- [ ] **Step 5: Add a reduced-motion-aware reveal**
+- [x] **Step 7: Add the net462-compatible automation notification**
 
-`AnimateDrilldownReveal` 只执行 160ms 的 Opacity 0→1 和 TranslateY 6→0；不动画 `Height=Auto`，不逐帧重新 Measure 100 行列表。减弱动效时立即设置 Opacity=1、Y=0。
-
-动画使用 `FillBehavior.Stop` 和 `HandoffBehavior.SnapshotAndReplace`，并预先把基础值设为最终值，遵循现有 Dashboard 入口动画约定。
-
-- [ ] **Step 6: Add polite state announcement**
-
-在下钻标题或数量文本上设置：
+net462 的 WPF 参考程序集不包含 `AutomationProperties.LiveSetting` 和 `AutomationEvents.LiveRegionChanged`，不得写入无法编译的 Polite live-region XAML。两个活动宿主改为绑定完整上下文标题：
 
 ```xml
-AutomationProperties.LiveSetting="Polite"
-AutomationProperties.Name="{Binding SessionDetailCountText}"
+AutomationProperties.Name="{Binding SelectedDetailTitle}"
 ```
 
-不强制把键盘焦点从趋势图或热力格移到列表；用户可按正常 Tab 顺序进入右栏内容。
+`SelectedDetailTitle` 变化后，View 为当前可见宿主取得或创建 `FrameworkElementAutomationPeer`，并调用 `RaisePropertyChangedEvent(AutomationElementIdentifiers.NameProperty, oldName, newName)`。这是 net462 可用的兼容通知，不等价于现代 WPF 原生 Polite live region；最终读屏效果留给 Task 7 实机确认。
 
-- [ ] **Step 7: Verify no virtualization regression**
+不强制把键盘焦点从趋势图或热力格移到列表；用户可按正常 Tab 顺序进入紧随触发模块的内容。文档和自动化名称不得再称其为“右栏内容”。
+
+- [x] **Step 8: Verify no virtualization regression**
 
 既有测试继续断言：
 
@@ -1664,16 +1671,19 @@ AutomationProperties.Name="{Binding SessionDetailCountText}"
 - `VirtualizationMode=Recycling`；
 - 水平滚动关闭；
 - 100 条分页按钮仍可用。
+- 非活动宿主为 Collapsed，且不生成已实现的 `ListViewItem` 容器。
 
-- [ ] **Step 8: Run layout, interaction, and full regression tests**
+- [x] **Step 9: Run layout, interaction, and full regression tests**
 
-Expected: 宽屏坐标、窄屏顺序、可见性重新测量、绑定下钻展开、减弱动效及完整回归全部通过。
+Expected: 两种 Anchor 状态、宽窄布局下的源邻接、视口内不滚动、视口外最小滚动、可见性重新测量、绑定下钻展开、UI Automation NameProperty 变更通知、虚拟化及完整回归全部通过。
 
-- [ ] **Step 9: Commit the secondary drilldown workflow**
+实际结果（2026-08-30）：Anchor 主流程先确认 7 项预期 RED，再完成 GREEN；深色主题来源标签缺陷也经过独立 RED（期望 `#FFFFFFFF`、实际 `#FF000000`）与 GREEN。最终两次 Release 构建均为 0 warning、0 error，167/167 回归通过，100k 会话分析 545 ms，schema 4 加载 901 ms，`git diff --check` 通过。非活动宿主会把 Content 置空，避免隐藏列表保留已实现容器。原生 Polite live region 因 net462 API 缺失未实现，改用上一步记录的 NameProperty 兼容通知，读屏器效果仍待 Task 7 人工验收。
+
+- [x] **Step 10: Commit the context-anchored drilldown workflow**
 
 ```powershell
-git add Views/PlaytimeInsightsDashboardView.xaml Views/PlaytimeInsightsDashboardView.xaml.cs Tests/Program.cs
-git commit -m "feat: move dashboard drilldown to secondary column"
+git add ViewModels/Dashboard/DashboardDrilldownViewModel.cs Views/PlaytimeInsightsDashboardView.xaml Views/PlaytimeInsightsDashboardView.xaml.cs Tests/Program.cs docs/superpowers/plans/2026-08-17-dashboard-visual-elevation-implementation.md
+git commit -m "feat: anchor dashboard drilldown to selection source"
 ```
 
 ---
@@ -1693,10 +1703,9 @@ git commit -m "feat: move dashboard drilldown to secondary column"
 
 删除或更新以下旧假设：
 
-- 单个 `ResponsiveUniformPanel` 含 8 张卡；
-- `4x2 metric grid` 文案；
-- Drilldown 属于 Primary；
-- Anomaly 位于 Drilldown 前；
+- 单个 `DrilldownModule` 固定在 Distribution 之后；
+- 按宽屏/窄屏决定是否调用 `BringIntoView`；
+- Drilldown 固定进入 Secondary 或累计时长排行榜下方；
 - Heatmap 使用 `HeatOpacity` 连续缩放；
 - Calendar cell 使用 MouseLeftButtonUp；
 - Ranking Energy 使用全高 0.10 透明 Rectangle；
@@ -1707,6 +1716,9 @@ git commit -m "feat: move dashboard drilldown to secondary column"
 - `AdaptiveDashboardPanel` 仍只有 Primary/Secondary，不新增 FullWidth；
 - `ResponsiveUniformPanel.cs` 未被修改为跨列布局；
 - `Grid x:Name="MetricCardsHost"` 仍存在，且 `DashboardEntrancePlan.Steps[0].HostName` 仍为 `MetricCardsHost`；
+- 指标区仍为单一 `ResponsiveUniformPanel` 和 8 张卡，不存在 Hero/Tier 2 拆分；
+- `DrilldownCardTemplate` 只定义一次，`TrendDrilldownHost` 与 `DistributionDrilldownHost` 都属于 Primary 且引用同一模板；
+- Period 选择只激活 Trend Host，Calendar 日期选择只激活 Distribution Host，Reset 后两个 Host 都 Collapsed；
 - Heatmap Month Axis 和热力格 ColumnPitch 均为 26；
 - Legend 阈值与 `HeatmapIntensityScale.FromSeconds` 完全一致；
 - `HeatmapCellViewModel` 不再包含 `HeatOpacity`，`WeekHourCellViewModel` 仍包含；
@@ -1715,8 +1727,8 @@ git commit -m "feat: move dashboard drilldown to secondary column"
 - `AdaptiveTrendChart` 存在 `ResolveBrush(string, Brush)` 重载；节点外圈解析 `ControlBackgroundBrush`，且源码中不存在 `TrendNodeRingBrush`；
 - 热力图四档画刷为单一色相 ordinal ramp，逐档只改明度不改色相；
 - Calendar 四档画刷属冰青色系，`HeatmapActiveBrush`（Week×Hour）仍为蓝紫且未被修改；Calendar 任一档不得出现与 `#2457D6` 的 ΔE < 15 的色值（海军蓝锚点已因此否决）；
-- 宽屏 Drilldown 不调用 BringIntoView；
-- 窄屏 Drilldown 保留 BringIntoView；
+- Drilldown 是否最小滚动只由其 96 DIP 标题带是否位于 `DashboardScrollViewer` 视口决定，与宽屏/窄屏无关；
+- Task 6 不新增 Opacity/Translate reveal Storyboard，也不转移键盘焦点；
 - 滞回文档与测试一致：内容宽度 1160 与 1180 为双栏，1159 为单栏。
 
 - [ ] **Step 2: Run the complete Release gate**
@@ -1741,13 +1753,13 @@ Expected:
 
 | 内容宽度 | 参考视图宽度 | Required result |
 | ---: | ---: | --- |
-| 640 | 688 | 单栏；Hero 1 列；Tier 2 1 列；Drilldown 在 Distribution 后并滚动进入视口 |
-| 900 | 948 | 单栏；Hero 仍为 1 列（内容宽 852 < 972，属预期而非缺陷）；Tier 2 2 列不溢出；月份/周次与热力格对齐 |
+| 640 | 688 | 单栏；8 张指标卡不溢出；活动 Drilldown 紧随触发模块，标题带在视口外时最小滚动 |
+| 900 | 948 | 单栏；8 张指标卡不溢出；两个 Drilldown Host 均不占用非活动高度；月份/周次与热力格对齐 |
 | 1159 | 1207 | 从宽屏缩小时退出双栏 |
 | 1160 | 1208 | **保持双栏**（滞回下限为 `width >= 1160`） |
 | 1199 | 1247 | 从窄屏放大时仍保持单栏 |
-| 1200 | 1248 | 进入双栏；Drilldown 与 Ranking 同 X；Tier 2 三列 |
-| 1440 | 1488 | 两张 Hero 保持两列；右栏无横向滚动 |
+| 1200 | 1248 | 进入双栏；活动 Drilldown 与其 Trend/Distribution 触发模块同 X，Ranking/Anomaly 留在 Secondary |
+| 1440 | 1488 | 单一指标面板稳定重排；右栏无横向滚动 |
 | 1600 | 1648 | 两栏不被强制拉伸等高；Calendar 横向坐标稳定 |
 
 滞回是有方向的，1159、1160 和 1199 三行必须按方向分别走一遍：从双栏缩小到 1160（应保持双栏）再到 1159（应退出），以及从单栏放大到 1199（应保持单栏）再到 1200（应进入）。只在单一方向上取样无法验证滞回。
@@ -1768,7 +1780,7 @@ Expected:
 - zh_CN、en_US；
 - Tab 进入 Heatmap Button，Space/Enter 可触发下钻；
 - 焦点描边可见；
-- Drilldown 状态变化有 Polite announcement；
+- Drilldown 状态变化会更新活动宿主的 Automation Name，并发送 NameProperty 变更事件；使用实际读屏器记录是否播报，未播报则明确记录 net462 限制；
 - Reduced motion 下无淡入位移；
 - Trend Area 不遮挡网格、折线或 Hover Tooltip；
 - 普通节点与 Hover 节点的外圈在浅色和深色主题均可分辨（这是 Task 3 Step 3 所选外圈方案的实机验证点）；
@@ -1821,10 +1833,9 @@ git commit -m "test: lock dashboard visual elevation contracts"
 
 ### Gate B: Presentation Contracts
 
-- 2 Hero + 6 Tier 2 全部可见且各出现一次，8 个主数值绑定与 Task 5 Step 1 的对照表逐项一致。
-- Hero 与 Tier 2 的 Style 与其 `BasedOn` 基样式定义在同一资源查找域，Release 构建无 XAML 解析告警。
-- `Grid x:Name="MetricCardsHost"` 保留为入口动画宿主，`DashboardEntrancePlan` 未被改动。
-- Calendar Heatmap 留在 Primary，Drilldown 位于 Secondary。
+- Task 5 已跳过；8 张指标卡继续共用现有单一响应式面板，宽屏 4×2 与 1000×900 下 3–3–2 均不得出现截断、重叠或绑定丢失。
+- `Grid x:Name="MetricCardsHost"` 及当前单面板结构保留为入口动画宿主，`DashboardEntrancePlan` 未被改动。
+- Calendar Heatmap 留在 Primary；Trend/Distribution 下钻分别紧随对应触发模块且仍位于 Primary，累计时长排行榜下方不承接 Drilldown。
 - 24 DIP 色块拥有 26 DIP Button 和键盘命令，周次与星期坐标轴文字分别水平、垂直居中。
 - 星期标签隐藏 Trigger 位于 `ItemContainerStyle` 并有可见性序列证明。
 - Legend、月份轴、周次轴与热力格共享滚动坐标。
@@ -1839,10 +1850,10 @@ git commit -m "test: lock dashboard visual elevation contracts"
 
 - 1200/1160 DIP 滞回保持不变，且文档、矩阵与测试统一为「1160 保持双栏、1159 退出双栏」。
 - 所有宽度断言显式区分内容宽度与视图宽度（差值 48）。
-- 宽屏 Drilldown 出现不滚走左侧触发源。
-- 窄屏 Drilldown 出现会滚动进入视口。
+- 宽屏和窄屏都只在活动 Drilldown 的 96 DIP 标题带不在视口时执行最小滚动；标题已经可见时滚动偏移保持不变。
+- Trend 与 Distribution 两个宿主任一时刻最多一个 Visible，显示位置与触发来源一致。
 - Drilldown 100 条列表仍使用 Recycling virtualization。
-- Reduced motion 禁用所有新增过渡。
+- Task 6 不新增 Drilldown 出现过渡；其他新增动效在 Reduced motion 下禁用。
 
 ### Gate D: Release, Performance and Evidence
 
@@ -1858,7 +1869,8 @@ git commit -m "test: lock dashboard visual elevation contracts"
 
 | Requirement | Covered by |
 | --- | --- |
-| Drilldown 放入右侧并在 Ranking 下承接 | Task 6 |
+| Trend/Calendar Drilldown 按触发来源就近展开 | Task 6 |
+| Drilldown 标题带按视口状态执行最小滚动 | Task 6 Step 5, Gate C |
 | 不移动 Calendar Heatmap 到窄右栏 | Global Constraints, Frozen Decision 1 |
 | 不追求强制等高 | Global Constraints, Frozen Decision 3, Gate C |
 | Area Fill Gradient | Task 3 |
@@ -1866,9 +1878,9 @@ git commit -m "test: lock dashboard visual elevation contracts"
 | 月份和周次轴 | Tasks 1–2 |
 | 固定时长 Legend | Tasks 1–2 |
 | 24 DIP 色块、26 DIP 命中区与坐标轴对齐 | Task 2 |
-| 2 Hero + 6 Tier 2 | Task 5 |
-| Hero 30 DIP、Tier 2 24 DIP | Task 5 |
-| Pills 与 Hero 值对齐 | Task 5 |
+| 2 Hero + 6 Tier 2 | Task 5（已跳过，不验收） |
+| Hero 30 DIP、Tier 2 24 DIP | Task 5（已跳过，不验收） |
+| Pills 与 Hero 值对齐 | Task 5（已跳过，不验收） |
 | 短列表呼吸感和辅助信息 | Task 4 |
 | 历史整行时长占比背景与前三名独立 Glow | Task 4 |
 | 排行详情去重、次级文字层级和统一行级 Tooltip | Task 4.5 |
@@ -1879,8 +1891,8 @@ git commit -m "test: lock dashboard visual elevation contracts"
 | schema 4 加载证据稳定化 | Task 2.5 Step 5, Gate D |
 | 累计榜最近活动时区口径 | Task 4 Step 6, Gate A |
 | 区间占比专用文案 | Task 4 Steps 6/9, Gate A |
-| 资源查找域与 BasedOn 归属 | Global Constraints, Task 5 Step 3, Gate B |
-| 内容宽度与视图宽度区分 | Global Constraints, Task 5 Step 7, Task 6 Step 1, Task 7 Step 3 |
+| 资源查找域与 BasedOn 归属 | 不适用（Task 5 已跳过） |
+| 内容宽度与视图宽度区分 | Global Constraints, Task 6 Step 1, Task 7 Step 3 |
 | 滞回边界 1160/1159 表述统一 | Global Constraints, Task 7 Steps 1/3, Gate C |
 | 热力图 UI 侧预算 | Global Constraints, Task 7 Step 3b, Gate D |
 | 验收记录与 1.0.0 发布记录分离 | Task 0 Step 2, Task 7 Step 5, Gate D |
@@ -1892,7 +1904,7 @@ git commit -m "test: lock dashboard visual elevation contracts"
 - 不强制左右栏底边对齐。
 - 不把 Calendar Heatmap 移到 Secondary。
 - 不新增会话次数的同比或环比分析。
-- 不在本轮实现 Tier 2 六列超宽断点。
+- 不实施 Task 5 的 Hero/Tier 2 拆分或 Tier 2 六列断点。
 - 不改变排行榜当前可选排序指标。
 - 不改变 `ProgressPercent` 的口径（它恒为时长占比，与选中指标无关；见 Frozen Decision 10）。
 - 不改变 Heatmap 点击后的会话筛选口径。
@@ -1909,13 +1921,13 @@ Task 0（对账 + 1.1.0 验收文档）
   → Task 2.5（收口 Task 0–2 review 遗留项）★ 必经关口
   → Task 3 和 Task 4（可并行）
   → Task 3.5（趋势时长刻度，依赖 Task 3）和 Task 4.5（排行信息去重，依赖 Task 4）
-  → Task 5
+  → Task 5（跳过）
   → Task 6
   → Task 7
 ```
 
 Task 1 和 Task 2 已在工作树实现，不再作为独立执行阶段；它们的章节保留为规格记录，其中 Step 2 的 RED 期望已改为验证。
 
-推荐使用 `superpowers:subagent-driven-development`：Task 3 与 Task 4 在 Task 2.5 完成后没有共享代码依赖，可以由独立执行者分别处理；Task 3.5 和 Task 4.5 分别在对应前置任务后执行。Task 5 和 Task 6 都会修改 Dashboard XAML，必须串行并在每项后运行完整回归。
+推荐使用 `superpowers:subagent-driven-development`：Task 3 与 Task 4 在 Task 2.5 完成后没有共享代码依赖，可以由独立执行者分别处理；Task 3.5 和 Task 4.5 分别在对应前置任务后执行。Task 5 已于 2026-08-28 跳过，Task 6 直接以上一项已完成实现及现有单面板指标区为基线，并在完成后运行完整回归。
 
 提交时机由用户决定。各 Task 的 commit 步骤给出的是提交范围和信息，未获明确指示前不要执行 `git add` 或 `git commit`；Task 0–2 的既有实现按 Task 0 Step 4 的三段拆分落盘。

@@ -86,6 +86,7 @@ namespace PlaytimeInsights.Tests
             Run("Session detail pager loads fixed-size batches", TestSessionDetailPager);
             Run("Dashboard clear command resets drilldown selection", TestClearDrilldownSelectionCommand);
             Run("Dashboard drilldown cards retain recycling virtualization", TestDrilldownVirtualizationContract);
+            Run("Dashboard drilldown source tags use theme text", TestDrilldownSourceTagForeground);
             Run("Automatic aggregation follows range defaults", TestAutomaticAggregationDefaults);
             Run("Manual aggregation overrides automatic rules", TestManualAggregationOverride);
             Run("Session query combines search source and metadata", TestSessionQueryFilters);
@@ -198,6 +199,11 @@ namespace PlaytimeInsights.Tests
             Run("Adaptive dashboard panel applies 1200 and 1160 DIP hysteresis", TestAdaptiveDashboardPanelHysteresis);
             Run("Visible drilldown module remeasures its session list", TestVisibleDrilldownModuleRemeasures);
             Run("Bound dashboard drilldown expands after selection", TestBoundDashboardDrilldownExpands);
+            Run("Dashboard drilldown anchors to its triggering visualization", TestDashboardDrilldownAnchors);
+            Run("Dashboard drilldown hosts preserve source adjacency", TestDashboardDrilldownHostLayout);
+            Run("Dashboard drilldown reveal uses header viewport bounds", TestDashboardDrilldownViewportBounds);
+            Run("Dashboard drilldown reveal scrolls only for a hidden header", TestDashboardDrilldownViewportReveal);
+            Run("Dashboard drilldown exposes the active context to automation", TestDashboardDrilldownAutomationName);
 
             Console.WriteLine(failures == 0
                 ? "All Playtime Insights tests passed."
@@ -2136,12 +2142,14 @@ namespace PlaytimeInsights.Tests
                 sourceRoot,
                 "Resources",
                 "PlaytimeInsightsVisualResources.xaml"));
-            var drilldownModule = document.Descendants()
+            var drilldownTemplate = document.Descendants()
                 .Single(element =>
-                    element.Name.LocalName == "Border" &&
+                    element.Name.LocalName == "DataTemplate" &&
                     (string)element.Attribute(xamlNamespace + "Name") ==
-                    "DrilldownModule");
-            var detailList = drilldownModule.Descendants()
+                    null &&
+                    (string)element.Attribute(xamlNamespace + "Key") ==
+                    "DrilldownCardTemplate");
+            var detailList = drilldownTemplate.Descendants()
                 .Single(element =>
                     element.Name.LocalName == "ListView" &&
                     (string)element.Attribute("ItemsSource") ==
@@ -2189,6 +2197,57 @@ namespace PlaytimeInsights.Tests
                 .Any(element => element.Name.LocalName == "GridViewRowPresenter"));
             Equal(false, detailList.Descendants()
                 .Any(element => element.Name.LocalName == "GridView"));
+        }
+
+        private static void TestDrilldownSourceTagForeground()
+        {
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView();
+                var drilldownCard = (FrameworkElement)
+                    ((DataTemplate)view.Resources["DrilldownCardTemplate"])
+                        .LoadContent();
+                var detailList = FindVisualDescendants<ListView>(
+                    drilldownCard).Single();
+                var presenter = new ContentPresenter
+                {
+                    ContentTemplate = detailList.ItemTemplate,
+                    Content = new SessionDetailViewModel
+                    {
+                        Source = SessionSource.Tracked,
+                        SourceText = "Automatic recording"
+                    }
+                };
+                var themeTextBrush = new SolidColorBrush(Colors.White);
+                var window = new Window
+                {
+                    Content = presenter,
+                    Foreground = new SolidColorBrush(Colors.Black),
+                    ShowInTaskbar = false,
+                    Width = 320,
+                    Height = 120,
+                    WindowStyle = WindowStyle.None,
+                    Left = -10000,
+                    Top = -10000
+                };
+                window.Resources["TextBrush"] = themeTextBrush;
+
+                try
+                {
+                    window.Show();
+                    PumpDispatcher();
+
+                    var sourceText = FindVisualDescendants<TextBlock>(
+                        presenter).Single(text =>
+                            text.Text == "Automatic recording");
+                    Equal(themeTextBrush, sourceText.Foreground);
+                }
+                finally
+                {
+                    window.Content = null;
+                    window.Close();
+                }
+            });
         }
 
         private static void TestAutomaticAggregationDefaults()
@@ -3888,7 +3947,9 @@ namespace PlaytimeInsights.Tests
             Equal(false, management.Contains(
                 "Text=\"{DynamicResource LOCPlaytimeInsightsImportSafetyHint}\""));
             Equal(true, dashboard.Contains(
-                "Visibility=\"{Binding SessionDetailVisibility}\""));
+                "Visibility=\"{Binding Drilldown.TrendHostVisibility}\""));
+            Equal(true, dashboard.Contains(
+                "Visibility=\"{Binding Drilldown.DistributionHostVisibility}\""));
             Equal(true, dashboardViewModel.Contains(
                 "SessionDetailVisibility = Visibility.Collapsed"));
             Equal(true, dashboardViewModel.Contains(
@@ -5202,7 +5263,7 @@ namespace PlaytimeInsights.Tests
                     });
                 view.UpdateLayout();
 
-                var module = (Border)view.FindName("DrilldownModule");
+                var module = (ContentControl)view.FindName("TrendDrilldownHost");
                 var list = FindVisualDescendants<ListView>(module).Single();
                 var firstItem = (ListViewItem)list.ItemContainerGenerator
                     .ContainerFromIndex(0);
@@ -5293,12 +5354,380 @@ namespace PlaytimeInsights.Tests
                     });
                 view.UpdateLayout();
 
-                var module = (Border)view.FindName("DrilldownModule");
+                var module = (ContentControl)view.FindName("TrendDrilldownHost");
                 var list = FindVisualDescendants<ListView>(module).Single();
                 Equal(Visibility.Visible, module.Visibility);
                 Equal(true, module.ActualHeight > 100);
                 Equal(true, list.ActualHeight > 0);
                 Equal(1, list.Items.Count);
+            });
+        }
+
+        private static void TestDashboardDrilldownAnchors()
+        {
+            var drilldown = new DashboardDrilldownViewModel(
+                null,
+                new AnalyticsService());
+            var type = drilldown.GetType();
+            var anchorProperty = type.GetProperty("SelectedAnchor");
+            var trendVisibilityProperty = type.GetProperty(
+                "TrendHostVisibility");
+            var distributionVisibilityProperty = type.GetProperty(
+                "DistributionHostVisibility");
+
+            Equal(true, anchorProperty != null);
+            Equal(true, trendVisibilityProperty != null);
+            Equal(true, distributionVisibilityProperty != null);
+            Equal("None", anchorProperty.GetValue(drilldown).ToString());
+            Equal(
+                Visibility.Collapsed,
+                (Visibility)trendVisibilityProperty.GetValue(drilldown));
+            Equal(
+                Visibility.Collapsed,
+                (Visibility)distributionVisibilityProperty.GetValue(drilldown));
+
+            drilldown.ResetContext(
+                new Playnite.SDK.Models.Game[0],
+                new GameSession[0]);
+            drilldown.SelectPeriod(new PeriodActivityViewModel
+            {
+                PeriodStart = new DateTime(2026, 8, 10),
+                PeriodEnd = new DateTime(2026, 8, 10),
+                Label = "2026/8/10",
+                DurationText = "0 分钟"
+            });
+
+            Equal("Trend", anchorProperty.GetValue(drilldown).ToString());
+            Equal(
+                Visibility.Visible,
+                (Visibility)trendVisibilityProperty.GetValue(drilldown));
+            Equal(
+                Visibility.Collapsed,
+                (Visibility)distributionVisibilityProperty.GetValue(drilldown));
+            Equal(Visibility.Visible, drilldown.SessionDetailVisibility);
+
+            drilldown.SelectHeatmapDate(new HeatmapCellViewModel
+            {
+                Date = new DateTime(2026, 8, 11),
+                CellVisibility = Visibility.Visible
+            });
+
+            Equal(
+                "Distribution",
+                anchorProperty.GetValue(drilldown).ToString());
+            Equal(
+                Visibility.Collapsed,
+                (Visibility)trendVisibilityProperty.GetValue(drilldown));
+            Equal(
+                Visibility.Visible,
+                (Visibility)distributionVisibilityProperty.GetValue(drilldown));
+
+            drilldown.ResetSelection();
+            Equal("None", anchorProperty.GetValue(drilldown).ToString());
+            Equal(Visibility.Collapsed, drilldown.SessionDetailVisibility);
+        }
+
+        private static void TestDashboardDrilldownHostLayout()
+        {
+            RunOnSta(() =>
+            {
+                foreach (var viewWidth in new[] { 1248d, 900d })
+                {
+                var settings =
+                    (PlaytimeInsightsSettingsViewModel)
+                    System.Runtime.Serialization.FormatterServices
+                        .GetUninitializedObject(
+                            typeof(PlaytimeInsightsSettingsViewModel));
+                settings.Settings = new PlaytimeInsightsSettings();
+                var viewModel = new DashboardViewModel(
+                    null,
+                    null,
+                    new AnalyticsService(),
+                    new SessionQueryService(new TestGameMetadataAccessor()),
+                    settings);
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = viewWidth,
+                    DataContext = viewModel
+                };
+                view.Measure(new Size(viewWidth, 680));
+                view.Arrange(new Rect(0, 0, viewWidth, 680));
+                view.UpdateLayout();
+
+                var panel = FindVisualDescendants<AdaptiveDashboardPanel>(view)
+                    .Single();
+                Equal(viewWidth >= 1248d, panel.IsWideLayout);
+                var trend = (FrameworkElement)view.FindName("TrendModule");
+                var distribution =
+                    (FrameworkElement)view.FindName("DistributionModule");
+                var trendHost =
+                    (ContentControl)view.FindName("TrendDrilldownHost");
+                var distributionHost =
+                    (ContentControl)view.FindName("DistributionDrilldownHost");
+
+                Equal(true, trendHost != null);
+                Equal(true, distributionHost != null);
+                Equal(Visibility.Collapsed, trendHost.Visibility);
+                Equal(Visibility.Collapsed, distributionHost.Visibility);
+                Equal<object>(null, trendHost.Content);
+                Equal<object>(null, distributionHost.Content);
+                Equal(
+                    DashboardLayoutZone.Primary,
+                    AdaptiveDashboardPanel.GetZone(trendHost));
+                Equal(
+                    DashboardLayoutZone.Primary,
+                    AdaptiveDashboardPanel.GetZone(distributionHost));
+
+                viewModel.Drilldown.ResetContext(
+                    new Playnite.SDK.Models.Game[0],
+                    new GameSession[0]);
+                viewModel.Drilldown.SelectPeriod(new PeriodActivityViewModel
+                {
+                    PeriodStart = new DateTime(2026, 8, 10),
+                    PeriodEnd = new DateTime(2026, 8, 10),
+                    Label = "2026/8/10",
+                    DurationText = "0 分钟"
+                });
+                view.UpdateLayout();
+
+                Equal(Visibility.Visible, trendHost.Visibility);
+                Equal(Visibility.Collapsed, distributionHost.Visibility);
+                Equal(viewModel, trendHost.Content);
+                Equal<object>(null, distributionHost.Content);
+                var trendBounds = trend.TransformToAncestor(panel)
+                    .TransformBounds(new Rect(trend.RenderSize));
+                var trendHostBounds = trendHost.TransformToAncestor(panel)
+                    .TransformBounds(new Rect(trendHost.RenderSize));
+                Equal(true, Math.Abs(trendBounds.X - trendHostBounds.X) < 0.01);
+                Equal(true, trendHostBounds.Top >= trendBounds.Bottom + 17.9d);
+
+                viewModel.Drilldown.SelectHeatmapDate(
+                    new HeatmapCellViewModel
+                    {
+                        Date = new DateTime(2026, 8, 11),
+                        CellVisibility = Visibility.Visible
+                    });
+                view.UpdateLayout();
+
+                Equal(Visibility.Collapsed, trendHost.Visibility);
+                Equal(Visibility.Visible, distributionHost.Visibility);
+                Equal<object>(null, trendHost.Content);
+                Equal(viewModel, distributionHost.Content);
+                var distributionBounds = distribution.TransformToAncestor(panel)
+                    .TransformBounds(new Rect(distribution.RenderSize));
+                var distributionHostBounds = distributionHost
+                    .TransformToAncestor(panel)
+                    .TransformBounds(new Rect(distributionHost.RenderSize));
+                Equal(
+                    true,
+                    Math.Abs(distributionBounds.X - distributionHostBounds.X) <
+                        0.01);
+                Equal(
+                    true,
+                    distributionHostBounds.Top >=
+                        distributionBounds.Bottom + 17.9d);
+                }
+            });
+        }
+
+        private static void TestDashboardDrilldownViewportBounds()
+        {
+            var method = typeof(PlaytimeInsightsDashboardView).GetMethod(
+                "IsVerticalBandVisible",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            Equal(true, method != null);
+
+            Func<double, double, double, bool> invoke =
+                (top, height, viewportHeight) => (bool)method.Invoke(
+                    null,
+                    new object[] { top, height, viewportHeight });
+            Equal(true, invoke(0d, 96d, 400d));
+            Equal(true, invoke(304d, 96d, 400d));
+            Equal(false, invoke(305d, 96d, 400d));
+            Equal(false, invoke(-1d, 96d, 400d));
+            Equal(false, invoke(0d, 96d, 0d));
+        }
+
+        private static void TestDashboardDrilldownViewportReveal()
+        {
+            RunOnSta(() =>
+            {
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 400,
+                    Height = 220
+                };
+                var scrollViewer = (ScrollViewer)view.FindName(
+                    "DashboardScrollViewer");
+                var host = new Border
+                {
+                    Height = 160
+                };
+                var content = new StackPanel();
+                content.Children.Add(new Border { Height = 320 });
+                content.Children.Add(host);
+                content.Children.Add(new Border { Height = 320 });
+                scrollViewer.Content = content;
+                view.Measure(new Size(400, 220));
+                view.Arrange(new Rect(0, 0, 400, 220));
+                view.UpdateLayout();
+
+                var handler = typeof(PlaytimeInsightsDashboardView)
+                    .GetMethod(
+                        "DrilldownHost_IsVisibleChanged",
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                Equal(true, handler != null);
+                Equal(true, scrollViewer.ViewportHeight > 96d);
+                Equal(true, scrollViewer.ScrollableHeight > 0d);
+
+                Action invokeReveal = () =>
+                {
+                    handler.Invoke(
+                        view,
+                        new object[]
+                        {
+                            host,
+                            new DependencyPropertyChangedEventArgs(
+                                UIElement.IsVisibleProperty,
+                                false,
+                                true)
+                        });
+                    PumpDispatcher();
+                    view.UpdateLayout();
+                };
+                Func<Rect> headerBounds = () => host
+                    .TransformToAncestor(scrollViewer)
+                    .TransformBounds(new Rect(
+                        0d,
+                        0d,
+                        host.ActualWidth,
+                        96d));
+
+                var currentBounds = headerBounds();
+                scrollViewer.ScrollToVerticalOffset(
+                    scrollViewer.VerticalOffset + currentBounds.Top - 24d);
+                view.UpdateLayout();
+                var visibleOffset = scrollViewer.VerticalOffset;
+                var visibleBounds = headerBounds();
+                Equal(true, visibleBounds.Top >= 0d);
+                Equal(
+                    true,
+                    visibleBounds.Bottom <= scrollViewer.ViewportHeight);
+                invokeReveal();
+                Equal(
+                    true,
+                    Math.Abs(scrollViewer.VerticalOffset - visibleOffset) <
+                        0.01d);
+
+                scrollViewer.ScrollToVerticalOffset(0d);
+                view.UpdateLayout();
+                Equal(
+                    true,
+                    headerBounds().Bottom > scrollViewer.ViewportHeight);
+                invokeReveal();
+                Equal(true, scrollViewer.VerticalOffset > 0d);
+                var revealedBounds = headerBounds();
+                Equal(true, revealedBounds.Top >= 0d);
+                Equal(
+                    true,
+                    revealedBounds.Bottom <= scrollViewer.ViewportHeight);
+
+                scrollViewer.ScrollToVerticalOffset(
+                    scrollViewer.VerticalOffset + revealedBounds.Top + 1d);
+                view.UpdateLayout();
+                var clippedOffset = scrollViewer.VerticalOffset;
+                Equal(true, headerBounds().Top < 0d);
+                invokeReveal();
+                Equal(
+                    true,
+                    Math.Abs(
+                        scrollViewer.VerticalOffset - clippedOffset) >
+                        0.01d);
+            });
+        }
+
+        private static void TestDashboardDrilldownAutomationName()
+        {
+            RunOnSta(() =>
+            {
+                var settings =
+                    (PlaytimeInsightsSettingsViewModel)
+                    System.Runtime.Serialization.FormatterServices
+                        .GetUninitializedObject(
+                            typeof(PlaytimeInsightsSettingsViewModel));
+                settings.Settings = new PlaytimeInsightsSettings();
+                var viewModel = new DashboardViewModel(
+                    null,
+                    null,
+                    new AnalyticsService(),
+                    new SessionQueryService(new TestGameMetadataAccessor()),
+                    settings);
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 1400,
+                    DataContext = viewModel
+                };
+                view.Measure(new Size(1400, 680));
+                view.Arrange(new Rect(0, 0, 1400, 680));
+                view.UpdateLayout();
+
+                viewModel.Drilldown.ResetContext(
+                    new Playnite.SDK.Models.Game[0],
+                    new GameSession[0]);
+                viewModel.Drilldown.SelectPeriod(new PeriodActivityViewModel
+                {
+                    PeriodStart = new DateTime(2026, 8, 10),
+                    PeriodEnd = new DateTime(2026, 8, 10),
+                    Label = "2026/8/10",
+                    DurationText = "0 分钟"
+                });
+                view.UpdateLayout();
+                PumpDispatcher();
+
+                var host = (ContentControl)view.FindName(
+                    "TrendDrilldownHost");
+                Equal(
+                    viewModel.SelectedDetailTitle,
+                    System.Windows.Automation.AutomationProperties.GetName(
+                        host));
+                Equal(
+                    true,
+                    typeof(PlaytimeInsightsDashboardView).GetMethod(
+                        "RaiseDrilldownAutomationNameChanged",
+                        BindingFlags.NonPublic | BindingFlags.Instance) != null);
+                var lastNameField = typeof(PlaytimeInsightsDashboardView)
+                    .GetField(
+                        "lastDrilldownAutomationName",
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+                Equal(true, lastNameField != null);
+                Equal(
+                    viewModel.SelectedDetailTitle,
+                    (string)lastNameField.GetValue(view));
+
+                viewModel.Drilldown.SelectHeatmapDate(
+                    new HeatmapCellViewModel
+                    {
+                        Date = new DateTime(2026, 8, 11),
+                        CellVisibility = Visibility.Visible
+                    });
+                view.UpdateLayout();
+                PumpDispatcher();
+                var distributionHost = (ContentControl)view.FindName(
+                    "DistributionDrilldownHost");
+                Equal(
+                    viewModel.SelectedDetailTitle,
+                    System.Windows.Automation.AutomationProperties.GetName(
+                        distributionHost));
+                Equal(
+                    viewModel.SelectedDetailTitle,
+                    (string)lastNameField.GetValue(view));
+
+                viewModel.Drilldown.ResetSelection();
+                view.UpdateLayout();
+                PumpDispatcher();
+                Equal(
+                    viewModel.SelectedDetailTitle,
+                    (string)lastNameField.GetValue(view));
             });
         }
 
@@ -5561,8 +5990,15 @@ namespace PlaytimeInsights.Tests
                 view.Measure(new Size(1200, double.PositiveInfinity));
                 view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
                 view.UpdateLayout();
-                var drilldownModule = (Border)view.FindName(
-                    "DrilldownModule");
+                var drilldownModule = (FrameworkElement)
+                    ((DataTemplate)view.Resources["DrilldownCardTemplate"])
+                        .LoadContent();
+                drilldownModule.Measure(new Size(520, 500));
+                drilldownModule.Arrange(new Rect(
+                    0,
+                    0,
+                    520,
+                    drilldownModule.DesiredSize.Height));
                 var template = FindVisualDescendants<ListView>(
                     drilldownModule).Single().ItemTemplate;
 
@@ -5935,8 +6371,15 @@ namespace PlaytimeInsights.Tests
                 view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
                 view.UpdateLayout();
 
-                var drilldownModule = (Border)view.FindName(
-                    "DrilldownModule");
+                var drilldownModule = (FrameworkElement)
+                    ((DataTemplate)view.Resources["DrilldownCardTemplate"])
+                        .LoadContent();
+                drilldownModule.Measure(new Size(520, 500));
+                drilldownModule.Arrange(new Rect(
+                    0,
+                    0,
+                    520,
+                    drilldownModule.DesiredSize.Height));
                 var drilldownList = FindVisualDescendants<ListView>(
                     drilldownModule).Single();
                 var drilldownTemplate = drilldownList.ItemTemplate;
@@ -6541,14 +6984,15 @@ namespace PlaytimeInsights.Tests
             Equal("18", (string)adaptivePanel.Attribute("VerticalSpacing"));
 
             var moduleElements = adaptivePanel.Elements().ToList();
-            Equal(5, moduleElements.Count);
+            Equal(6, moduleElements.Count);
             var expectedZones = new Dictionary<string, string>
             {
                 { "TrendModule", "Primary" },
+                { "TrendDrilldownHost", "Primary" },
                 { "RankingModule", "Secondary" },
                 { "DistributionModule", "Primary" },
-                { "AnomalyModule", "Secondary" },
-                { "DrilldownModule", "Primary" }
+                { "DistributionDrilldownHost", "Primary" },
+                { "AnomalyModule", "Secondary" }
             };
             var modulesByName = new Dictionary<string, XElement>();
             foreach (var moduleElement in moduleElements)
@@ -6567,10 +7011,11 @@ namespace PlaytimeInsights.Tests
             var moduleOrder = new[]
             {
                 "TrendModule",
+                "TrendDrilldownHost",
                 "RankingModule",
                 "DistributionModule",
-                "AnomalyModule",
-                "DrilldownModule"
+                "DistributionDrilldownHost",
+                "AnomalyModule"
             };
             var lastModuleIndex = -1;
             foreach (var moduleName in moduleOrder)
@@ -6634,17 +7079,39 @@ namespace PlaytimeInsights.Tests
                     .Any(attribute => attribute.Value == binding));
             }
 
-            var drilldownModule = modulesByName["DrilldownModule"];
+            var drilldownTemplate = document.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "DataTemplate" &&
+                    (string)element.Attribute(xamlNamespace + "Key") ==
+                    "DrilldownCardTemplate");
             foreach (var binding in new[]
             {
-                "{Binding SessionDetailVisibility}",
                 "{Binding SessionDetails}",
                 "{Binding LoadMoreSessionDetailsCommand}"
             })
             {
-                Equal(true, drilldownModule.DescendantsAndSelf()
+                Equal(true, drilldownTemplate.DescendantsAndSelf()
                     .Attributes()
                     .Any(attribute => attribute.Value == binding));
+            }
+            Equal(
+                "{Binding Drilldown.TrendHostVisibility}",
+                (string)modulesByName["TrendDrilldownHost"].Attribute(
+                    "Visibility"));
+            Equal(
+                "{Binding Drilldown.DistributionHostVisibility}",
+                (string)modulesByName["DistributionDrilldownHost"].Attribute(
+                    "Visibility"));
+            foreach (var hostName in new[]
+            {
+                "TrendDrilldownHost",
+                "DistributionDrilldownHost"
+            })
+            {
+                Equal(
+                    "{StaticResource DrilldownCardTemplate}",
+                    (string)modulesByName[hostName].Attribute(
+                        "ContentTemplate"));
             }
 
             Equal(1, Regex.Matches(
@@ -6666,8 +7133,10 @@ namespace PlaytimeInsights.Tests
                 dashboard,
                 "PreviewMouseWheel=\"NestedScrollViewer_PreviewMouseWheel\"")
                 .Count);
-            Equal(true, dashboard.Contains(
-                "IsVisibleChanged=\"DrilldownModule_IsVisibleChanged\""));
+            Equal(2, Regex.Matches(
+                dashboard,
+                "IsVisibleChanged=\"DrilldownHost_IsVisibleChanged\"")
+                .Count);
             Equal(true, dashboard.Contains(
                 "ScrollViewer.HorizontalScrollBarVisibility=\"Disabled\""));
 
@@ -6676,8 +7145,9 @@ namespace PlaytimeInsights.Tests
                 "Views",
                 "PlaytimeInsightsDashboardView.xaml.cs"));
             Equal(true, dashboardCode.Contains(
-                "DrilldownModule_IsVisibleChanged"));
-            Equal(true, dashboardCode.Contains("BringIntoView()"));
+                "DrilldownHost_IsVisibleChanged"));
+            Equal(true, dashboardCode.Contains("ScrollToVerticalOffset"));
+            Equal(true, dashboardCode.Contains("IsVerticalBandVisible"));
             Equal(true, dashboardCode.Contains(
                 "Loaded += PlaytimeInsightsDashboardView_Loaded;"));
             Equal(false, dashboardCode.Contains("IsCompactHeroLayout"));

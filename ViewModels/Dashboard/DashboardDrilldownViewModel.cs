@@ -10,6 +10,13 @@ using System.Windows;
 
 namespace PlaytimeInsights.ViewModels
 {
+    public enum DashboardDrilldownAnchor
+    {
+        None,
+        Trend,
+        Distribution
+    }
+
     public sealed class DashboardDrilldownViewModel : ObservableObject
     {
         private readonly IPlayniteAPI playniteApi;
@@ -21,6 +28,8 @@ namespace PlaytimeInsights.ViewModels
             "LOCPlaytimeInsightsDetailsPrompt",
             "点击柱形、折线点或热力格查看会话");
         private Visibility sessionDetailVisibility = Visibility.Collapsed;
+        private DashboardDrilldownAnchor selectedAnchor =
+            DashboardDrilldownAnchor.None;
 
         public DashboardDrilldownViewModel(
             IPlayniteAPI playniteApi,
@@ -33,7 +42,47 @@ namespace PlaytimeInsights.ViewModels
 
         public string SelectedDetailTitle { get => selectedDetailTitle; private set => SetValue(ref selectedDetailTitle, value); }
 
-        public Visibility SessionDetailVisibility { get => sessionDetailVisibility; private set => SetValue(ref sessionDetailVisibility, value); }
+        public Visibility SessionDetailVisibility
+        {
+            get => sessionDetailVisibility;
+            private set
+            {
+                if (sessionDetailVisibility == value)
+                {
+                    return;
+                }
+
+                SetValue(ref sessionDetailVisibility, value);
+                NotifyHostVisibilityChanged();
+            }
+        }
+
+        public DashboardDrilldownAnchor SelectedAnchor
+        {
+            get => selectedAnchor;
+            private set
+            {
+                if (selectedAnchor == value)
+                {
+                    return;
+                }
+
+                SetValue(ref selectedAnchor, value);
+                NotifyHostVisibilityChanged();
+            }
+        }
+
+        public Visibility TrendHostVisibility =>
+            SessionDetailVisibility == Visibility.Visible &&
+            SelectedAnchor == DashboardDrilldownAnchor.Trend
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        public Visibility DistributionHostVisibility =>
+            SessionDetailVisibility == Visibility.Visible &&
+            SelectedAnchor == DashboardDrilldownAnchor.Distribution
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
         public ObservableCollection<SessionDetailViewModel> SessionDetails { get; }
 
@@ -63,6 +112,7 @@ namespace PlaytimeInsights.ViewModels
         {
             pager.Reset(null);
             NotifyPagingChanged();
+            SelectedAnchor = DashboardDrilldownAnchor.None;
             SessionDetailVisibility = Visibility.Collapsed;
             SelectedDetailTitle = LocalizationService.Get(
                 "LOCPlaytimeInsightsDetailsPrompt",
@@ -79,7 +129,8 @@ namespace PlaytimeInsights.ViewModels
             Load(
                 period.PeriodStart,
                 period.PeriodEnd,
-                period.Label + " · " + period.DurationText);
+                period.Label + " · " + period.DurationText,
+                DashboardDrilldownAnchor.Trend);
         }
 
         public void SelectHeatmapDate(HeatmapCellViewModel cell)
@@ -93,7 +144,8 @@ namespace PlaytimeInsights.ViewModels
                 cell.Date,
                 cell.Date,
                 cell.Date.ToString("yyyy/M/d") + " · " +
-                    AnalyticsService.FormatDurationPrecise(cell.Seconds));
+                    AnalyticsService.FormatDurationPrecise(cell.Seconds),
+                DashboardDrilldownAnchor.Distribution);
         }
 
         public bool LoadMore()
@@ -107,7 +159,11 @@ namespace PlaytimeInsights.ViewModels
             return true;
         }
 
-        private void Load(DateTime startDate, DateTime endDate, string title)
+        private void Load(
+            DateTime startDate,
+            DateTime endDate,
+            string title,
+            DashboardDrilldownAnchor anchor)
         {
             var details = analyticsService.CreateSessionDetails(
                 activeGames,
@@ -117,6 +173,7 @@ namespace PlaytimeInsights.ViewModels
             ApplyCoverImages(details, activeGames);
             pager.Reset(details);
             NotifyPagingChanged();
+            SelectedAnchor = anchor;
             SessionDetailVisibility = Visibility.Visible;
             SelectedDetailTitle = details.Count == 0
                 ? LocalizationService.Format(
@@ -163,6 +220,12 @@ namespace PlaytimeInsights.ViewModels
             OnPropertyChanged(nameof(SessionDetailCountText));
             OnPropertyChanged(nameof(LoadMoreVisibility));
             OnPropertyChanged(nameof(HasMore));
+        }
+
+        private void NotifyHostVisibilityChanged()
+        {
+            OnPropertyChanged(nameof(TrendHostVisibility));
+            OnPropertyChanged(nameof(DistributionHostVisibility));
         }
     }
 }

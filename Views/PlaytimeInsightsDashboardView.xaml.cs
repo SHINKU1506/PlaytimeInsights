@@ -3,6 +3,8 @@ using PlaytimeInsights.ViewModels;
 using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -13,7 +15,9 @@ namespace PlaytimeInsights.Views
 {
     public partial class PlaytimeInsightsDashboardView : UserControl
     {
+        private const double DrilldownHeaderBandHeight = 96d;
         private DashboardViewModel presentationViewModel;
+        private string lastDrilldownAutomationName;
         private bool rankingTabMouseInteraction;
         private readonly DispatcherTimer rankingTabMouseInteractionTimer;
 
@@ -43,6 +47,8 @@ namespace PlaytimeInsights.Views
             }
 
             presentationViewModel = DataContext as DashboardViewModel;
+            lastDrilldownAutomationName =
+                presentationViewModel?.SelectedDetailTitle;
             if (presentationViewModel != null)
             {
                 presentationViewModel.PropertyChanged +=
@@ -54,6 +60,14 @@ namespace PlaytimeInsights.Views
             object sender,
             PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(
+                DashboardViewModel.SelectedDetailTitle))
+            {
+                Dispatcher.BeginInvoke(
+                    new Action(RaiseDrilldownAutomationNameChanged),
+                    DispatcherPriority.Loaded);
+            }
+
             if (e.PropertyName != nameof(DashboardViewModel.PresentationRevision))
             {
                 return;
@@ -244,18 +258,170 @@ namespace PlaytimeInsights.Views
             DashboardScrollViewer.RaiseEvent(forwardedEvent);
         }
 
-        private void DrilldownModule_IsVisibleChanged(
+        private void DrilldownHost_IsVisibleChanged(
             object sender,
             DependencyPropertyChangedEventArgs e)
         {
-            if (e.NewValue is Visibility visibility &&
-                visibility == Visibility.Visible &&
-                sender is FrameworkElement element)
+            if (!(e.NewValue is bool isVisible) ||
+                !isVisible ||
+                !(sender is FrameworkElement host))
             {
-                Dispatcher.BeginInvoke(
-                    new Action(() => element.BringIntoView()),
-                    DispatcherPriority.Loaded);
+                return;
             }
+
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (host.Visibility != Visibility.Visible)
+                {
+                    return;
+                }
+
+                ScrollHeaderBandIntoView(
+                    host,
+                    DashboardScrollViewer,
+                    DrilldownHeaderBandHeight);
+            }), DispatcherPriority.Loaded);
+        }
+
+        private static void ScrollHeaderBandIntoView(
+            FrameworkElement host,
+            ScrollViewer scrollViewer,
+            double bandHeight)
+        {
+            if (IsHeaderBandVisible(host, scrollViewer, bandHeight))
+            {
+                return;
+            }
+
+            Rect bounds;
+            if (!TryGetHeaderBandBounds(
+                host,
+                scrollViewer,
+                bandHeight,
+                out bounds))
+            {
+                return;
+            }
+
+            var offsetDelta = bounds.Top < 0d
+                ? bounds.Top
+                : bounds.Bottom > scrollViewer.ViewportHeight
+                    ? bounds.Bottom - scrollViewer.ViewportHeight
+                    : 0d;
+            if (Math.Abs(offsetDelta) < 0.01d)
+            {
+                return;
+            }
+
+            var targetOffset = Math.Max(
+                0d,
+                Math.Min(
+                    scrollViewer.ScrollableHeight,
+                    scrollViewer.VerticalOffset + offsetDelta));
+            scrollViewer.ScrollToVerticalOffset(targetOffset);
+        }
+
+        private static bool IsHeaderBandVisible(
+            FrameworkElement host,
+            ScrollViewer scrollViewer,
+            double bandHeight)
+        {
+            Rect bounds;
+            if (!TryGetHeaderBandBounds(
+                host,
+                scrollViewer,
+                bandHeight,
+                out bounds))
+            {
+                return false;
+            }
+
+            return IsVerticalBandVisible(
+                bounds.Top,
+                bounds.Height,
+                scrollViewer.ViewportHeight);
+        }
+
+        private static bool TryGetHeaderBandBounds(
+            FrameworkElement host,
+            ScrollViewer scrollViewer,
+            double bandHeight,
+            out Rect bounds)
+        {
+            bounds = Rect.Empty;
+            if (host == null ||
+                scrollViewer == null ||
+                bandHeight <= 0d ||
+                host.ActualHeight <= 0d)
+            {
+                return false;
+            }
+
+            try
+            {
+                var visibleBandHeight = Math.Min(
+                    bandHeight,
+                    host.ActualHeight);
+                bounds = host.TransformToAncestor(scrollViewer)
+                    .TransformBounds(new Rect(
+                        0d,
+                        0d,
+                        Math.Max(0d, host.ActualWidth),
+                        visibleBandHeight));
+                return true;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }
+
+        private static bool IsVerticalBandVisible(
+            double top,
+            double height,
+            double viewportHeight)
+        {
+            return top >= 0d &&
+                height > 0d &&
+                viewportHeight > 0d &&
+                top + height <= viewportHeight;
+        }
+
+        private void RaiseDrilldownAutomationNameChanged()
+        {
+            var viewModel = presentationViewModel;
+            if (viewModel == null)
+            {
+                return;
+            }
+
+            var currentName = viewModel.SelectedDetailTitle ?? string.Empty;
+            var previousName = lastDrilldownAutomationName ?? string.Empty;
+            lastDrilldownAutomationName = currentName;
+            if (string.Equals(
+                previousName,
+                currentName,
+                StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var host = TrendDrilldownHost.IsVisible
+                ? TrendDrilldownHost
+                : DistributionDrilldownHost.IsVisible
+                    ? DistributionDrilldownHost
+                    : null;
+            if (host == null)
+            {
+                return;
+            }
+
+            var peer = FrameworkElementAutomationPeer.FromElement(host) ??
+                new FrameworkElementAutomationPeer(host);
+            peer.RaisePropertyChangedEvent(
+                AutomationElementIdentifiers.NameProperty,
+                previousName,
+                currentName);
         }
 
         private static bool CanContinueVerticalScroll(
