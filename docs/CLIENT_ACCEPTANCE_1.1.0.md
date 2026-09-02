@@ -70,7 +70,22 @@
 | All Sessions 真实投影 | 1,820 | 707.6 / 648.8 / 685.4 / 628.8 / 655.1 ms（最大 **707.6 ms**） |
 
 - [x] 一年与 All Sessions 的格数及 UI Measure + Arrange 成本已实测。
-- [ ] All Sessions 交互流畅度待收敛：峰值约 0.71 秒，可能形成可感知刷新停顿。可选方向仍是虚拟化、轻量可聚焦元素或按月分段；Task 7 不预先实施其中任何一项。
+- [x] All Sessions 交互流畅度已收敛（2026-09-03，见下节）：1,820 格 Measure + Arrange 从最大 707.6 ms 降至最大 168.4 ms。
+
+## Calendar Heatmap UI Performance Gate（2026-09-03）
+
+分支 `codex/dashboard-performance-optimization` 将热力图 UI 收敛到以下证据；历史样本全部保留。
+
+历史基线（保留）：原始单次测量 All Sessions 峰值 **707.6 ms**；轻量 Button 前（原始架构）五样本门禁 All Sessions 为 732.3 / 663.3 / 807.2 / 810.4 / **855.3 ms**（最大 855.3），一年为 177.3 / 186.2 / 197.4 / 203.9 / 179.8 ms（最大 203.9）。
+
+- [x] 五轮独立 Release 门禁：两个构建 0 error，完整回归输出 `All Playtime Insights tests passed.`。
+- [x] 一年 371 格五样本 max <= 200 ms：五轮为 187.3 / 188.9 / 192.0 / 180.3 / 179.9 ms。
+- [x] All Sessions 1,820 格五样本 max <= 300 ms：五轮为 152.5 / 153.7 / 157.4 / 168.4 / 151.2 ms（五轮中位 137.8–143.3 ms）。
+- [x] 虚拟化契约：初始与滚动末端的 realized 周列容器 25–26 个（< 60）、realized `HeatmapCellButton` 175–182 个（< 420）；滚动到末端后首周容器被回收（`ContainerFromIndex(0)` 为 null），最后一周 7 格可实现且 Command/CommandParameter/Automation Name/Focusable 保持；ViewModel 数据仍为完整 1,820 格。
+- [x] 月份轴同步：滚动到末端时月份轴 HorizontalOffset 与周列内容 offset 差为 0.0 DIP（<= 0.5 DIP 契约）；月份轴保留全部约 60 个轻量 TextBlock，不虚拟化。
+- [x] 键盘与无障碍结构：日期仍为 `HeatmapCellButton : Button`（26×26 DIP 命中、24×24 自绘光泽、CornerRadius 3），Command/ToolTip/AutomationProperties.Name 由运行时测试逐项断言；主题/DPI/读屏器与跨零点实机矩阵待用户人工验收（与既定验收流程一致）。
+
+实现路径：Task 2 轻量自绘 Button 后一年已达标（max 203.9 → 192.0 范围），All Sessions 未达 300 ms，因此按计划硬分支执行了 Task 3（周列发布，不复制 Cell 模型）与 Task 4（水平 Recycling 虚拟化 + 月份轴同步）。
 
 ## Actual UI Evidence
 

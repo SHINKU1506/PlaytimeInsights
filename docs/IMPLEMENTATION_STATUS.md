@@ -2,7 +2,17 @@
 
 最后更新：2026-09-03
 
-当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵仅剩减弱动效，实际读屏器已跳过；100k 分析性能已在 `codex/dashboard-performance-optimization` 收敛至中位 ≤ 650 / 最大 ≤ 700 ms，All Sessions 热力图 UI 性能正在同一分支按 2026-09-03 计划收敛；正式 1.1.0 发版尚未开始
+当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵仅剩减弱动效，实际读屏器已跳过；100k 分析性能与 All Sessions 热力图 UI 性能均已在 `codex/dashboard-performance-optimization` 收敛达标；正式 1.1.0 发版尚未开始
+
+## 2026-09-03 Calendar 热力图 UI 性能收敛（codex/dashboard-performance-optimization）
+
+- 实施计划：`docs/superpowers/plans/2026-09-03-calendar-heatmap-ui-performance-optimization.md`；Task 1–2 完成后按硬分支判定执行了 Task 3–4，Task 5 完成；全部逐项提交；
+- 提交映射：Task 1 五样本 UI 门禁 `e86a214`；Task 2 轻量自绘 `HeatmapCellButton` `3d84624`；Task 3 周列发布（引用复用、不复制 Cell 模型）`cbb498c`；Task 4 水平 Recycling 虚拟化周列 + 月份轴同步 `280ee33`；Task 5 本文档证据冻结；
+- 五轮独立 Release 门禁证据：一年 371 格五样本 max 187.3 / 188.9 / 192.0 / 180.3 / 179.9 ms（目标 <= 200）；All Sessions 1,820 格五样本 max 152.5 / 153.7 / 157.4 / 168.4 / 151.2 ms（目标 <= 300，五轮中位 137.8–143.3 ms）；realized 周列容器 25–26（< 60）、realized 日期按钮 175–182（< 420），ViewModel 日期数据仍为完整 1,820 格；
+- 月份轴同步：滚动全程 HorizontalOffset 与周列内容 offset 差 0.0 DIP（<= 0.5 DIP 契约，含滚动末端钳位点）；实现方式为月份轴 ScrollViewer 以 `Padding="1,0"` 镜像 ListBox 默认模板每侧 1 DIP 的内容内衬；
+- 历史样本保留：原始非虚拟化实现 All Sessions 最大 707.6 ms；轻量 Button 前五样本门禁 All Sessions 最大 855.3 ms、一年最大 203.9 ms；均记录于 `docs/CLIENT_ACCEPTANCE_1.1.0.md`，未删除；
+- 主题 / DPI / 键盘 / Tooltip / 读屏器人工矩阵待用户人工验收；实际读屏器播报延续既定决定跳过；
+- 备注：同分支分析性能五轮门禁此前已在安静窗口达标（中位 532–587 ms、max 546–667 ms、schema 4 最大 1,364 ms）；本轮末尾复跑时整机整体变慢（未被本计划触碰的 schema 4 加载从 1,197 ms 同比例升至约 1,714 ms，GC 剖面不变），判定为环境负载而非代码回退，建议在机器空闲/接通电源状态下复跑确认。
 
 ## 2026-09-03 Dashboard 分析性能收敛（codex/dashboard-performance-optimization）
 
