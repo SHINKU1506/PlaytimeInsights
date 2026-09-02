@@ -44,6 +44,8 @@ namespace PlaytimeInsights.Tests
             Run("Cross-midnight allocation", TestCrossMidnightAllocation);
             Run("Allocation preserves total seconds", TestAllocationPreservesTotal);
             Run("Cross-hour allocation preserves total and hour buckets", TestHourlyAllocation);
+            Run("Daily allocation reuses destination buffers without residue",
+                TestDailyAllocationDestinationReuse);
             Run("Session timezone resolver caches valid and fallback zones",
                 TestSessionTimeZoneResolverCache);
             Run("Advanced weekday hour distributions and matrix", TestAdvancedDistributions);
@@ -326,6 +328,72 @@ namespace PlaytimeInsights.Tests
             var fallbackZoneTwo = resolver.Resolve(fallbackTwo);
             Equal(true, ReferenceEquals(fallbackZoneOne, fallbackZoneTwo));
             Equal(TimeSpan.FromMinutes(330), fallbackZoneOne.BaseUtcOffset);
+        }
+
+        private static void TestDailyAllocationDestinationReuse()
+        {
+            var service = new DailyAllocationService();
+            var normal = CreateSession(
+                Guid.NewGuid(),
+                "Normal",
+                new DateTime(2026, 7, 27, 10, 0, 0, DateTimeKind.Utc),
+                300);
+            var crossMidnight = new GameSession
+            {
+                StartedAtUtc = new DateTime(2026, 7, 27, 15, 59, 30, DateTimeKind.Utc),
+                EndedAtUtc = new DateTime(2026, 7, 27, 16, 0, 30, DateTimeKind.Utc),
+                ElapsedSeconds = 60,
+                StartUtcOffsetMinutes = 480,
+                EndUtcOffsetMinutes = 480,
+                TimeZoneId = "China Standard Time"
+            };
+            var daylight = new GameSession
+            {
+                StartedAtUtc = new DateTime(2026, 11, 1, 8, 0, 0, DateTimeKind.Utc),
+                EndedAtUtc = new DateTime(2026, 11, 1, 10, 0, 0, DateTimeKind.Utc),
+                ElapsedSeconds = 7200,
+                StartUtcOffsetMinutes = 420,
+                EndUtcOffsetMinutes = 480,
+                TimeZoneId = "Pacific Standard Time"
+            };
+            var invalid = CreateSession(
+                Guid.NewGuid(),
+                "Invalid",
+                new DateTime(2026, 7, 27, 10, 0, 0, DateTimeKind.Utc),
+                0);
+
+            var destination = new List<DailyAllocation>();
+            AssertDestinationMatchesDictionary(service, normal, destination);
+            AssertDestinationMatchesDictionary(service, crossMidnight, destination);
+            AssertDestinationMatchesDictionary(service, daylight, destination);
+            AssertDestinationMatchesDictionary(service, invalid, destination);
+
+            service.SplitByLocalDay(crossMidnight, destination);
+            Equal(2, destination.Count);
+            service.SplitByLocalDay(normal, destination);
+            Equal(1, destination.Count);
+            service.SplitByLocalDay(null, destination);
+            Equal(0, destination.Count);
+            Equal(true, typeof(DailyAllocation).IsValueType);
+        }
+
+        private static void AssertDestinationMatchesDictionary(
+            DailyAllocationService service,
+            GameSession session,
+            List<DailyAllocation> destination)
+        {
+            var expected = service.SplitByLocalDay(session);
+            service.SplitByLocalDay(session, destination);
+            Equal(expected.Count, destination.Count);
+            ulong destinationTotal = 0;
+            foreach (var allocation in destination)
+            {
+                Equal(true, expected.ContainsKey(allocation.LocalDate));
+                Equal(expected[allocation.LocalDate], allocation.Seconds);
+                destinationTotal += allocation.Seconds;
+            }
+
+            Equal(session.ElapsedSeconds, destinationTotal);
         }
 
         private static void TestAdvancedDistributions()

@@ -144,26 +144,34 @@ namespace PlaytimeInsights.Services
                 .GroupBy(game => game.Id)
                 .ToDictionary(group => group.Key, group => group.First().Name ?? string.Empty);
 
+            var dailyAllocationBuffer = new List<DailyAllocation>(2);
+
             foreach (var session in sessionList)
             {
-                var allocations = dailyAllocationService.SplitByLocalDay(session);
-                var includedAllocations = allocations
-                    .Where(allocation =>
-                        allocation.Key.Date >= range.StartDate &&
-                        allocation.Key.Date <= range.EndDate &&
-                        allocation.Value > 0)
-                    .ToList();
-                var includedSeconds = includedAllocations.Aggregate<KeyValuePair<DateTime, ulong>, ulong>(
-                    0,
-                    (current, allocation) => current + allocation.Value);
-                if (includedSeconds == 0)
+                dailyAllocationService.SplitByLocalDay(session, dailyAllocationBuffer);
+
+                ulong sessionSeconds = 0;
+                foreach (var allocation in dailyAllocationBuffer)
+                {
+                    var allocationDate = allocation.LocalDate.Date;
+                    if (allocationDate < range.StartDate ||
+                        allocationDate > range.EndDate ||
+                        allocation.Seconds == 0)
+                    {
+                        continue;
+                    }
+
+                    sessionSeconds += allocation.Seconds;
+                }
+
+                if (sessionSeconds == 0)
                 {
                     continue;
                 }
 
-                rangeSeconds += includedSeconds;
+                rangeSeconds += sessionSeconds;
                 rangeSessionCount++;
-                longestSessionSeconds = Math.Max(longestSessionSeconds, includedSeconds);
+                longestSessionSeconds = Math.Max(longestSessionSeconds, sessionSeconds);
 
                 MutableGameRangeStats stats;
                 if (!gameStats.TryGetValue(session.GameId, out stats))
@@ -180,9 +188,9 @@ namespace PlaytimeInsights.Services
                     gameStats[session.GameId] = stats;
                 }
 
-                stats.Seconds += includedSeconds;
+                stats.Seconds += sessionSeconds;
                 stats.SessionCount++;
-                stats.LongestSessionSeconds = Math.Max(stats.LongestSessionSeconds, includedSeconds);
+                stats.LongestSessionSeconds = Math.Max(stats.LongestSessionSeconds, sessionSeconds);
                 var startedUtc = DateTime.SpecifyKind(
                     session.StartedAtUtc,
                     DateTimeKind.Utc);
@@ -197,15 +205,23 @@ namespace PlaytimeInsights.Services
                     stats.LastSessionLocal = startedLocal;
                 }
 
-                foreach (var allocation in includedAllocations)
+                foreach (var allocation in dailyAllocationBuffer)
                 {
-                    Add(dailySeconds, allocation.Key.Date, allocation.Value);
-                    stats.ActiveDates.Add(allocation.Key.Date);
+                    var allocationDate = allocation.LocalDate.Date;
+                    if (allocationDate < range.StartDate ||
+                        allocationDate > range.EndDate ||
+                        allocation.Seconds == 0)
+                    {
+                        continue;
+                    }
+
+                    Add(dailySeconds, allocationDate, allocation.Seconds);
+                    stats.ActiveDates.Add(allocationDate);
                     HashSet<string> names;
-                    if (!dailyGameNames.TryGetValue(allocation.Key.Date, out names))
+                    if (!dailyGameNames.TryGetValue(allocationDate, out names))
                     {
                         names = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
-                        dailyGameNames[allocation.Key.Date] = names;
+                        dailyGameNames[allocationDate] = names;
                     }
                     if (!string.IsNullOrWhiteSpace(stats.Name))
                     {

@@ -4,6 +4,13 @@ using System.Collections.Generic;
 
 namespace PlaytimeInsights.Services
 {
+    public struct DailyAllocation
+    {
+        public DateTime LocalDate { get; set; }
+
+        public ulong Seconds { get; set; }
+    }
+
     public sealed class DailyAllocationService
     {
         private readonly SessionTimeZoneResolver timeZoneResolver;
@@ -41,18 +48,36 @@ namespace PlaytimeInsights.Services
 
         public IDictionary<DateTime, ulong> SplitByLocalDay(GameSession session)
         {
+            var destination = new List<DailyAllocation>();
+            SplitByLocalDay(session, destination);
             var result = new Dictionary<DateTime, ulong>();
+            foreach (var allocation in destination)
+            {
+                result[allocation.LocalDate] = allocation.Seconds;
+            }
+
+            return result;
+        }
+
+        public void SplitByLocalDay(GameSession session, IList<DailyAllocation> destination)
+        {
+            if (destination == null)
+            {
+                throw new ArgumentNullException(nameof(destination));
+            }
+
+            destination.Clear();
             if (session == null)
             {
-                return result;
+                return;
             }
 
             var startedAtUtc = DateTime.SpecifyKind(session.StartedAtUtc, DateTimeKind.Utc);
             var endedAtUtc = DateTime.SpecifyKind(session.EndedAtUtc, DateTimeKind.Utc);
             if (endedAtUtc <= startedAtUtc)
             {
-                Add(result, session.GetStartedLocalDate(), session.ElapsedSeconds);
-                return result;
+                Add(destination, session.GetStartedLocalDate(), session.ElapsedSeconds);
+                return;
             }
 
             var timeZone = timeZoneResolver.Resolve(session);
@@ -102,7 +127,7 @@ namespace PlaytimeInsights.Services
                     }
                 }
 
-                Add(result, localDate, allocated);
+                Add(destination, localDate, allocated);
                 remainingElapsed -= allocated;
                 cursorUtc = segmentEndUtc;
             }
@@ -110,17 +135,25 @@ namespace PlaytimeInsights.Services
             if (remainingElapsed > 0)
             {
                 var finalLocalDate = TimeZoneInfo.ConvertTimeFromUtc(endedAtUtc.AddTicks(-1), timeZone).Date;
-                Add(result, finalLocalDate, remainingElapsed);
+                Add(destination, finalLocalDate, remainingElapsed);
             }
-
-            return result;
         }
 
-        private static void Add(IDictionary<DateTime, ulong> result, DateTime date, ulong seconds)
+        private static void Add(IList<DailyAllocation> destination, DateTime date, ulong seconds)
         {
-            ulong existing;
-            result.TryGetValue(date.Date, out existing);
-            result[date.Date] = existing + seconds;
+            var target = date.Date;
+            for (var index = destination.Count - 1; index >= 0; index--)
+            {
+                if (destination[index].LocalDate == target)
+                {
+                    var existing = destination[index];
+                    existing.Seconds += seconds;
+                    destination[index] = existing;
+                    return;
+                }
+            }
+
+            destination.Add(new DailyAllocation { LocalDate = target, Seconds = seconds });
         }
     }
 }
