@@ -6,6 +6,18 @@ namespace PlaytimeInsights.Services
 {
     public sealed class DailyAllocationService
     {
+        private readonly SessionTimeZoneResolver timeZoneResolver;
+
+        public DailyAllocationService()
+            : this(new SessionTimeZoneResolver())
+        {
+        }
+
+        public DailyAllocationService(SessionTimeZoneResolver resolver)
+        {
+            timeZoneResolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+        }
+
         public IDictionary<DateTime, ulong> AggregateByLocalDay(IEnumerable<GameSession> sessions)
         {
             var result = new Dictionary<DateTime, ulong>();
@@ -43,7 +55,7 @@ namespace PlaytimeInsights.Services
                 return result;
             }
 
-            var timeZone = ResolveTimeZone(session);
+            var timeZone = timeZoneResolver.Resolve(session);
             var wallSeconds = (endedAtUtc - startedAtUtc).TotalSeconds;
             var remainingElapsed = session.ElapsedSeconds;
             var cursorUtc = startedAtUtc;
@@ -102,27 +114,6 @@ namespace PlaytimeInsights.Services
             }
 
             return result;
-        }
-
-        private static TimeZoneInfo ResolveTimeZone(GameSession session)
-        {
-            if (!string.IsNullOrWhiteSpace(session.TimeZoneId))
-            {
-                try
-                {
-                    return TimeZoneInfo.FindSystemTimeZoneById(session.TimeZoneId);
-                }
-                catch (TimeZoneNotFoundException)
-                {
-                }
-                catch (InvalidTimeZoneException)
-                {
-                }
-            }
-
-            var offset = TimeSpan.FromMinutes(session.StartUtcOffsetMinutes);
-            var id = string.Format("PlaytimeInsights.FixedOffset.{0}", session.StartUtcOffsetMinutes);
-            return TimeZoneInfo.CreateCustomTimeZone(id, offset, id, id);
         }
 
         private static void Add(IDictionary<DateTime, ulong> result, DateTime date, ulong seconds)

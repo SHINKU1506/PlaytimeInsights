@@ -44,6 +44,8 @@ namespace PlaytimeInsights.Tests
             Run("Cross-midnight allocation", TestCrossMidnightAllocation);
             Run("Allocation preserves total seconds", TestAllocationPreservesTotal);
             Run("Cross-hour allocation preserves total and hour buckets", TestHourlyAllocation);
+            Run("Session timezone resolver caches valid and fallback zones",
+                TestSessionTimeZoneResolverCache);
             Run("Advanced weekday hour distributions and matrix", TestAdvancedDistributions);
             Run("Weekday selection filters the hourly distribution", TestWeekdayHourSelection);
             Run("Advanced streak finds longest consecutive run", TestAdvancedStreak);
@@ -303,6 +305,27 @@ namespace PlaytimeInsights.Tests
                 result.Aggregate<HourlyAllocation, ulong>(
                     0,
                     (total, item) => total + item.Seconds));
+        }
+
+        private static void TestSessionTimeZoneResolverCache()
+        {
+            var resolver = new SessionTimeZoneResolver();
+            var first = CreateSession("Zone One", 60, 0);
+            var second = CreateSession("Zone Two", 120, 60);
+            var firstZone = resolver.Resolve(first);
+            var secondZone = resolver.Resolve(second);
+            Equal(true, ReferenceEquals(firstZone, secondZone));
+
+            var fallbackOne = CreateSession("Fallback One", 60, 0);
+            fallbackOne.StartUtcOffsetMinutes = 330;
+            fallbackOne.TimeZoneId = "PlaytimeInsights.Missing.Time Zone";
+            var fallbackTwo = CreateSession("Fallback Two", 60, 0);
+            fallbackTwo.StartUtcOffsetMinutes = 330;
+            fallbackTwo.TimeZoneId = "PlaytimeInsights.Missing.Time Zone";
+            var fallbackZoneOne = resolver.Resolve(fallbackOne);
+            var fallbackZoneTwo = resolver.Resolve(fallbackTwo);
+            Equal(true, ReferenceEquals(fallbackZoneOne, fallbackZoneTwo));
+            Equal(TimeSpan.FromMinutes(330), fallbackZoneOne.BaseUtcOffset);
         }
 
         private static void TestAdvancedDistributions()

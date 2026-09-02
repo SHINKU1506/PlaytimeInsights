@@ -11,10 +11,19 @@ namespace PlaytimeInsights.Services
 {
     public sealed class AdvancedAnalyticsService
     {
-        private readonly DailyAllocationService dailyAllocationService =
-            new DailyAllocationService();
-        private readonly HourlyAllocationService hourlyAllocationService =
-            new HourlyAllocationService();
+        private readonly DailyAllocationService dailyAllocationService;
+        private readonly HourlyAllocationService hourlyAllocationService;
+
+        public AdvancedAnalyticsService()
+            : this(new SessionTimeZoneResolver())
+        {
+        }
+
+        public AdvancedAnalyticsService(SessionTimeZoneResolver resolver)
+        {
+            dailyAllocationService = new DailyAllocationService(resolver);
+            hourlyAllocationService = new HourlyAllocationService(resolver);
+        }
 
         public AdvancedAnalyticsSnapshot CreateSnapshot(
             IEnumerable<Game> games,

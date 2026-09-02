@@ -15,10 +15,17 @@ namespace PlaytimeInsights.Services
 
     public sealed class HourlyAllocationService
     {
-        private readonly object timeZoneCacheSync = new object();
-        private readonly Dictionary<string, TimeZoneInfo> timeZoneCache =
-            new Dictionary<string, TimeZoneInfo>(
-                StringComparer.OrdinalIgnoreCase);
+        private readonly SessionTimeZoneResolver timeZoneResolver;
+
+        public HourlyAllocationService()
+            : this(new SessionTimeZoneResolver())
+        {
+        }
+
+        public HourlyAllocationService(SessionTimeZoneResolver resolver)
+        {
+            timeZoneResolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+        }
 
         public IList<HourlyAllocation> SplitByLocalHour(GameSession session)
         {
@@ -34,7 +41,7 @@ namespace PlaytimeInsights.Services
             var endedAtUtc = DateTime.SpecifyKind(
                 session.EndedAtUtc,
                 DateTimeKind.Utc);
-            var timeZone = ResolveTimeZone(session);
+            var timeZone = timeZoneResolver.Resolve(session);
             if (endedAtUtc <= startedAtUtc)
             {
                 var local = TimeZoneInfo.ConvertTimeFromUtc(startedAtUtc, timeZone);
@@ -161,58 +168,6 @@ namespace PlaytimeInsights.Services
             }
 
             return cursorUtc.AddHours(1);
-        }
-
-        private TimeZoneInfo ResolveTimeZone(GameSession session)
-        {
-            var cacheKey = !string.IsNullOrWhiteSpace(session.TimeZoneId)
-                ? "id:" + session.TimeZoneId +
-                  "|offset:" + session.StartUtcOffsetMinutes
-                : "offset:" + session.StartUtcOffsetMinutes;
-            lock (timeZoneCacheSync)
-            {
-                TimeZoneInfo cached;
-                if (timeZoneCache.TryGetValue(cacheKey, out cached))
-                {
-                    return cached;
-                }
-            }
-
-            TimeZoneInfo resolved = null;
-            if (!string.IsNullOrWhiteSpace(session.TimeZoneId))
-            {
-                try
-                {
-                    resolved = TimeZoneInfo.FindSystemTimeZoneById(
-                        session.TimeZoneId);
-                }
-                catch (TimeZoneNotFoundException)
-                {
-                }
-                catch (InvalidTimeZoneException)
-                {
-                }
-            }
-
-            if (resolved == null)
-            {
-                var offset = TimeSpan.FromMinutes(
-                    session.StartUtcOffsetMinutes);
-                var id = string.Format(
-                    "PlaytimeInsights.HourlyOffset.{0}",
-                    session.StartUtcOffsetMinutes);
-                resolved = TimeZoneInfo.CreateCustomTimeZone(
-                    id,
-                    offset,
-                    id,
-                    id);
-            }
-
-            lock (timeZoneCacheSync)
-            {
-                timeZoneCache[cacheKey] = resolved;
-            }
-            return resolved;
         }
     }
 }
