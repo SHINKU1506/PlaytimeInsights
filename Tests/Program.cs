@@ -52,6 +52,8 @@ namespace PlaytimeInsights.Tests
             Run("Weekday selection filters the hourly distribution", TestWeekdayHourSelection);
             Run("Advanced streak finds longest consecutive run", TestAdvancedStreak);
             Run("Previous-period and year-over-year comparisons", TestAdvancedComparisons);
+            Run("Comparison totals accumulate overlapping ranges once",
+                TestComparisonTotalsAccumulateOnce);
             Run("All-sessions snapshot suppresses unstable comparisons", TestAllSessionsComparisonVisibility);
             Run("Finite ranges keep period comparisons visible", TestFiniteRangeComparisonVisibility);
             Run("Year-over-year range handles leap day", TestYearOverYearLeapDay);
@@ -550,6 +552,65 @@ namespace PlaytimeInsights.Tests
                 true,
                 snapshot.Advanced.YearOverYearComparison.PreviousText
                     .Contains("2025/7/27"));
+        }
+
+        private static void TestComparisonTotalsAccumulateOnce()
+        {
+            var query = new AnalyticsQuery
+            {
+                RangePreset = DateRangePreset.Custom,
+                CustomStartDate = new DateTime(2025, 1, 1),
+                CustomEndDate = new DateTime(2026, 6, 1)
+            };
+            var sessions = new[]
+            {
+                CreateSession(
+                    Guid.NewGuid(),
+                    "Overlap CurrentAndYoy",
+                    new DateTime(2025, 3, 15, 10, 0, 0, DateTimeKind.Utc),
+                    600),
+                CreateSession(
+                    Guid.NewGuid(),
+                    "CurrentOnly",
+                    new DateTime(2026, 5, 1, 10, 0, 0, DateTimeKind.Utc),
+                    300),
+                CreateSession(
+                    Guid.NewGuid(),
+                    "PreviousAndYoyLeapDay",
+                    new DateTime(2024, 2, 29, 10, 0, 0, DateTimeKind.Utc),
+                    200),
+                CreateSession(
+                    Guid.NewGuid(),
+                    "CrossMidnightBetweenRanges",
+                    new DateTime(2024, 12, 31, 15, 59, 30, DateTimeKind.Utc),
+                    60)
+            };
+
+            var result = new AnalyticsService().CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                sessions,
+                query);
+            var totals = result.Context.ComparisonTotals;
+
+            Equal(true, totals.Enabled);
+            Equal(new DateTime(2023, 8, 3), totals.PreviousRange.StartDate);
+            Equal(new DateTime(2024, 12, 31), totals.PreviousRange.EndDate);
+            Equal(new DateTime(2024, 1, 1), totals.YearOverYearRange.StartDate);
+            Equal(new DateTime(2025, 6, 1), totals.YearOverYearRange.EndDate);
+            Equal(230UL, totals.PreviousSeconds);
+            Equal(860UL, totals.YearOverYearSeconds);
+            Equal(Visibility.Visible, result.Snapshot.Advanced.ComparisonVisibility);
+
+            var allSessionsResult = new AnalyticsService().CreateSnapshotWithContext(
+                new Playnite.SDK.Models.Game[0],
+                sessions,
+                new AnalyticsQuery { RangePreset = DateRangePreset.AllSessions });
+            var allSessionsTotals = allSessionsResult.Context.ComparisonTotals;
+            Equal(false, allSessionsTotals.Enabled);
+            Equal(null, allSessionsTotals.PreviousRange);
+            Equal(null, allSessionsTotals.YearOverYearRange);
+            Equal(0UL, allSessionsTotals.PreviousSeconds);
+            Equal(0UL, allSessionsTotals.YearOverYearSeconds);
         }
 
         private static void TestAllSessionsComparisonVisibility()

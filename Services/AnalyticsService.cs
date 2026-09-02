@@ -144,6 +144,26 @@ namespace PlaytimeInsights.Services
                 .GroupBy(game => game.Id)
                 .ToDictionary(group => group.Key, group => group.First().Name ?? string.Empty);
 
+            DashboardComparisonTotals comparisonTotals;
+            if (query.RangePreset != DateRangePreset.AllSessions)
+            {
+                comparisonTotals = new DashboardComparisonTotals
+                {
+                    Enabled = true,
+                    PreviousRange =
+                        AdvancedAnalyticsService.CreatePreviousPeriodRange(range),
+                    YearOverYearRange =
+                        AdvancedAnalyticsService.CreateYearOverYearRange(range)
+                };
+            }
+            else
+            {
+                comparisonTotals = new DashboardComparisonTotals
+                {
+                    Enabled = false
+                };
+            }
+
             var dailyAllocationBuffer = new List<DailyAllocation>(2);
 
             foreach (var session in sessionList)
@@ -154,6 +174,22 @@ namespace PlaytimeInsights.Services
                 foreach (var allocation in dailyAllocationBuffer)
                 {
                     var allocationDate = allocation.LocalDate.Date;
+                    if (comparisonTotals.Enabled &&
+                        comparisonTotals.PreviousRange != null &&
+                        allocationDate >= comparisonTotals.PreviousRange.StartDate &&
+                        allocationDate <= comparisonTotals.PreviousRange.EndDate)
+                    {
+                        comparisonTotals.PreviousSeconds += allocation.Seconds;
+                    }
+
+                    if (comparisonTotals.Enabled &&
+                        comparisonTotals.YearOverYearRange != null &&
+                        allocationDate >= comparisonTotals.YearOverYearRange.StartDate &&
+                        allocationDate <= comparisonTotals.YearOverYearRange.EndDate)
+                    {
+                        comparisonTotals.YearOverYearSeconds += allocation.Seconds;
+                    }
+
                     if (allocationDate < range.StartDate ||
                         allocationDate > range.EndDate ||
                         allocation.Seconds == 0)
@@ -256,7 +292,8 @@ namespace PlaytimeInsights.Services
                         ActiveDates = stats.ActiveDates.OrderBy(date => date).ToList(),
                         LongestSessionSeconds = stats.LongestSessionSeconds,
                         LastSessionLocal = stats.LastSessionLocal
-                    }).ToList()
+                    }).ToList(),
+                ComparisonTotals = comparisonTotals
             };
             var trend = CreateTrendProjection(context, query.AggregationPeriod);
             var heatmap = CreateHeatmapProjection(
@@ -282,7 +319,7 @@ namespace PlaytimeInsights.Services
                 range,
                 firstDayOfWeek,
                 dailySeconds,
-                query.RangePreset);
+                comparisonTotals);
 
             var snapshot = new DashboardSnapshot
             {

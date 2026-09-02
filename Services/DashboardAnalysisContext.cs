@@ -25,6 +25,21 @@ namespace PlaytimeInsights.Services
         public IDictionary<DateTime, IList<string>> DailyGameNames { get; set; }
 
         public IList<DashboardGameRangeStatistics> GameStatistics { get; set; }
+
+        public DashboardComparisonTotals ComparisonTotals { get; set; }
+    }
+
+    public sealed class DashboardComparisonTotals
+    {
+        public bool Enabled { get; set; }
+
+        public AnalyticsDateRange PreviousRange { get; set; }
+
+        public AnalyticsDateRange YearOverYearRange { get; set; }
+
+        public ulong PreviousSeconds { get; set; }
+
+        public ulong YearOverYearSeconds { get; set; }
     }
 
     public sealed class DashboardGameRangeStatistics

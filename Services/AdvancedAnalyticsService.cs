@@ -11,7 +11,6 @@ namespace PlaytimeInsights.Services
 {
     public sealed class AdvancedAnalyticsService
     {
-        private readonly DailyAllocationService dailyAllocationService;
         private readonly HourlyAllocationService hourlyAllocationService;
 
         public AdvancedAnalyticsService()
@@ -21,7 +20,6 @@ namespace PlaytimeInsights.Services
 
         public AdvancedAnalyticsService(SessionTimeZoneResolver resolver)
         {
-            dailyAllocationService = new DailyAllocationService(resolver);
             hourlyAllocationService = new HourlyAllocationService(resolver);
         }
 
@@ -31,7 +29,7 @@ namespace PlaytimeInsights.Services
             AnalyticsDateRange range,
             DayOfWeek firstDayOfWeek,
             IDictionary<DateTime, ulong> rangeDailySeconds,
-            DateRangePreset rangePreset)
+            DashboardComparisonTotals comparisonTotals)
         {
             var gameList = (games ?? Enumerable.Empty<Game>()).ToList();
             var sessionList = (sessions ?? Enumerable.Empty<GameSession>()).ToList();
@@ -87,19 +85,17 @@ namespace PlaytimeInsights.Services
                 out longestStreak,
                 out currentStreak);
 
-            var comparisonsEnabled = rangePreset != DateRangePreset.AllSessions;
+            var comparisonsEnabled = comparisonTotals != null && comparisonTotals.Enabled;
             AnalyticsDateRange previousRange = null;
             AnalyticsDateRange yearRange = null;
             ulong previousSeconds = 0;
             ulong yearSeconds = 0;
             if (comparisonsEnabled)
             {
-                previousRange = CreatePreviousPeriodRange(range);
-                previousSeconds = CalculateRangeSeconds(
-                    sessionList,
-                    previousRange);
-                yearRange = CreateYearOverYearRange(range);
-                yearSeconds = CalculateRangeSeconds(sessionList, yearRange);
+                previousRange = comparisonTotals.PreviousRange;
+                yearRange = comparisonTotals.YearOverYearRange;
+                previousSeconds = comparisonTotals.PreviousSeconds;
+                yearSeconds = comparisonTotals.YearOverYearSeconds;
             }
 
             var currentSeconds = daily.Aggregate<KeyValuePair<DateTime, ulong>, ulong>(
@@ -203,24 +199,6 @@ namespace PlaytimeInsights.Services
                 EndDate = end,
                 Label = string.Format("{0:yyyy/M/d}–{1:yyyy/M/d}", start, end)
             };
-        }
-
-        private ulong CalculateRangeSeconds(
-            IEnumerable<GameSession> sessions,
-            AnalyticsDateRange range)
-        {
-            ulong total = 0;
-            foreach (var session in sessions)
-            {
-                total += dailyAllocationService.SplitByLocalDay(session)
-                    .Where(value =>
-                        value.Key.Date >= range.StartDate &&
-                        value.Key.Date <= range.EndDate)
-                    .Aggregate<KeyValuePair<DateTime, ulong>, ulong>(
-                        0,
-                        (current, value) => current + value.Value);
-            }
-            return total;
         }
 
         private static IList<DistributionBarViewModel> CreateDistribution(
