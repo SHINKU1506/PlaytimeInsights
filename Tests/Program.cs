@@ -52,6 +52,8 @@ namespace PlaytimeInsights.Tests
             Run("Finite ranges keep period comparisons visible", TestFiniteRangeComparisonVisibility);
             Run("Year-over-year range handles leap day", TestYearOverYearLeapDay);
             Run("Anomaly hints flag suspicious sessions without mutation", TestAnomalyHints);
+            Run("Analytics performance summary reports median maximum and GC deltas",
+                TestAnalyticsPerformanceSampleSummary);
             Run("Ten-year 100k-session analytics stays within release budget", TestLargeTenYearAnalytics);
             Run("Schema 4 store loads 100k sessions within release budget", TestLargeStoreLoad);
             Run("Interrupted session recovery", TestInterruptedSessionRecovery);
@@ -536,6 +538,21 @@ namespace PlaytimeInsights.Tests
             Equal(originalSeconds, suspicious.ElapsedSeconds);
         }
 
+        private static void TestAnalyticsPerformanceSampleSummary()
+        {
+            var summary = AnalyticsPerformanceSampleSummary.FromMilliseconds(
+                new[] { 640d, 710d, 660d, 700d, 650d },
+                3,
+                1,
+                0);
+
+            Equal(660d, summary.MedianMilliseconds);
+            Equal(710d, summary.MaxMilliseconds);
+            Equal(3, summary.Gen0Collections);
+            Equal(1, summary.Gen1Collections);
+            Equal(0, summary.Gen2Collections);
+        }
+
         private static void TestLargeTenYearAnalytics()
         {
             const int gameCount = 5000;
@@ -568,20 +585,24 @@ namespace PlaytimeInsights.Tests
                     300));
             }
 
-            var stopwatch = Stopwatch.StartNew();
-            var snapshot = new AnalyticsService().CreateSnapshot(
-                games,
-                sessions,
-                new AnalyticsQuery
-                {
-                    RangePreset = DateRangePreset.Custom,
-                    CustomStartDate = new DateTime(2016, 1, 1),
-                    CustomEndDate = new DateTime(2025, 12, 31),
-                    AggregationPeriod = AggregationPeriod.Auto,
-                    UseIsoWeekStart = true,
-                    TopGames = 20
-                });
-            stopwatch.Stop();
+            var query = new AnalyticsQuery
+            {
+                RangePreset = DateRangePreset.Custom,
+                CustomStartDate = new DateTime(2016, 1, 1),
+                CustomEndDate = new DateTime(2025, 12, 31),
+                AggregationPeriod = AggregationPeriod.Auto,
+                UseIsoWeekStart = true,
+                TopGames = 20
+            };
+
+            DashboardSnapshot snapshot = null;
+            var summary = MeasureAnalyticsSamples(
+                () => snapshot = new AnalyticsService().CreateSnapshot(
+                    games,
+                    sessions,
+                    query),
+                1,
+                5);
 
             Equal(
                 sessionCount,
@@ -600,9 +621,18 @@ namespace PlaytimeInsights.Tests
                     (total, item) => total + item.Seconds));
             Console.WriteLine(
                 string.Format(
-                    "       100k sessions / 5k games / 10 years: {0:N0} ms",
-                    stopwatch.ElapsedMilliseconds));
-            Equal(true, stopwatch.Elapsed <= TimeSpan.FromMilliseconds(750));
+                    "       100k analytics samples: {0:N0} / {1:N0} / {2:N0} / {3:N0} / {4:N0} ms; median {5:N0} ms; max {6:N0} ms; GC 0/1/2 = {7}/{8}/{9}",
+                    summary.SamplesMilliseconds[0],
+                    summary.SamplesMilliseconds[1],
+                    summary.SamplesMilliseconds[2],
+                    summary.SamplesMilliseconds[3],
+                    summary.SamplesMilliseconds[4],
+                    summary.MedianMilliseconds,
+                    summary.MaxMilliseconds,
+                    summary.Gen0Collections,
+                    summary.Gen1Collections,
+                    summary.Gen2Collections));
+            Equal(true, summary.MaxMilliseconds <= 750d);
         }
 
         private static void TestLargeStoreLoad()
@@ -3690,6 +3720,67 @@ namespace PlaytimeInsights.Tests
             }
 
             return new CoverImageCacheContract(constructor, method);
+        }
+
+        private sealed class AnalyticsPerformanceSampleSummary
+        {
+            public IList<double> SamplesMilliseconds { get; private set; }
+            public double MedianMilliseconds { get; private set; }
+            public double MaxMilliseconds { get; private set; }
+            public int Gen0Collections { get; private set; }
+            public int Gen1Collections { get; private set; }
+            public int Gen2Collections { get; private set; }
+
+            public static AnalyticsPerformanceSampleSummary FromMilliseconds(
+                IEnumerable<double> samples,
+                int gen0Collections,
+                int gen1Collections,
+                int gen2Collections)
+            {
+                var ordered = samples.OrderBy(value => value).ToList();
+                var midpoint = ordered.Count / 2;
+                var median = ordered.Count % 2 == 0
+                    ? (ordered[midpoint - 1] + ordered[midpoint]) / 2d
+                    : ordered[midpoint];
+                return new AnalyticsPerformanceSampleSummary
+                {
+                    SamplesMilliseconds = ordered,
+                    MedianMilliseconds = median,
+                    MaxMilliseconds = ordered.Max(),
+                    Gen0Collections = gen0Collections,
+                    Gen1Collections = gen1Collections,
+                    Gen2Collections = gen2Collections
+                };
+            }
+        }
+
+        private static AnalyticsPerformanceSampleSummary MeasureAnalyticsSamples(
+            Func<DashboardSnapshot> action,
+            int warmupCount,
+            int measuredCount)
+        {
+            for (var index = 0; index < warmupCount; index++)
+            {
+                action();
+            }
+
+            var gen0Start = GC.CollectionCount(0);
+            var gen1Start = GC.CollectionCount(1);
+            var gen2Start = GC.CollectionCount(2);
+            var samples = new List<double>(measuredCount);
+            for (var index = 0; index < measuredCount; index++)
+            {
+                var stopwatch = Stopwatch.StartNew();
+                action();
+                stopwatch.Stop();
+                samples.Add(stopwatch.Elapsed.TotalMilliseconds);
+            }
+
+            return AnalyticsPerformanceSampleSummary.FromMilliseconds(
+                samples,
+                GC.CollectionCount(0) - gen0Start,
+                GC.CollectionCount(1) - gen1Start,
+                GC.CollectionCount(2) - gen2Start);
         }
 
         private static void Run(string name, Action test)
