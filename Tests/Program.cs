@@ -94,6 +94,8 @@ namespace PlaytimeInsights.Tests
             Run("Calendar heatmap keeps aligned visual contracts", TestCalendarHeatmapVisualContract);
             Run("Calendar heatmap maps levels to the real swatches", TestCalendarHeatmapRuntimeMapping);
             Run("Calendar heatmap records one-year and all-session layout cost", TestCalendarHeatmapLayoutCost);
+            Run("Heatmap layout summary reports median maximum and realization",
+                TestHeatmapLayoutSampleSummary);
             Run("Trend points scale to period maximum", TestTrendPointScaling);
             Run("Period drilldown bounds clip to range", TestPeriodBoundsClipToRange);
             Run("Session drilldown clips duration and labels recovery", TestSessionDrilldown);
@@ -2576,14 +2578,52 @@ namespace PlaytimeInsights.Tests
             });
         }
 
+        private static void TestHeatmapLayoutSampleSummary()
+        {
+            var summary = HeatmapLayoutSampleSummary.FromMeasurements(new[]
+            {
+                new HeatmapLayoutMeasurement
+                {
+                    ElapsedMilliseconds = 809,
+                    RealizedButtons = 1820,
+                    RealizedWeekContainers = 260
+                },
+                new HeatmapLayoutMeasurement
+                {
+                    ElapsedMilliseconds = 1914,
+                    RealizedButtons = 1820,
+                    RealizedWeekContainers = 260
+                },
+                new HeatmapLayoutMeasurement
+                {
+                    ElapsedMilliseconds = 1200,
+                    RealizedButtons = 1820,
+                    RealizedWeekContainers = 260
+                },
+                new HeatmapLayoutMeasurement
+                {
+                    ElapsedMilliseconds = 839,
+                    RealizedButtons = 1820,
+                    RealizedWeekContainers = 260
+                },
+                new HeatmapLayoutMeasurement
+                {
+                    ElapsedMilliseconds = 1581,
+                    RealizedButtons = 1820,
+                    RealizedWeekContainers = 260
+                }
+            });
+
+            Equal(1200d, summary.MedianMilliseconds);
+            Equal(1914d, summary.MaxMilliseconds);
+            Equal(1820, summary.MaxRealizedButtons);
+            Equal(260, summary.MaxRealizedWeekContainers);
+        }
+
         private static void TestCalendarHeatmapLayoutCost()
         {
             RunOnSta(() =>
             {
-                MeasureHeatmapLayout(
-                    "warm-up",
-                    CreateHeatmapLayoutSnapshot(7),
-                    false);
                 var oneYear = CreateHeatmapBenchmarkSnapshot(false);
                 var allSessions = CreateHeatmapBenchmarkSnapshot(true);
                 Equal(371, oneYear.HeatmapCells.Count);
@@ -2592,15 +2632,41 @@ namespace PlaytimeInsights.Tests
                 Equal(true, allSessions.HeatmapMonthLabels.Count >= 60);
                 Equal(168, oneYear.Advanced.WeekHourCells.Count);
                 Equal(168, allSessions.Advanced.WeekHourCells.Count);
-                MeasureHeatmapLayout("one year", oneYear, true);
-                MeasureHeatmapLayout("all sessions", allSessions, true);
+                MeasureHeatmapLayoutSamples("one year", oneYear, 5);
+                MeasureHeatmapLayoutSamples("all sessions", allSessions, 5);
             });
         }
 
-        private static void MeasureHeatmapLayout(
+        private static HeatmapLayoutSampleSummary MeasureHeatmapLayoutSamples(
             string label,
             DashboardSnapshot snapshot,
-            bool writeEvidence)
+            int measuredCount)
+        {
+            MeasureHeatmapLayoutSample(snapshot);
+            var samples = new List<HeatmapLayoutMeasurement>(measuredCount);
+            for (var index = 0; index < measuredCount; index++)
+            {
+                samples.Add(MeasureHeatmapLayoutSample(snapshot));
+            }
+
+            var summary = HeatmapLayoutSampleSummary.FromMeasurements(samples);
+            Console.WriteLine(
+                "       heatmap UI / {0} / {1:N0} cells: {2:N1} / {3:N1} / {4:N1} / {5:N1} / {6:N1} ms; median {7:N1} ms; max {8:N1} ms; realized buttons {9:N0}",
+                label,
+                snapshot.HeatmapCells.Count,
+                samples[0].ElapsedMilliseconds,
+                samples[1].ElapsedMilliseconds,
+                samples[2].ElapsedMilliseconds,
+                samples[3].ElapsedMilliseconds,
+                samples[4].ElapsedMilliseconds,
+                summary.MedianMilliseconds,
+                summary.MaxMilliseconds,
+                summary.MaxRealizedButtons);
+            return summary;
+        }
+
+        private static HeatmapLayoutMeasurement MeasureHeatmapLayoutSample(
+            DashboardSnapshot snapshot)
         {
             var viewModel = CreateDashboardViewModelForLayout();
             viewModel.Distribution.Apply(snapshot);
@@ -2621,17 +2687,20 @@ namespace PlaytimeInsights.Tests
             distribution.UpdateLayout();
             stopwatch.Stop();
 
-            var realizedCount = FindVisualDescendants<Button>(distribution)
+            var realizedButtons = FindVisualDescendants<Button>(distribution)
                 .Count(button => button.DataContext is HeatmapCellViewModel);
-            Equal(snapshot.HeatmapCells.Count, realizedCount);
-            if (writeEvidence)
+            Equal(snapshot.HeatmapCells.Count, realizedButtons);
+            var weekAxis = (FrameworkElement)view.FindName(
+                "HeatmapWeekNumberAxis");
+            var realizedWeekContainers = weekAxis == null
+                ? 0
+                : FindVisualDescendants<ContentPresenter>(weekAxis).Count();
+            return new HeatmapLayoutMeasurement
             {
-                Console.WriteLine(
-                    "       heatmap UI / {0} / {1:N0} cells: {2:N1} ms",
-                    label,
-                    realizedCount,
-                    stopwatch.Elapsed.TotalMilliseconds);
-            }
+                ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
+                RealizedButtons = realizedButtons,
+                RealizedWeekContainers = realizedWeekContainers
+            };
         }
 
         private static DashboardSnapshot CreateHeatmapBenchmarkSnapshot(
@@ -4133,6 +4202,45 @@ namespace PlaytimeInsights.Tests
                 GC.CollectionCount(0) - gen0Start,
                 GC.CollectionCount(1) - gen1Start,
                 GC.CollectionCount(2) - gen2Start);
+        }
+
+        private sealed class HeatmapLayoutMeasurement
+        {
+            public double ElapsedMilliseconds { get; set; }
+            public int RealizedButtons { get; set; }
+            public int RealizedWeekContainers { get; set; }
+        }
+
+        private sealed class HeatmapLayoutSampleSummary
+        {
+            public IList<double> SamplesMilliseconds { get; private set; }
+            public double MedianMilliseconds { get; private set; }
+            public double MaxMilliseconds { get; private set; }
+            public int MaxRealizedButtons { get; private set; }
+            public int MaxRealizedWeekContainers { get; private set; }
+
+            public static HeatmapLayoutSampleSummary FromMeasurements(
+                IEnumerable<HeatmapLayoutMeasurement> measurements)
+            {
+                var ordered = measurements
+                    .Select(measurement => measurement.ElapsedMilliseconds)
+                    .OrderBy(value => value)
+                    .ToList();
+                var midpoint = ordered.Count / 2;
+                var median = ordered.Count % 2 == 0
+                    ? (ordered[midpoint - 1] + ordered[midpoint]) / 2d
+                    : ordered[midpoint];
+                return new HeatmapLayoutSampleSummary
+                {
+                    SamplesMilliseconds = ordered,
+                    MedianMilliseconds = median,
+                    MaxMilliseconds = ordered.Max(),
+                    MaxRealizedButtons = measurements.Max(
+                        measurement => measurement.RealizedButtons),
+                    MaxRealizedWeekContainers = measurements.Max(
+                        measurement => measurement.RealizedWeekContainers)
+                };
+            }
         }
 
         private static void Run(string name, Action test)
