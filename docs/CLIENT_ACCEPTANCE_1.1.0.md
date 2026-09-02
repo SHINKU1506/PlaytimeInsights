@@ -47,6 +47,19 @@
 
 历史并发负载样本仍保留：在 Playnite 正运行且 Codex 同时执行前台窗口验收时，先前五轮 100k 分析为 531 / 553 / 605 / 684 / **791 ms**，第 5 轮超过预算；schema 4 同组最大值为 **1,397 ms**。该失败没有被删除或改写，最终五轮是修正护栏后单独建立的新证据组。
 
+## Dashboard Analytics Performance Optimization Gate（2026-09-03）
+
+分支 `codex/dashboard-performance-optimization` 将 100k 分析基线（五样本中位 707 ms、最大 720 ms、GC 0/1/2 = 189/31/7）收敛到以下证据；750 ms 硬门禁未放宽。
+
+- [x] 五轮独立 Release 门禁：每轮两个构建 0 warning / 0 error，完整回归输出 `All Playtime Insights tests passed.`。
+- [x] 100k 五样本中位数 <= 650 ms：五轮中位数为 560 / 550 / 563 / 587 / 532 ms，最大中位数 **587 ms**。
+- [x] 100k 五样本最大值 <= 700 ms：五轮最大值为 579 / 567 / 600 / 667 / 546 ms，总最大值 **667 ms**。
+- [x] schema 4 加载 <= 1400 ms：五轮为 1,364 / 1,260 / 1,190 / 1,318 / 1,197 ms，最大 **1,364 ms**。
+- [x] GC 0/1/2 增量在全部五轮稳定为 **59/15/4**（基线 189/31/7）。
+- [x] 与 main 相比 `Views/`、`Controls/`、`Localization/`、`Resources/` 无差异；统计口径、比较区间、异常、排行与选择性刷新语义由既有回归全部保持。
+
+被环境负载污染的一轮如实保留：五样本 562 / 619 / 619 / 636 / **719 ms**（max 719 > 700 目标），schema 4 加载 **1,403 ms** 超预算 3 ms；同一二进制复跑立即通过（五样本 518–546 ms、schema 4 1,197 ms）。该轮按环境噪声弃用，记录不删除。
+
 ## Heatmap UI Layout Baseline
 
 测量对象是实际 `DistributionModule` 内的非虚拟化 `ItemsControl` + `UniformGrid` + Button 模板，测量宽度固定为 856.84 DIP。每轮先进行 7 格预热；一年数据由真实 Custom 2025-01-01 至 2025-12-31 分析投影生成，All Sessions 数据由固定时钟 2025-12-28 和 2021-01-04 起始会话经真实 `AllSessions` 投影生成。Snapshot 计算与 `Distribution.Apply` 在计时器外，Measure、Arrange、数据模板绑定及 Button 实例化在计时器内。

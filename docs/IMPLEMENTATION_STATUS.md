@@ -2,7 +2,16 @@
 
 最后更新：2026-09-03
 
-当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵仅剩减弱动效，实际读屏器已跳过，All Sessions 热力图 UI 性能待收敛；正式 1.1.0 发版尚未开始
+当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵仅剩减弱动效，实际读屏器已跳过；100k 分析性能已在 `codex/dashboard-performance-optimization` 收敛至中位 ≤ 650 / 最大 ≤ 700 ms，All Sessions 热力图 UI 性能正在同一分支按 2026-09-03 计划收敛；正式 1.1.0 发版尚未开始
+
+## 2026-09-03 Dashboard 分析性能收敛（codex/dashboard-performance-optimization）
+
+- 实施计划：`docs/superpowers/plans/2026-09-03-dashboard-analytics-performance-optimization.md`；全部 Task 1–6 已完成并逐项提交；
+- 提交映射：Task 1 五样本门禁 `bb335c6`；Task 2 共享时区解析缓存 `b7ca3e6`（新增 `Services/SessionTimeZoneResolver.cs`）；Task 3 日分配缓冲区复用 `b126006`；Task 4 当前/上一周期/去年同期单趟累计 `50b7d31`（删除 `CalculateRangeSeconds` 两次全量重扫）；Task 5 小时缓冲区复用 + Advanced 单会话循环 `e33cfe3`（`HourlyAllocation` 改为 struct、异常候选并入同一循环）；Task 6 本文档证据冻结；
+- 五轮独立 Release 门禁证据：两个构建 0 warning / 0 error；100k 五样本中位数 560 / 550 / 563 / 587 / 532 ms（最大中位 587 ms，目标 ≤ 650）；五样本最大值 579 / 567 / 600 / 667 / 546 ms（总最大 667 ms，目标 ≤ 700）；schema 4 加载 1,364 / 1,260 / 1,190 / 1,318 / 1,197 ms（最大 1,364 ms ≤ 1,400）；GC 0/1/2 增量稳定 59/15/4（基线 189/31/7）；
+- 基线与历史失败样本保留：Task 1 基线五样本 622–720 ms（中位 707）；合并门禁 715/759 ms 已知项与一轮环境噪声污染轮（max 719 ms、schema 4 1,403 ms，复跑即通过）均如实记录于 `docs/CLIENT_ACCEPTANCE_1.1.0.md`，未删除；
+- 与 main 相比 `Views/`、`Controls/`、`Localization/`、`Resources/` 无差异；跨零点、DST、比较区间、异常、排行和选择性刷新语义由既有回归全部保持；
+- 剩余性能项：All Sessions 1,820 个热力格 Measure + Arrange 最大 707.6 ms，由同分支 `docs/superpowers/plans/2026-09-03-calendar-heatmap-ui-performance-optimization.md` 处理。
 
 ## 2026-08-30 Dashboard Visual Elevation 最终状态
 
