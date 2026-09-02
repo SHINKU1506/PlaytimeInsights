@@ -136,10 +136,8 @@ Playnite 的累计时长以分钟为主要展示单位，插件会话内部保�
 - 异常退出恢复精度受一分钟检查点间隔限制；
 - 会话存储使用本地 JSON，文件体积会随会话数量增长；
 - All Sessions 跨越多年时，日历热力图会一次创建全部可交互格子；极长历史范围可能出现可感知的刷新停顿，后续将评估虚拟化或分段呈现；
-- 下一轮 Dashboard 视觉增强的完整主题、DPI、减弱动效和实际读屏器矩阵仍在验收，不作为当前 1.0.0 公开版本的完成声明；
+- 下一轮 Dashboard 视觉增强的减弱动效人工矩阵仍在验收；实际读屏器播报已决定跳过，不能据此声明原生 Polite live-region 语义；
 - Fullscreen 模式尚无专用统计界面；
-- Playnite Add-on Database 收录清单已通过 [PR #626](https://github.com/JosefNemec/PlayniteAddonDatabase/pull/626)
-  提交，需等待上游审核合并后才会出现在内置浏览器中。
 
 ## 从源码构建
 

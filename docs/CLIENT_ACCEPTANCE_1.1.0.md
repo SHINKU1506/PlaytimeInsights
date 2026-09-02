@@ -1,6 +1,6 @@
 # Client Acceptance 1.1.0 — Dashboard Visual Elevation
 
-状态：Task 7 自动化发布门禁通过；人工矩阵部分完成；All Sessions UI 成本待收敛
+状态：Task 7 自动化发布门禁通过；人工矩阵仅剩减弱动效，实际读屏器已跳过；All Sessions UI 成本待收敛
 日期：2026-09-03
 
 ## Frozen Layout Contract
@@ -66,16 +66,17 @@
 - [x] 当前中文深色主题、2026 年 8 月数据、Playnite 整窗约 1451×979 px：布局为双栏；8 张指标卡无横向溢出；Trend Area 未遮挡网格、折线和节点；Ranking 位于右栏。
 - [x] 当前中文深色主题、Playnite 整窗约 1261×979 px：布局为单栏；8 张指标卡无横向溢出；Trend 先于 Ranking，页面无横向滚动。
 - [x] 640、900、1159、1160、1199、1200、1440、1600 DIP 内容宽度逐项实机核验通过（2026-09-03 用户人工验收）；包含从双栏缩小到 1160 后保持双栏、到 1159 退出，以及从单栏放大到 1199 后保持单栏、到 1200 进入双栏的双向滞回检查。
-- [ ] 空范围、排行 1/2/3/10 项、下钻 0/1/100/250、跨月、六周月份、一年、All Sessions 的逐项实机截图：未修改用户数据来制造这些状态；自动化数据矩阵已覆盖。
-- [ ] Default Dark、Default Light、Seaside Dark、Windows High Contrast 全主题矩阵：只观察到当前深色主题，未可靠识别其主题包名称，也未改动系统高对比度。
+- [x] 空范围、排行 1/2/3/10 项、下钻 0/1/100/250、跨月、六周月份、一年、All Sessions 的逐项实机矩阵完成（2026-09-03 用户人工验收）。
+- [x] Default Dark、Default Light、Seaside Dark、Windows High Contrast 全主题矩阵完成（2026-09-03 用户人工验收）。
 - [x] zh_CN / en_US 双语言实机矩阵完成（2026-09-03 用户人工验收）；两种语言下 Dashboard 文案、热力图档位、排行辅助信息和下钻区域均完成核验。
-- [ ] DPI 100% / 125% / 150% / 175% / 200%：未改动 Windows 显示缩放。
+- [x] DPI 100% / 125% / 150% / 175% / 200% 全缩放矩阵完成（2026-09-03 用户人工验收）。
 - [x] Tab 进入 Calendar Button、Space/Enter 触发下钻与焦点描边完成实机核验（2026-09-03 用户人工验收）。
-- [ ] 实际读屏器播报：活动 Host 的 Automation Name 与 `NameProperty` 事件路径有自动化护栏；未用进程外读屏器确认播报，不能声称具备原生 Polite live-region 语义。
-- [ ] Calendar 与 Week×Hour 同卡片视觉区分、图例管辖关系及 24 DIP 对角光泽：本次临时截图未滚动到 Calendar 区域。
+- [ ] Reduced motion 实机核验：自动化已确认入口计划将 delay、duration 与 offset 置零，仍待 Windows 减弱动画设置下的人工确认。
+- [x] 实际读屏器播报：**跳过，不作为本轮验收门禁**（2026-09-03 用户决定）。活动 Host 的 Automation Name 与 `NameProperty` 事件路径保留自动化护栏；未执行进程外读屏器确认，因此仍不得声称具备原生 Polite live-region 语义。
+- [x] Calendar 与 Week×Hour 同卡片视觉区分、图例管辖关系及 24 DIP 对角光泽完成实机核验（2026-09-03 用户人工验收）。
 - [x] 区间榜与累计榜跨零点前后的相对日期完成实机对照（2026-09-03 用户人工验收），两个 Tab 使用一致的“今天 / 昨天 / 日期”口径。
 
-2026-08-30 检测到用户重新操作前台窗口时，Codex 停止继续控制 Playnite。2026-09-03 用户后续独立完成精确内容宽度、zh_CN / en_US、Calendar 键盘链路和跨零点相对日期四组实机核验；其余未验证项继续保持未勾选。
+2026-08-30 检测到用户重新操作前台窗口时，Codex 停止继续控制 Playnite。2026-09-03 用户后续独立完成精确内容宽度、完整数据状态、全主题、zh_CN / en_US、全 DPI、Calendar 键盘链路、Calendar/Week×Hour 视觉区分和跨零点相对日期矩阵；实际读屏器播报明确跳过。当前人工矩阵只剩 Reduced motion，另有 All Sessions UI 成本待收敛。
 
 ## Final Delivery Record
 

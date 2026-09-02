@@ -61,7 +61,7 @@
 - 最终提交映射：Task 0 为 `71a599d`；Task 1 为 `cda8081`；Task 2 与 Task 2.5 为 `0180a81`；Task 3 与 Task 3.5 为 `108a4c4`；Task 4 与 Task 4.5 为 `301708c`；Task 6 为 `a0983ee`；Task 7 及最终比较胶囊修复为 `e59f9bf`。
 - Task 5 已于 2026-08-28 明确跳过，未实施 Hero/Tier 2 拆分；其未勾选 Steps 是已否决方案的历史记录，不是当前待办。
 - Task 1 Step 2 和 Task 2 Step 2 的 RED 期望在 2026-08-22 对账时已不可复现，因此按“确认实现存在且回归为 GREEN”完成；没有为制造 RED 回退已有实现。
-- Task 7 的精确内容宽度、zh_CN / en_US、Calendar 键盘链路和跨零点相对日期已于 2026-09-03 完成人工核验；完整数据状态、其余主题、DPI、减弱动效、实际读屏器以及 Calendar/Week×Hour 完整视觉矩阵仍未完成。All Sessions 1,820 格的 UI Measure + Arrange 最大 707.6 ms，仍登记为待收敛性能项。
+- Task 7 的精确内容宽度、完整数据状态、全主题、zh_CN / en_US、全 DPI、Calendar 键盘链路、Calendar/Week×Hour 视觉区分和跨零点相对日期已于 2026-09-03 完成人工核验；实际读屏器播报由用户决定跳过，且不得据此声称具备原生 Polite live-region 语义。人工矩阵仅剩减弱动效；All Sessions 1,820 格的 UI Measure + Arrange 最大 707.6 ms，仍登记为待收敛性能项。
 - 2026-08-30 最终部署的严格 9 个文件与当前 Release 源产物一致；DLL SHA-256 为 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`。详细证据见 `docs/CLIENT_ACCEPTANCE_1.1.0.md`。
 
 ## Relationship to the 2026-08-14 Plan
@@ -1539,7 +1539,7 @@ git commit -m "feat: establish dashboard metric hierarchy"
 
 ### Task 6: Anchor Drilldown to the Triggering Visualization
 
-> **状态（2026-08-30）：已实现、部署、完成视觉人工验收并提交；读屏器验收待 Task 7。** 已完成 Anchor 状态、两个上下文宿主、共享模板、视口感知最小滚动、无动画与虚拟化回归；视觉验收中发现的深色主题来源标签黑字问题也已修复并补充真实模板回归。目标框架 net462 不提供 `AutomationProperties.LiveSetting` 或 `LiveRegionChanged`，因此无障碍通知改用活动宿主的 `AutomationProperties.Name` 与 `AutomationElementIdentifiers.NameProperty` 变更事件；Task 7 必须用进程外实际读屏器验证该兼容路径，不得声称具备原生 Polite live-region 语义。本测试环境中，同一 STA 进程使用 UIA 客户端监听自身 WPF 树实测会阻塞并触发测试超时；自动化回归只验证 Name 绑定、通知方法存在及 Trend→Distribution→Reset 生命周期，不把自监听结果伪装成读屏器验收。
+> **状态（2026-09-03）：已实现、部署、完成视觉人工验收并提交；实际读屏器验收已由用户决定跳过。** 已完成 Anchor 状态、两个上下文宿主、共享模板、视口感知最小滚动、无动画与虚拟化回归；视觉验收中发现的深色主题来源标签黑字问题也已修复并补充真实模板回归。目标框架 net462 不提供 `AutomationProperties.LiveSetting` 或 `LiveRegionChanged`，因此无障碍通知改用活动宿主的 `AutomationProperties.Name` 与 `AutomationElementIdentifiers.NameProperty` 变更事件；原计划由 Task 7 使用进程外实际读屏器验证该兼容路径，但该项现已跳过，仍不得声称具备原生 Polite live-region 语义。本测试环境中，同一 STA 进程使用 UIA 客户端监听自身 WPF 树实测会阻塞并触发测试超时；自动化回归只验证 Name 绑定、通知方法存在及 Trend→Distribution→Reset 生命周期，不把自监听结果伪装成读屏器验收。
 
 **Files:**
 - Modify: `Views/PlaytimeInsightsDashboardView.xaml`
@@ -1690,7 +1690,7 @@ git commit -m "feat: anchor dashboard drilldown to selection source"
 
 ### Task 7: Integrate Contracts and Execute the Acceptance Matrix
 
-> **状态（2026-09-03）：自动护栏、Release 门禁、真实热力图布局成本、证据记录、范围审查与最终提交已完成；人工矩阵继续部分通过。** 最终连续五轮回归通过；100k / schema 4 最大值分别为 692 / 1,031 ms。640–1600 DIP 精确内容宽度、zh_CN / en_US、Calendar 键盘链路和跨零点相对日期已完成人工核验；完整数据状态、其余主题、DPI、减弱动效、实际读屏器和 Calendar/Week×Hour 完整视觉检查仍保持未勾选。All Sessions 1,820 格 Measure + Arrange 最大 707.6 ms，登记为后续待收敛项。最终提交同时包含用户验收发现的比较胶囊纵向排列修复及其真实 WPF 布局回归，不改变 8 卡响应式架构。
+> **状态（2026-09-03）：自动护栏、Release 门禁、真实热力图布局成本、证据记录、范围审查与最终提交已完成；人工矩阵仅剩减弱动效。** 最终连续五轮回归通过；100k / schema 4 最大值分别为 692 / 1,031 ms。640–1600 DIP 精确内容宽度、完整数据状态、全主题、zh_CN / en_US、全 DPI、Calendar 键盘链路、Calendar/Week×Hour 视觉区分和跨零点相对日期已完成人工核验；实际读屏器由用户决定跳过，不计为通过。All Sessions 1,820 格 Measure + Arrange 最大 707.6 ms，登记为后续待收敛项。最终提交同时包含用户验收发现的比较胶囊纵向排列修复及其真实 WPF 布局回归，不改变 8 卡响应式架构。
 
 **Files:**
 - Modify: `Tests/Program.cs`
@@ -1750,7 +1750,7 @@ Expected:
 - 100k analytics ≤ 750 ms；
 - schema 4 load ≤ 1400 ms。
 
-- [ ] **Step 3: Execute the width and data matrix**
+- [x] **Step 3: Execute the width and data matrix**
 
 矩阵按**内容宽度**给出，实机时把窗口调到「内容宽度 + 48」（垂直滚动条可见时再加其宽度），并在记录里同时写下两个数字：
 
@@ -1769,7 +1769,7 @@ Expected:
 
 数据状态至少覆盖：空范围、1/2/3/10 个排行项、0/1/100/250 条下钻、跨月、六周月份、一年、All Sessions。
 
-2026-09-03 状态：上述 8 个精确内容宽度及双向滞回已由用户逐项实机核验通过；完整数据状态矩阵仍未全部完成，因此 Step 3 保持未勾选。
+2026-09-03 状态：上述 8 个精确内容宽度、双向滞回和完整数据状态矩阵均由用户逐项实机核验通过，Step 3 完成。
 
 - [x] **Step 3b: Measure the heatmap layout cost**
 
@@ -1794,7 +1794,7 @@ Expected:
 - All Sessions 下整片中档不过吵，高档作为稀有强调仍能跳出；每格的对角光泽在 24 DIP 上确实可见（这是把每档 stop 间距从 ΔE 4 左右提到 11.6 / 11.8 / 19.6 的目的，需实机确认判断成立）；
 - 区间榜与累计榜的“最近游玩”在同一时刻显示同一相对日期口径（跨零点前后各查一次）。
 
-2026-09-03 状态：zh_CN / en_US、Calendar Button 的 Tab/Space/Enter/焦点描边，以及跨零点相对日期已由用户实机核验通过；主题、DPI、减弱动效、趋势视觉、Calendar/Week×Hour 完整视觉和实际读屏器仍待完成，因此 Step 4 保持未勾选。
+2026-09-03 状态：全主题、zh_CN / en_US、全 DPI、Calendar Button 的 Tab/Space/Enter/焦点描边、Calendar/Week×Hour 视觉区分和跨零点相对日期已由用户实机核验通过；实际读屏器由用户决定跳过。减弱动效仍待人工确认，因此 Step 4 保持未勾选。
 
 - [x] **Step 5: Record actual evidence, not expected evidence**
 

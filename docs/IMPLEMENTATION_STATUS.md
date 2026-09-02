@@ -2,7 +2,7 @@
 
 最后更新：2026-09-03
 
-当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵部分完成，All Sessions 热力图 UI 性能待收敛；正式 1.1.0 发版尚未开始
+当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵仅剩减弱动效，实际读屏器已跳过，All Sessions 热力图 UI 性能待收敛；正式 1.1.0 发版尚未开始
 
 ## 2026-08-30 Dashboard Visual Elevation 最终状态
 
@@ -11,8 +11,9 @@
 - 最终 Release 构建与自动化门禁通过：两个构建 0 warning / 0 error，最终连续五轮完整回归通过；100k 会话分析最大 692 ms，schema 4 加载最大 1,031 ms；
 - 2026-08-30 最终部署的严格 9 个文件与当前源产物一致，`PlaytimeInsights.dll` SHA-256 为 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`；备份目录为 `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260830-215523`；
 - 部署前后 7 个用户数据文件联合指纹一致；Playnite 仅在本次启动进程内使用 10456 端口的 HTTP/HTTPS 代理，未写入仓库、测试或系统全局配置；
-- 2026-09-03 已人工完成：640、900、1159、1160、1199、1200、1440、1600 DIP 内容宽度及双向滞回，zh_CN / en_US，Calendar Button 的 Tab/Space/Enter/焦点描边，以及区间榜/累计榜跨零点相对日期；
-- 尚未完成：Task 7 的完整数据状态、其余主题、DPI、减弱动效、实际读屏器和 Calendar/Week×Hour 完整视觉矩阵；All Sessions 1,820 个热力格 Measure + Arrange 最大 707.6 ms，仍是后续性能决策项；
+- 2026-09-03 已人工完成：640、900、1159、1160、1199、1200、1440、1600 DIP 内容宽度及双向滞回，空范围/排行/下钻/跨月/六周月份/一年/All Sessions 数据状态，Default Dark/Default Light/Seaside Dark/Windows High Contrast，zh_CN / en_US，100%–200% DPI，Calendar Button 键盘链路，Calendar/Week×Hour 视觉区分，以及区间榜/累计榜跨零点相对日期；
+- 实际读屏器播报已由用户决定跳过，不作为本轮验收门禁；自动化仍只证明 Automation Name 与 `NameProperty` 事件路径，不声明原生 Polite live-region 语义；
+- 尚未完成：Task 7 的减弱动效人工矩阵；All Sessions 1,820 个热力格 Measure + Arrange 最大 707.6 ms，仍是后续性能决策项；
 - 正式 1.1.0 发版尚未开始，当前 `extension.yaml`、程序集和最近公开标签仍为 1.0.0；版本升级、CHANGELOG、PEXT、标签与公开发布应另立发版任务。
 
 ## 2026-08-14 1.0.0 发布候选整合
