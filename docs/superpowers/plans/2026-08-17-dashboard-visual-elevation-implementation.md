@@ -61,7 +61,7 @@
 - 最终提交映射：Task 0 为 `71a599d`；Task 1 为 `cda8081`；Task 2 与 Task 2.5 为 `0180a81`；Task 3 与 Task 3.5 为 `108a4c4`；Task 4 与 Task 4.5 为 `301708c`；Task 6 为 `a0983ee`；Task 7 及最终比较胶囊修复为 `e59f9bf`。
 - Task 5 已于 2026-08-28 明确跳过，未实施 Hero/Tier 2 拆分；其未勾选 Steps 是已否决方案的历史记录，不是当前待办。
 - Task 1 Step 2 和 Task 2 Step 2 的 RED 期望在 2026-08-22 对账时已不可复现，因此按“确认实现存在且回归为 GREEN”完成；没有为制造 RED 回退已有实现。
-- Task 7 的精确宽度、完整数据状态、主题、语言、DPI、键盘、减弱动效和实际读屏器矩阵仍未完成；All Sessions 1,820 格的 UI Measure + Arrange 最大 707.6 ms，仍登记为待收敛性能项。
+- Task 7 的精确内容宽度、zh_CN / en_US、Calendar 键盘链路和跨零点相对日期已于 2026-09-03 完成人工核验；完整数据状态、其余主题、DPI、减弱动效、实际读屏器以及 Calendar/Week×Hour 完整视觉矩阵仍未完成。All Sessions 1,820 格的 UI Measure + Arrange 最大 707.6 ms，仍登记为待收敛性能项。
 - 2026-08-30 最终部署的严格 9 个文件与当前 Release 源产物一致；DLL SHA-256 为 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`。详细证据见 `docs/CLIENT_ACCEPTANCE_1.1.0.md`。
 
 ## Relationship to the 2026-08-14 Plan
@@ -1690,7 +1690,7 @@ git commit -m "feat: anchor dashboard drilldown to selection source"
 
 ### Task 7: Integrate Contracts and Execute the Acceptance Matrix
 
-> **状态（2026-08-30）：自动护栏、Release 门禁、真实热力图布局成本、证据记录、范围审查与最终提交已完成。** 最终连续五轮回归通过；100k / schema 4 最大值分别为 692 / 1,031 ms。实机宽度与主题矩阵只记录实际观察项，精确内容宽度、其他主题/语言/DPI、键盘与读屏器仍保持未勾选；All Sessions 1,820 格 Measure + Arrange 最大 707.6 ms，登记为后续待收敛项。最终提交同时包含用户验收发现的比较胶囊纵向排列修复及其真实 WPF 布局回归，不改变 8 卡响应式架构。
+> **状态（2026-09-03）：自动护栏、Release 门禁、真实热力图布局成本、证据记录、范围审查与最终提交已完成；人工矩阵继续部分通过。** 最终连续五轮回归通过；100k / schema 4 最大值分别为 692 / 1,031 ms。640–1600 DIP 精确内容宽度、zh_CN / en_US、Calendar 键盘链路和跨零点相对日期已完成人工核验；完整数据状态、其余主题、DPI、减弱动效、实际读屏器和 Calendar/Week×Hour 完整视觉检查仍保持未勾选。All Sessions 1,820 格 Measure + Arrange 最大 707.6 ms，登记为后续待收敛项。最终提交同时包含用户验收发现的比较胶囊纵向排列修复及其真实 WPF 布局回归，不改变 8 卡响应式架构。
 
 **Files:**
 - Modify: `Tests/Program.cs`
@@ -1769,6 +1769,8 @@ Expected:
 
 数据状态至少覆盖：空范围、1/2/3/10 个排行项、0/1/100/250 条下钻、跨月、六周月份、一年、All Sessions。
 
+2026-09-03 状态：上述 8 个精确内容宽度及双向滞回已由用户逐项实机核验通过；完整数据状态矩阵仍未全部完成，因此 Step 3 保持未勾选。
+
 - [x] **Step 3b: Measure the heatmap layout cost**
 
 在 All Sessions 和一年范围下各计一次 Distribution 模块的 Measure + Arrange 耗时，并记录热力格总数。热力格是非虚拟化 `ItemsControl` + `UniformGrid`，每格是完整 `Button`；一年约 371 格，All Sessions 跨多年可达 1800 格以上，且每次刷新全量实例化。
@@ -1791,6 +1793,8 @@ Expected:
 - 同一张 `DistributionModule` 卡片内，Calendar（冰青，绝对档位）与 Week×Hour（蓝紫，相对刻度）一眼可分且不显刺眼；Calendar 的绝对档位图例不会被误读为管辖上方的相对刻度网格；
 - All Sessions 下整片中档不过吵，高档作为稀有强调仍能跳出；每格的对角光泽在 24 DIP 上确实可见（这是把每档 stop 间距从 ΔE 4 左右提到 11.6 / 11.8 / 19.6 的目的，需实机确认判断成立）；
 - 区间榜与累计榜的“最近游玩”在同一时刻显示同一相对日期口径（跨零点前后各查一次）。
+
+2026-09-03 状态：zh_CN / en_US、Calendar Button 的 Tab/Space/Enter/焦点描边，以及跨零点相对日期已由用户实机核验通过；主题、DPI、减弱动效、趋势视觉、Calendar/Week×Hour 完整视觉和实际读屏器仍待完成，因此 Step 4 保持未勾选。
 
 - [x] **Step 5: Record actual evidence, not expected evidence**
 
