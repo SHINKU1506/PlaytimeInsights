@@ -1948,6 +1948,37 @@
                             <ItemsControl Grid.Row="2"
                                           Grid.Column="1"
                                           ItemsSource="{Binding HeatmapCells}">
+                                <ItemsControl.Resources>
+                                    <Style x:Key="HeatmapCellButtonStyle"
+                                           TargetType="{x:Type controls:HeatmapCellButton}">
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="Background" Value="{StaticResource HeatmapNoneBrush}" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="{x:Type controls:HeatmapCellButton}">
+                                                    <AdornerDecorator />
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IntensityLevel}" Value="None">
+                                                <Setter Property="Background" Value="{StaticResource HeatmapNoneBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IntensityLevel}" Value="Low">
+                                                <Setter Property="Background" Value="{StaticResource HeatmapLowBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IntensityLevel}" Value="Medium">
+                                                <Setter Property="Background" Value="{StaticResource HeatmapMediumBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IntensityLevel}" Value="High">
+                                                <Setter Property="Background" Value="{StaticResource HeatmapHighBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ItemsControl.Resources>
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <UniformGrid Columns="{Binding HeatmapColumnCount}" />
@@ -1955,61 +1986,16 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Button Width="26"
-                                                Height="26"
-                                                Padding="0"
-                                                Background="Transparent"
-                                                BorderThickness="0"
-                                                Cursor="Hand"
-                                                Visibility="{Binding CellVisibility}"
-                                                Command="{Binding DataContext.SelectHeatmapDateCommand,
-                                                    RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                                CommandParameter="{Binding}"
-                                                AutomationProperties.Name="{Binding TooltipText}"
-                                                ToolTip="{Binding TooltipText}">
-                                            <Button.Template>
-                                                <ControlTemplate TargetType="{x:Type Button}">
-                                                    <Border x:Name="CellButtonRoot"
-                                                            Width="26"
-                                                            Height="26"
-                                                            Background="Transparent"
-                                                            SnapsToDevicePixels="True">
-                                                        <Border x:Name="CellSwatch"
-                                                                Width="24"
-                                                                Height="24"
-                                                                CornerRadius="3"
-                                                                HorizontalAlignment="Center"
-                                                                VerticalAlignment="Center"
-                                                                Background="{StaticResource HeatmapNoneBrush}"
-                                                                BorderBrush="{DynamicResource PanelSeparatorBrush}"
-                                                                BorderThickness="1"
-                                                                SnapsToDevicePixels="True" />
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="None">
-                                                            <Setter TargetName="CellSwatch" Property="Background" Value="{StaticResource HeatmapNoneBrush}" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="Low">
-                                                            <Setter TargetName="CellSwatch" Property="Background" Value="{StaticResource HeatmapLowBrush}" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="Medium">
-                                                            <Setter TargetName="CellSwatch" Property="Background" Value="{StaticResource HeatmapMediumBrush}" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="High">
-                                                            <Setter TargetName="CellSwatch" Property="Background" Value="{StaticResource HeatmapHighBrush}" />
-                                                        </DataTrigger>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="CellSwatch" Property="BorderBrush" Value="{DynamicResource TextBrush}" />
-                                                            <Setter TargetName="CellSwatch" Property="Opacity" Value="0.9" />
-                                                        </Trigger>
-                                                        <Trigger Property="IsKeyboardFocused" Value="True">
-                                                            <Setter TargetName="CellSwatch" Property="BorderBrush" Value="{DynamicResource TextBrush}" />
-                                                            <Setter TargetName="CellSwatch" Property="BorderThickness" Value="1" />
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Button.Template>
-                                        </Button>
+                                        <controls:HeatmapCellButton Width="26"
+                                                                    Height="26"
+                                                                    Style="{StaticResource HeatmapCellButtonStyle}"
+                                                                    Cursor="Hand"
+                                                                    Visibility="{Binding CellVisibility}"
+                                                                    Command="{Binding DataContext.SelectHeatmapDateCommand,
+                                                                        RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    AutomationProperties.Name="{Binding TooltipText}"
+                                                                    ToolTip="{Binding TooltipText}" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

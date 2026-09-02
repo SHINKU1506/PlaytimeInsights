@@ -21,6 +21,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -93,6 +94,8 @@ namespace PlaytimeInsights.Tests
             Run("Heatmap month axis panel measures and arranges spans", TestHeatmapMonthAxisPanel);
             Run("Calendar heatmap keeps aligned visual contracts", TestCalendarHeatmapVisualContract);
             Run("Calendar heatmap maps levels to the real swatches", TestCalendarHeatmapRuntimeMapping);
+            Run("Calendar heatmap uses lightweight accessible cell buttons",
+                TestHeatmapCellButtonContract);
             Run("Calendar heatmap records one-year and all-session layout cost", TestCalendarHeatmapLayoutCost);
             Run("Heatmap layout summary reports median maximum and realization",
                 TestHeatmapLayoutSampleSummary);
@@ -2308,21 +2311,25 @@ namespace PlaytimeInsights.Tests
             Equal(true, weekdayGeometry.Contains("HorizontalAlignment=\"Stretch\""));
             Equal(false, weekdayGeometry.Contains("VerticalAlignment=\"Top\""));
 
-            // Cell geometry: 26 DIP button targets with centered 24 DIP swatches.
-            Equal(true, cellGeometry.Contains("<Button Width=\"26\""));
+            // Cell geometry: lightweight 26 DIP buttons draw their own 24 DIP swatches.
+            Equal(true, cellGeometry.Contains("<controls:HeatmapCellButton"));
+            Equal(true, cellGeometry.Contains("Width=\"26\""));
             Equal(true, cellGeometry.Contains("Height=\"26\""));
-            Equal(true, cellGeometry.Contains("x:Name=\"CellButtonRoot\""));
-            Equal(true, cellGeometry.Contains("x:Name=\"CellSwatch\""));
-            Equal(true, cellGeometry.Contains("Width=\"24\""));
-            Equal(true, cellGeometry.Contains("Height=\"24\""));
-            Equal(true, cellGeometry.Contains("CornerRadius=\"3\""));
-            Equal(true, cellGeometry.Contains("HorizontalAlignment=\"Center\""));
-            Equal(true, cellGeometry.Contains("VerticalAlignment=\"Center\""));
+            Equal(true, cellGeometry.Contains(
+                "Style=\"{StaticResource HeatmapCellButtonStyle}\""));
+            Equal(false, cellGeometry.Contains("CellButtonRoot"));
+            Equal(false, cellGeometry.Contains("CellSwatch"));
             Equal(true, dashboardXaml.Contains("UniformGrid Columns=\"{Binding HeatmapColumnCount}\""));
 
-            // Keyboard focus & theme brush
-            Equal(true, dashboardXaml.Contains("Trigger Property=\"IsKeyboardFocused\" Value=\"True\""));
-            Equal(true, dashboardXaml.Contains("Setter TargetName=\"CellSwatch\" Property=\"BorderBrush\" Value=\"{DynamicResource TextBrush}\""));
+            // The lightweight button renders the swatch and focus outline itself.
+            var cellButtonSource = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Controls",
+                "HeatmapCellButton.cs"));
+            Equal(true, cellButtonSource.Contains("new Rect(1d, 1d, 24d, 24d)"));
+            Equal(true, cellButtonSource.Contains("3d"));
+            Equal(true, cellButtonSource.Contains("IsKeyboardFocused"));
+            Equal(false, cellButtonSource.Contains("PanelSeparatorBrush"));
 
             // Legend brushes
             Equal(true, resourcesXaml.Contains("HeatmapNoneBrush"));
@@ -2446,7 +2453,8 @@ namespace PlaytimeInsights.Tests
 
                 var distribution = (FrameworkElement)view.FindName(
                     "DistributionModule");
-                var cellButtons = FindVisualDescendants<Button>(distribution)
+                var cellButtons = FindVisualDescendants<HeatmapCellButton>(
+                        distribution)
                     .Where(button => button.DataContext is HeatmapCellViewModel)
                     .OrderBy(button =>
                         ((HeatmapCellViewModel)button.DataContext).Date)
@@ -2461,13 +2469,9 @@ namespace PlaytimeInsights.Tests
                 };
                 for (var index = 0; index < cellButtons.Count; index++)
                 {
-                    var swatch = (Border)cellButtons[index].Template.FindName(
-                        "CellSwatch",
-                        cellButtons[index]);
-                    Equal(true, swatch != null);
                     Equal(
                         view.TryFindResource(expectedKeys[index]),
-                        swatch.Background);
+                        cellButtons[index].Background);
                 }
 
                 var weekdayLabels = snapshot.HeatmapWeekdayLabels;
@@ -2575,6 +2579,98 @@ namespace PlaytimeInsights.Tests
                     midpointLightness[1] - midpointLightness[0] >= 6d);
                 Equal(true,
                     midpointLightness[2] - midpointLightness[1] >= 6d);
+            });
+        }
+
+        private static void TestHeatmapCellButtonContract()
+        {
+            var buttonSource = File.ReadAllText(Path.Combine(
+                FindSourceRoot(),
+                "Controls",
+                "HeatmapCellButton.cs"));
+            Equal(true, buttonSource.Contains("IsMouseOver"));
+            Equal(true, buttonSource.Contains("IsKeyboardFocused"));
+            Equal(true, buttonSource.Contains("BorderBrush"));
+            Equal(true, buttonSource.Contains("Foreground"));
+            Equal(true, buttonSource.Contains("DrawRoundedRectangle"));
+            Equal(4, CountOccurrences(buttonSource, "InvalidateVisual"));
+            Equal(false, buttonSource.Contains("GradientStop"));
+            Equal(false, buttonSource.Contains("RectangleGeometry"));
+            var dashboardXaml = File.ReadAllText(Path.Combine(
+                FindSourceRoot(),
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            Equal(true, dashboardXaml.Contains(
+                "<Setter Property=\"Foreground\" Value=\"{DynamicResource TextBrush}\" />"));
+            Equal(true, dashboardXaml.Contains(
+                "<Setter Property=\"BorderBrush\" Value=\"{DynamicResource PanelSeparatorBrush}\" />"));
+
+            RunOnSta(() =>
+            {
+                var viewModel = CreateDashboardViewModelForLayout();
+                var snapshot = CreateHeatmapLayoutSnapshot(4);
+                snapshot.HeatmapCells[0].IntensityLevel =
+                    HeatmapIntensityLevel.None;
+                snapshot.HeatmapCells[1].IntensityLevel =
+                    HeatmapIntensityLevel.Low;
+                snapshot.HeatmapCells[2].IntensityLevel =
+                    HeatmapIntensityLevel.Medium;
+                snapshot.HeatmapCells[3].IntensityLevel =
+                    HeatmapIntensityLevel.High;
+                viewModel.Distribution.Apply(snapshot);
+
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 1248,
+                    DataContext = viewModel
+                };
+                LayoutDashboardViewAt(view, 1248);
+                var distribution = (FrameworkElement)view.FindName(
+                    "DistributionModule");
+                var cellButtons = FindVisualDescendants<HeatmapCellButton>(
+                        distribution)
+                    .OrderBy(button =>
+                        ((HeatmapCellViewModel)button.DataContext).Date)
+                    .ToList();
+                Equal(4, cellButtons.Count);
+
+                var expectedKeys = new[]
+                {
+                    "HeatmapNoneBrush",
+                    "HeatmapLowBrush",
+                    "HeatmapMediumBrush",
+                    "HeatmapHighBrush"
+                };
+                for (var index = 0; index < cellButtons.Count; index++)
+                {
+                    var button = cellButtons[index];
+                    Equal(26d, button.Width);
+                    Equal(26d, button.Height);
+                    Equal(true, button.Command != null);
+                    Equal(true, button.CommandParameter != null);
+                    Equal(
+                        true,
+                        !string.IsNullOrWhiteSpace(button.ToolTip as string));
+                    Equal(
+                        true,
+                        !string.IsNullOrWhiteSpace(
+                            button.GetValue(AutomationProperties.NameProperty)
+                            as string));
+                    Equal(
+                        view.TryFindResource(expectedKeys[index]),
+                        button.Background);
+                    Equal(
+                        true,
+                        VisualTreeHelper.GetChildrenCount(button) <= 1);
+                }
+
+                var focusTarget = cellButtons[2];
+                Equal(true, focusTarget.Focusable);
+                // A headless STA harness has no presentation source, so
+                // IsVisible stays false and Keyboard focus cannot be granted;
+                // visibility and the focus outline contract are asserted
+                // structurally, live keyboard entry goes to the manual matrix.
+                Equal(Visibility.Visible, focusTarget.Visibility);
             });
         }
 
@@ -4845,17 +4941,19 @@ namespace PlaytimeInsights.Tests
                 "AutomationProperties.Name=\"{Binding AutomationName}\""));
             Equal(true, dashboard.Contains(
                 "Text=\"{Binding HourDistributionTitle}\""));
-            Equal(false, dashboard.Contains(
-                "FocusVisualStyle\" Value=\"{x:Null}\""));
+            // The heatmap cell button suppresses the system focus rect exactly once
+            // because it draws its own 1 DIP focus outline in OnRender.
+            Equal(1, Regex.Matches(
+                dashboard,
+                Regex.Escape("FocusVisualStyle\" Value=\"{x:Null}\"")).Count);
             Equal(false, Regex.IsMatch(
                 dashboard,
                 @"MetricCardStyle\}""\s+Margin=""0,0,0,12""",
                 RegexOptions.CultureInvariant));
-            Equal(true, Regex.IsMatch(
-                dashboard,
-                @"<Trigger Property=""IsKeyboardFocused"" Value=""True"">" +
-                @".*?TextBrush.*?Property=""BorderThickness"".*?Value=""1""",
-                RegexOptions.CultureInvariant | RegexOptions.Singleline));
+            Equal(true, dashboard.Contains(
+                "<Setter Property=\"Foreground\" Value=\"{DynamicResource TextBrush}\" />"));
+            Equal(true, dashboard.Contains(
+                "<Setter Property=\"BorderBrush\" Value=\"{DynamicResource PanelSeparatorBrush}\" />"));
             Equal(true, dashboard.Contains("WeekdaySelectedBackgroundBrush"));
             Equal(true, dashboard.Contains("Color=\"#334A90E2\""));
             Equal(true, dashboard.Contains("Color=\"#1A4A90E2\""));
