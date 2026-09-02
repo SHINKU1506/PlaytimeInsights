@@ -258,6 +258,19 @@ namespace PlaytimeInsights.Views
             DashboardScrollViewer.RaiseEvent(forwardedEvent);
         }
 
+        private void HeatmapWeekList_ScrollChanged(
+            object sender,
+            ScrollChangedEventArgs e)
+        {
+            if (e.HorizontalChange == 0)
+            {
+                return;
+            }
+
+            HeatmapMonthScrollViewer?.ScrollToHorizontalOffset(
+                e.HorizontalOffset);
+        }
+
         private void DrilldownHost_IsVisibleChanged(
             object sender,
             DependencyPropertyChangedEventArgs e)

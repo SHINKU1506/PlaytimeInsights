@@ -99,6 +99,8 @@ namespace PlaytimeInsights.Tests
             Run("Calendar heatmap uses lightweight accessible cell buttons",
                 TestHeatmapCellButtonContract);
             Run("Calendar heatmap records one-year and all-session layout cost", TestCalendarHeatmapLayoutCost);
+            Run("Calendar heatmap virtualizes week columns with a synchronized month axis",
+                TestHeatmapWeekVirtualization);
             Run("Heatmap layout summary reports median maximum and realization",
                 TestHeatmapLayoutSampleSummary);
             Run("Trend points scale to period maximum", TestTrendPointScaling);
@@ -2297,8 +2299,14 @@ namespace PlaytimeInsights.Tests
             var calendarStart = dashboardXaml.IndexOf(
                 "ItemsSource=\"{Binding HeatmapMonthLabels}\"",
                 StringComparison.Ordinal);
+            var weekdayStart = dashboardXaml.IndexOf(
+                "ItemsSource=\"{Binding HeatmapWeekdayLabels}\"",
+                StringComparison.Ordinal);
+            var weekStart = dashboardXaml.IndexOf(
+                "Text=\"{Binding WeekLabel}\"",
+                StringComparison.Ordinal);
             var calendarEnd = dashboardXaml.IndexOf(
-                "ItemsSource=\"{Binding HeatmapCells}\"",
+                "ItemsSource=\"{Binding Days}\"",
                 StringComparison.Ordinal);
             var cellBlockEnd = dashboardXaml.IndexOf(
                 "x:Name=\"AnomalyModule\"",
@@ -2325,11 +2333,19 @@ namespace PlaytimeInsights.Tests
             Equal(false, dashboardCode.Contains("HeatmapCell_MouseLeftButtonUp"));
 
             Equal(true, calendarStart >= 0);
-            Equal(true, calendarEnd > calendarStart);
+            Equal(true, weekdayStart > calendarStart);
+            Equal(true, weekStart > weekdayStart);
+            Equal(true, calendarEnd > weekStart);
             Equal(true, cellBlockEnd > calendarEnd);
             var axisGeometry = dashboardXaml.Substring(
                 calendarStart,
-                calendarEnd - calendarStart);
+                weekdayStart - calendarStart);
+            var weekdayGeometry = dashboardXaml.Substring(
+                weekdayStart,
+                weekStart - weekdayStart);
+            var weekGeometry = dashboardXaml.Substring(
+                weekStart,
+                calendarEnd - weekStart);
             var cellGeometry = dashboardXaml.Substring(
                 calendarEnd,
                 cellBlockEnd - calendarEnd);
@@ -2340,29 +2356,13 @@ namespace PlaytimeInsights.Tests
             Equal(false, axisGeometry.Contains("Width=\"14\""));
             Equal(false, axisGeometry.Contains("Height=\"14\""));
 
-            var weekdayStart = dashboardXaml.IndexOf(
-                "ItemsSource=\"{Binding HeatmapWeekdayLabels}\"",
-                StringComparison.Ordinal);
-
             // Week-number labels center horizontally over 26 DIP cells.
-            var weekStart = dashboardXaml.IndexOf(
-                "ItemsSource=\"{Binding HeatmapWeekLabels}\"",
-                StringComparison.Ordinal);
-            Equal(true, weekStart > calendarStart);
-            Equal(true, weekdayStart > weekStart);
-            var weekGeometry = dashboardXaml.Substring(
-                weekStart,
-                weekdayStart - weekStart);
             Equal(true, weekGeometry.Contains("Width=\"26\""));
             Equal(true, weekGeometry.Contains("TextAlignment=\"Center\""));
             Equal(true, weekGeometry.Contains("HorizontalAlignment=\"Center\""));
+            Equal(true, weekGeometry.Contains("VerticalAlignment=\"Center\""));
 
             // Weekday glyphs center vertically inside 26 DIP row containers.
-            Equal(true, weekdayStart > calendarStart);
-            Equal(true, calendarEnd > weekdayStart);
-            var weekdayGeometry = dashboardXaml.Substring(
-                weekdayStart,
-                calendarEnd - weekdayStart);
             Equal(true, weekdayGeometry.Contains("<Grid Height=\"26\">"));
             Equal(true, weekdayGeometry.Contains("VerticalAlignment=\"Center\""));
             Equal(true, weekdayGeometry.Contains("HorizontalAlignment=\"Stretch\""));
@@ -2376,7 +2376,21 @@ namespace PlaytimeInsights.Tests
                 "Style=\"{StaticResource HeatmapCellButtonStyle}\""));
             Equal(false, cellGeometry.Contains("CellButtonRoot"));
             Equal(false, cellGeometry.Contains("CellSwatch"));
-            Equal(true, dashboardXaml.Contains("UniformGrid Columns=\"{Binding HeatmapColumnCount}\""));
+            Equal(true, dashboardXaml.Contains("x:Name=\"HeatmapWeekList\""));
+            Equal(true, dashboardXaml.Contains(
+                "x:Name=\"HeatmapMonthScrollViewer\""));
+            Equal(true, dashboardXaml.Contains(
+                "VirtualizingStackPanel Orientation=\"Horizontal\""));
+            Equal(true, dashboardXaml.Contains(
+                "VirtualizingPanel.VirtualizationMode=\"Recycling\""));
+            Equal(true, dashboardXaml.Contains(
+                "VirtualizingPanel.ScrollUnit=\"Pixel\""));
+            Equal(true, dashboardXaml.Contains(
+                "ScrollViewer.ScrollChanged=\"HeatmapWeekList_ScrollChanged\""));
+            Equal(true, dashboardXaml.Contains(
+                "ItemsSource=\"{Binding HeatmapWeeks}\""));
+            Equal(true, dashboardXaml.Contains(
+                "ItemsSource=\"{Binding Days}\""));
 
             // The lightweight button renders the swatch and focus outline itself.
             var cellButtonSource = File.ReadAllText(Path.Combine(
@@ -2639,6 +2653,98 @@ namespace PlaytimeInsights.Tests
             });
         }
 
+        private static void TestHeatmapWeekVirtualization()
+        {
+            RunOnSta(() =>
+            {
+                var allSessions = CreateHeatmapBenchmarkSnapshot(true);
+                Equal(1820, allSessions.HeatmapCells.Count);
+                Equal(260, allSessions.HeatmapWeeks.Count);
+
+                var viewModel = CreateDashboardViewModelForLayout();
+                viewModel.Distribution.Apply(allSessions);
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    Width = 1248,
+                    DataContext = viewModel
+                };
+                LayoutDashboardViewAt(view, 1248);
+                var distribution = (FrameworkElement)view.FindName(
+                    "DistributionModule");
+                var weekList = (ListBox)view.FindName("HeatmapWeekList");
+                Equal(true, weekList != null);
+                Equal(260, weekList.Items.Count);
+
+                var initialContainers = CountRealizedWeekContainers(weekList);
+                Equal(true, initialContainers < 60);
+                var initialButtons = FindVisualDescendants<HeatmapCellButton>(
+                    distribution).Count();
+                Equal(true, initialButtons < 420);
+
+                var lastWeek = (HeatmapWeekViewModel)weekList.Items[259];
+                weekList.ScrollIntoView(lastWeek);
+                PumpDispatcherFor(TimeSpan.FromMilliseconds(200));
+                view.UpdateLayout();
+
+                var endContainers = CountRealizedWeekContainers(weekList);
+                var endButtons = FindVisualDescendants<HeatmapCellButton>(
+                    distribution).Count();
+                var monthScroller = (ScrollViewer)view.FindName(
+                    "HeatmapMonthScrollViewer");
+                var listScroller = FindVisualDescendants<ScrollViewer>(
+                    weekList).First();
+                Equal(true, endContainers < 60);
+                Equal(true, endButtons < 420);
+                Equal(
+                    true,
+                    weekList.ItemContainerGenerator.ContainerFromIndex(259) !=
+                    null);
+                Equal(
+                    true,
+                    weekList.ItemContainerGenerator.ContainerFromIndex(0) ==
+                    null);
+                var endCellButtons = FindVisualDescendants<HeatmapCellButton>(
+                        distribution)
+                    .Where(button =>
+                        lastWeek.Days.Contains(
+                            (HeatmapCellViewModel)button.DataContext))
+                    .ToList();
+                Equal(7, endCellButtons.Count);
+                foreach (var button in endCellButtons)
+                {
+                    Equal(true, button.Command != null);
+                    Equal(true, button.CommandParameter != null);
+                    Equal(
+                        true,
+                        !string.IsNullOrWhiteSpace(
+                            button.GetValue(AutomationProperties.NameProperty)
+                            as string));
+                    Equal(true, button.Focusable);
+                }
+
+                var offsetDifference = Math.Abs(
+                    monthScroller.HorizontalOffset -
+                    listScroller.HorizontalOffset);
+                Equal(true, offsetDifference <= 0.5d);
+                Equal(true, listScroller.HorizontalOffset > 0d);
+            });
+        }
+
+        private static int CountRealizedWeekContainers(ListBox weekList)
+        {
+            var count = 0;
+            for (var index = 0; index < weekList.Items.Count; index++)
+            {
+                if (weekList.ItemContainerGenerator.ContainerFromIndex(index) !=
+                    null)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
         private static void TestHeatmapCellButtonContract()
         {
             var buttonSource = File.ReadAllText(Path.Combine(
@@ -2840,14 +2946,12 @@ namespace PlaytimeInsights.Tests
             distribution.UpdateLayout();
             stopwatch.Stop();
 
-            var realizedButtons = FindVisualDescendants<Button>(distribution)
-                .Count(button => button.DataContext is HeatmapCellViewModel);
-            Equal(snapshot.HeatmapCells.Count, realizedButtons);
-            var weekAxis = (FrameworkElement)view.FindName(
-                "HeatmapWeekNumberAxis");
-            var realizedWeekContainers = weekAxis == null
+            var realizedButtons = FindVisualDescendants<HeatmapCellButton>(
+                distribution).Count();
+            var weekList = (ListBox)view.FindName("HeatmapWeekList");
+            var realizedWeekContainers = weekList == null
                 ? 0
-                : FindVisualDescendants<ContentPresenter>(weekAxis).Count();
+                : CountRealizedWeekContainers(weekList);
             return new HeatmapLayoutMeasurement
             {
                 ElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
@@ -4997,7 +5101,7 @@ namespace PlaytimeInsights.Tests
                 RegexOptions.CultureInvariant));
             Equal(true, Regex.Matches(
                 dashboard,
-                "HorizontalScrollBarVisibility=\"Auto\"").Count >= 4);
+                "HorizontalScrollBarVisibility=\"Auto\"").Count >= 3);
             Equal(true, management.Contains("MinWidth=\"960\""));
             Equal(true, management.Contains("ScrollViewer.HorizontalScrollBarVisibility=\"Auto\""));
             Equal(true, editor.Contains("ResizeMode=\"CanResizeWithGrip\""));
@@ -8426,7 +8530,8 @@ namespace PlaytimeInsights.Tests
             {
                 "{Binding WeekdayDistribution}",
                 "{Binding HourDistribution}",
-                "{Binding HeatmapCells}",
+                "{Binding HeatmapWeeks}",
+                "{Binding Days}",
                 "{Binding WeekHourCells}"
             })
             {

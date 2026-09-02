@@ -1842,24 +1842,26 @@
                                        VerticalAlignment="Center" />
                         </StackPanel>
                     </Grid>
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                                  VerticalScrollBarVisibility="Disabled"
-                                  PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
-                                  HorizontalContentAlignment="Center">
-                        <Grid HorizontalAlignment="Center">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="46" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <ItemsControl Grid.Row="0"
-                                          Grid.Column="1"
-                                          ItemsSource="{Binding HeatmapMonthLabels}"
-                                          Margin="0,0,0,4">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="46" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ScrollViewer x:Name="HeatmapMonthScrollViewer"
+                                      Grid.Row="0"
+                                      Grid.Column="1"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Disabled"
+                                      IsHitTestVisible="False"
+                                      Focusable="False"
+                                      Margin="0,0,0,4"
+                                      Padding="1,0">
+                            <ItemsControl ItemsSource="{Binding HeatmapMonthLabels}"
+                                          HorizontalAlignment="Left">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <controls:HeatmapMonthAxisPanel ColumnCount="{Binding HeatmapColumnCount}"
@@ -1884,30 +1886,11 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <ItemsControl x:Name="HeatmapWeekNumberAxis"
-                                          Grid.Row="1"
-                                          Grid.Column="1"
-                                          ItemsSource="{Binding HeatmapWeekLabels}"
-                                          Margin="0,0,0,4">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <UniformGrid Columns="{Binding HeatmapColumnCount}" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding}"
-                                                   Width="26"
-                                                   FontSize="9"
-                                                   TextAlignment="Center"
-                                                   HorizontalAlignment="Center"
-                                                   Opacity="{StaticResource TextOpacityTertiary}" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <ItemsControl Grid.Row="2"
-                                          Grid.Column="0"
-                                          ItemsSource="{Binding HeatmapWeekdayLabels}"
+                        </ScrollViewer>
+                        <StackPanel Grid.Row="1"
+                                    Grid.Column="0">
+                            <Border Height="16" />
+                            <ItemsControl ItemsSource="{Binding HeatmapWeekdayLabels}"
                                           AlternationCount="7">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -1945,62 +1928,110 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <ItemsControl Grid.Row="2"
-                                          Grid.Column="1"
-                                          ItemsSource="{Binding HeatmapCells}">
-                                <ItemsControl.Resources>
-                                    <Style x:Key="HeatmapCellButtonStyle"
-                                           TargetType="{x:Type controls:HeatmapCellButton}">
-                                        <Setter Property="Padding" Value="0" />
-                                        <Setter Property="Background" Value="{StaticResource HeatmapNoneBrush}" />
-                                        <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
-                                        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
-                                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="{x:Type controls:HeatmapCellButton}">
-                                                    <AdornerDecorator />
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IntensityLevel}" Value="None">
-                                                <Setter Property="Background" Value="{StaticResource HeatmapNoneBrush}" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding IntensityLevel}" Value="Low">
-                                                <Setter Property="Background" Value="{StaticResource HeatmapLowBrush}" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding IntensityLevel}" Value="Medium">
-                                                <Setter Property="Background" Value="{StaticResource HeatmapMediumBrush}" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding IntensityLevel}" Value="High">
-                                                <Setter Property="Background" Value="{StaticResource HeatmapHighBrush}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ItemsControl.Resources>
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <UniformGrid Columns="{Binding HeatmapColumnCount}" />
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <controls:HeatmapCellButton Width="26"
-                                                                    Height="26"
-                                                                    Style="{StaticResource HeatmapCellButtonStyle}"
-                                                                    Cursor="Hand"
-                                                                    Visibility="{Binding CellVisibility}"
-                                                                    Command="{Binding DataContext.SelectHeatmapDateCommand,
-                                                                        RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                                                    CommandParameter="{Binding}"
-                                                                    AutomationProperties.Name="{Binding TooltipText}"
-                                                                    ToolTip="{Binding TooltipText}" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Grid>
-                    </ScrollViewer>
+                        </StackPanel>
+                        <ListBox x:Name="HeatmapWeekList"
+                                 Grid.Row="1"
+                                 Grid.Column="1"
+                                 ItemsSource="{Binding HeatmapWeeks}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="0"
+                                 IsTabStop="False"
+                                 HorizontalAlignment="Stretch"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                 ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                 ScrollViewer.CanContentScroll="True"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 VirtualizingPanel.ScrollUnit="Pixel"
+                                 ScrollViewer.ScrollChanged="HeatmapWeekList_ScrollChanged"
+                                 PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel">
+                            <ListBox.Resources>
+                                <Style x:Key="HeatmapCellButtonStyle"
+                                       TargetType="{x:Type controls:HeatmapCellButton}">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Background" Value="{StaticResource HeatmapNoneBrush}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource PanelSeparatorBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                                    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type controls:HeatmapCellButton}">
+                                                <AdornerDecorator />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="None">
+                                            <Setter Property="Background" Value="{StaticResource HeatmapNoneBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="Low">
+                                            <Setter Property="Background" Value="{StaticResource HeatmapLowBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="Medium">
+                                            <Setter Property="Background" Value="{StaticResource HeatmapMediumBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IntensityLevel}" Value="High">
+                                            <Setter Property="Background" Value="{StaticResource HeatmapHighBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ListBox.Resources>
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="{x:Type ListBoxItem}">
+                                    <Setter Property="Focusable" Value="False" />
+                                    <Setter Property="KeyboardNavigation.IsTabStop" Value="False" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Width" Value="26" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                                                <ContentPresenter />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <Border Height="16">
+                                            <TextBlock Text="{Binding WeekLabel}"
+                                                       Width="26"
+                                                       FontSize="9"
+                                                       TextAlignment="Center"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Opacity="{StaticResource TextOpacityTertiary}" />
+                                        </Border>
+                                        <ItemsControl ItemsSource="{Binding Days}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <controls:HeatmapCellButton Width="26"
+                                                                                Height="26"
+                                                                                Style="{StaticResource HeatmapCellButtonStyle}"
+                                                                                Cursor="Hand"
+                                                                                Visibility="{Binding CellVisibility}"
+                                                                                Command="{Binding DataContext.SelectHeatmapDateCommand,
+                                                                                    RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                                                CommandParameter="{Binding}"
+                                                                                AutomationProperties.Name="{Binding TooltipText}"
+                                                                                ToolTip="{Binding TooltipText}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
                 </StackPanel>
             </Border>
 
