@@ -356,6 +356,7 @@ namespace PlaytimeInsights.Services
                     firstDayOfWeek),
                 HeatmapMonthLabels = heatmap.MonthLabels,
                 HeatmapWeekLabels = heatmap.WeekLabels,
+                HeatmapWeeks = heatmap.Weeks,
                 HeatmapColumnCount = heatmap.ColumnCount,
                 TrendChartWidth = trend.TrendChartWidth,
                 TrendLinePoints = trend.TrendLinePoints,
@@ -844,6 +845,8 @@ namespace PlaytimeInsights.Services
             public IList<HeatmapMonthLabelViewModel> MonthLabels { get; set; }
 
             public IList<string> WeekLabels { get; set; }
+
+            public IList<HeatmapWeekViewModel> Weeks { get; set; }
         }
 
         private static HeatmapProjection CreateHeatmapProjection(
@@ -967,12 +970,30 @@ namespace PlaytimeInsights.Services
                 });
             }
 
+            var weeks = new List<HeatmapWeekViewModel>(columnCount);
+            for (var column = 0; column < columnCount; column++)
+            {
+                var days = new List<HeatmapCellViewModel>(7);
+                for (var row = 0; row < 7; row++)
+                {
+                    days.Add(values[row * columnCount + column]);
+                }
+
+                weeks.Add(new HeatmapWeekViewModel
+                {
+                    ColumnIndex = column,
+                    WeekLabel = weekLabels[column],
+                    Days = days
+                });
+            }
+
             return new HeatmapProjection
             {
                 Cells = values,
                 ColumnCount = columnCount,
                 MonthLabels = monthLabels,
-                WeekLabels = weekLabels
+                WeekLabels = weekLabels,
+                Weeks = weeks
             };
         }
 

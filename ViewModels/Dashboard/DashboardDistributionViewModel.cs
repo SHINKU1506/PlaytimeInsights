@@ -22,6 +22,8 @@ namespace PlaytimeInsights.ViewModels
         private IReadOnlyList<HeatmapMonthLabelViewModel> heatmapMonthLabels =
             new List<HeatmapMonthLabelViewModel>();
         private IReadOnlyList<string> heatmapWeekLabels = new List<string>();
+        private IReadOnlyList<HeatmapWeekViewModel> heatmapWeeks =
+            new List<HeatmapWeekViewModel>();
         private IReadOnlyList<TrendPointViewModel> trendPoints =
             new List<TrendPointViewModel>();
         private IReadOnlyList<DistributionBarViewModel> weekdayDistribution =
@@ -93,6 +95,12 @@ namespace PlaytimeInsights.ViewModels
             private set => SetValue(ref heatmapWeekLabels, value);
         }
 
+        public IReadOnlyList<HeatmapWeekViewModel> HeatmapWeeks
+        {
+            get => heatmapWeeks;
+            private set => SetValue(ref heatmapWeeks, value);
+        }
+
         public IReadOnlyList<TrendPointViewModel> TrendPoints
         {
             get => trendPoints;
@@ -152,6 +160,7 @@ namespace PlaytimeInsights.ViewModels
             HeatmapWeekdayLabels = Copy(snapshot.HeatmapWeekdayLabels);
             HeatmapMonthLabels = Copy(snapshot.HeatmapMonthLabels);
             HeatmapWeekLabels = Copy(snapshot.HeatmapWeekLabels);
+            HeatmapWeeks = Copy(snapshot.HeatmapWeeks);
 
             selectedWeekdayIndex = null;
             foreach (var bar in snapshot.Advanced.WeekdayDistribution)

@@ -91,6 +91,8 @@ namespace PlaytimeInsights.Tests
             Run("Heatmap uses absolute duration levels", TestHeatmapAbsoluteDurationLevels);
             Run("Heatmap month axis follows calendar-week columns", TestHeatmapMonthAxisProjection);
             Run("Heatmap supports six-calendar-week months", TestHeatmapSixWeekMonth);
+            Run("Heatmap week columns reuse the row-major cell models",
+                TestHeatmapWeekGrouping);
             Run("Heatmap month axis panel measures and arranges spans", TestHeatmapMonthAxisPanel);
             Run("Calendar heatmap keeps aligned visual contracts", TestCalendarHeatmapVisualContract);
             Run("Calendar heatmap maps levels to the real swatches", TestCalendarHeatmapRuntimeMapping);
@@ -2173,6 +2175,61 @@ namespace PlaytimeInsights.Tests
             Equal("6", snapshot.HeatmapWeekLabels[5]);
         }
 
+        private static void TestHeatmapWeekGrouping()
+        {
+            var snapshot = new AnalyticsService().CreateSnapshot(
+                new Playnite.SDK.Models.Game[0],
+                new GameSession[0],
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = new DateTime(2026, 8, 1),
+                    CustomEndDate = new DateTime(2026, 8, 31)
+                });
+
+            var columnCount = snapshot.HeatmapColumnCount;
+            Equal(6, columnCount);
+            Equal(6, snapshot.HeatmapWeeks.Count);
+            Equal(42, snapshot.HeatmapCells.Count);
+            for (var weekIndex = 0;
+                weekIndex < snapshot.HeatmapWeeks.Count;
+                weekIndex++)
+            {
+                var week = snapshot.HeatmapWeeks[weekIndex];
+                Equal(weekIndex, week.ColumnIndex);
+                Equal(snapshot.HeatmapWeekLabels[weekIndex], week.WeekLabel);
+                Equal(7, week.Days.Count);
+                for (var row = 0; row < 7; row++)
+                {
+                    Equal(
+                        true,
+                        ReferenceEquals(
+                            snapshot.HeatmapCells[row * columnCount + weekIndex],
+                            week.Days[row]));
+                }
+            }
+
+            var viewModel = CreateDashboardViewModelForLayout();
+            var notifications = 0;
+            viewModel.Distribution.PropertyChanged += (sender, args) =>
+            {
+                if (args.PropertyName == "HeatmapWeeks")
+                {
+                    notifications++;
+                }
+            };
+            viewModel.Distribution.Apply(snapshot);
+            Equal(1, notifications);
+            Equal(
+                snapshot.HeatmapWeeks.Count,
+                viewModel.Distribution.HeatmapWeeks.Count);
+            Equal(
+                true,
+                ReferenceEquals(
+                    viewModel.Distribution.HeatmapWeeks[0].Days[0],
+                    viewModel.Distribution.HeatmapCells[0]));
+        }
+
         private static void TestHeatmapMonthAxisPanel()
         {
             RunOnSta(() =>
@@ -2894,17 +2951,32 @@ namespace PlaytimeInsights.Tests
             int cellCount)
         {
             var columnCount = Math.Max(1, (int)Math.Ceiling(cellCount / 7d));
+            var cells = Enumerable.Range(0, cellCount)
+                .Select(index => new HeatmapCellViewModel
+                {
+                    Date = new DateTime(2021, 1, 4).AddDays(index),
+                    Seconds = (ulong)(index % 4) * 3600UL,
+                    IntensityLevel = (HeatmapIntensityLevel)(index % 4),
+                    CellVisibility = Visibility.Visible,
+                    TooltipText = "Cell " + index
+                })
+                .ToList();
+            var weekLabels = Enumerable.Range(1, columnCount)
+                .Select(index => index.ToString(CultureInfo.InvariantCulture))
+                .ToList();
             return new DashboardSnapshot
             {
                 PeriodActivities = new List<PeriodActivityViewModel>(),
-                HeatmapCells = Enumerable.Range(0, cellCount)
-                    .Select(index => new HeatmapCellViewModel
+                HeatmapCells = cells,
+                HeatmapWeeks = Enumerable.Range(0, columnCount)
+                    .Select(column => new HeatmapWeekViewModel
                     {
-                        Date = new DateTime(2021, 1, 4).AddDays(index),
-                        Seconds = (ulong)(index % 4) * 3600UL,
-                        IntensityLevel = (HeatmapIntensityLevel)(index % 4),
-                        CellVisibility = Visibility.Visible,
-                        TooltipText = "Cell " + index
+                        ColumnIndex = column,
+                        WeekLabel = weekLabels[column],
+                        Days = Enumerable.Range(0, 7)
+                            .Where(row => row * columnCount + column < cells.Count)
+                            .Select(row => cells[row * columnCount + column])
+                            .ToList()
                     })
                     .ToList(),
                 HeatmapWeekdayLabels = new List<string>
@@ -2918,9 +2990,7 @@ namespace PlaytimeInsights.Tests
                     "Sun-fixture"
                 },
                 HeatmapMonthLabels = new List<HeatmapMonthLabelViewModel>(),
-                HeatmapWeekLabels = Enumerable.Range(1, columnCount)
-                    .Select(index => index.ToString(CultureInfo.InvariantCulture))
-                    .ToList(),
+                HeatmapWeekLabels = weekLabels,
                 HeatmapColumnCount = columnCount,
                 TrendLinePoints = new PointCollection(),
                 TrendLineGeometry = Geometry.Empty,
