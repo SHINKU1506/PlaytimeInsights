@@ -44,6 +44,10 @@ namespace PlaytimeInsights.Tests
             Run("Cross-midnight allocation", TestCrossMidnightAllocation);
             Run("Allocation preserves total seconds", TestAllocationPreservesTotal);
             Run("Cross-hour allocation preserves total and hour buckets", TestHourlyAllocation);
+            Run("Hourly allocation reuses destination buffers without residue",
+                TestHourlyAllocationDestinationReuse);
+            Run("Advanced analytics processes sessions in one loop",
+                TestAdvancedAnalyticsSingleLoop);
             Run("Daily allocation reuses destination buffers without residue",
                 TestDailyAllocationDestinationReuse);
             Run("Session timezone resolver caches valid and fallback zones",
@@ -396,6 +400,202 @@ namespace PlaytimeInsights.Tests
             }
 
             Equal(session.ElapsedSeconds, destinationTotal);
+        }
+
+        private static void TestHourlyAllocationDestinationReuse()
+        {
+            var service = new HourlyAllocationService();
+            var normal = CreateSession(
+                Guid.NewGuid(),
+                "Normal",
+                new DateTime(2026, 7, 27, 10, 0, 0, DateTimeKind.Utc),
+                300);
+            var crossHour = new GameSession
+            {
+                StartedAtUtc = new DateTime(2026, 7, 27, 15, 59, 30, DateTimeKind.Utc),
+                EndedAtUtc = new DateTime(2026, 7, 27, 16, 0, 30, DateTimeKind.Utc),
+                ElapsedSeconds = 61,
+                StartUtcOffsetMinutes = 480,
+                EndUtcOffsetMinutes = 480,
+                TimeZoneId = "China Standard Time"
+            };
+            var crossMidnight = new GameSession
+            {
+                StartedAtUtc = new DateTime(2026, 7, 27, 15, 59, 30, DateTimeKind.Utc),
+                EndedAtUtc = new DateTime(2026, 7, 27, 16, 0, 30, DateTimeKind.Utc),
+                ElapsedSeconds = 60,
+                StartUtcOffsetMinutes = 540,
+                EndUtcOffsetMinutes = 540,
+                TimeZoneId = "Tokyo Standard Time"
+            };
+            var daylight = new GameSession
+            {
+                StartedAtUtc = new DateTime(2026, 3, 8, 9, 30, 0, DateTimeKind.Utc),
+                EndedAtUtc = new DateTime(2026, 3, 8, 11, 30, 0, DateTimeKind.Utc),
+                ElapsedSeconds = 7200,
+                StartUtcOffsetMinutes = 480,
+                EndUtcOffsetMinutes = 420,
+                TimeZoneId = "Pacific Standard Time"
+            };
+
+            var destination = new List<HourlyAllocation>();
+            AssertHourlyDestinationMatchesList(service, normal, destination);
+            AssertHourlyDestinationMatchesList(service, crossHour, destination);
+            AssertHourlyDestinationMatchesList(service, crossMidnight, destination);
+            AssertHourlyDestinationMatchesList(service, daylight, destination);
+
+            service.SplitByLocalHour(crossHour, destination);
+            Equal(2, destination.Count);
+            service.SplitByLocalHour(normal, destination);
+            Equal(1, destination.Count);
+            service.SplitByLocalHour(null, destination);
+            Equal(0, destination.Count);
+            Equal(true, typeof(HourlyAllocation).IsValueType);
+        }
+
+        private static void AssertHourlyDestinationMatchesList(
+            HourlyAllocationService service,
+            GameSession session,
+            List<HourlyAllocation> destination)
+        {
+            var expected = service.SplitByLocalHour(session);
+            service.SplitByLocalHour(session, destination);
+            Equal(expected.Count, destination.Count);
+            ulong destinationTotal = 0;
+            for (var index = 0; index < expected.Count; index++)
+            {
+                Equal(expected[index].LocalDate, destination[index].LocalDate);
+                Equal(expected[index].Hour, destination[index].Hour);
+                Equal(expected[index].Seconds, destination[index].Seconds);
+                destinationTotal += destination[index].Seconds;
+            }
+
+            Equal(session.ElapsedSeconds, destinationTotal);
+        }
+
+        private static void TestAdvancedAnalyticsSingleLoop()
+        {
+            var source = File.ReadAllText(Path.Combine(
+                FindSourceRoot(),
+                "Services",
+                "AdvancedAnalyticsService.cs"));
+            Equal(1, CountOccurrences(source, "foreach (var session in"));
+            Equal(false, source.Contains("CreateAnomalies(gameList, sessionList, range)"));
+            Equal(true, source.Contains("CreateAnomalyCandidate("));
+
+            var gameId = Guid.NewGuid();
+            var now = DateTime.UtcNow;
+            var normal = CreateSession(
+                gameId, "Normal", now.AddHours(-2), 600);
+            var zero = CreateSession(
+                gameId, "Zero", now.AddHours(-1), 0);
+            var endBeforeStart = CreateSession(
+                gameId, "EndBeforeStart", now.AddMinutes(-30), 60);
+            endBeforeStart.EndedAtUtc = endBeforeStart.StartedAtUtc.AddMinutes(-1);
+            var wallMismatch = CreateSession(
+                gameId, "WallMismatch", now.AddHours(-2), 7200);
+            wallMismatch.EndedAtUtc = wallMismatch.StartedAtUtc.AddHours(1);
+            var future = CreateSession(
+                gameId, "Future", now.AddHours(2), 60);
+            var longSession = CreateSession(
+                gameId, "Long", now.AddDays(-1), 19UL * 3600UL);
+            var sessions = new[]
+            {
+                normal,
+                zero,
+                endBeforeStart,
+                wallMismatch,
+                future,
+                longSession
+            };
+            var snapshots = sessions
+                .Select(session => new
+                {
+                    session.StartedAtUtc,
+                    session.EndedAtUtc,
+                    session.ElapsedSeconds
+                })
+                .ToList();
+
+            var snapshot = new AnalyticsService().CreateSnapshot(
+                new Playnite.SDK.Models.Game[0],
+                sessions,
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = DateTime.Today.AddDays(-2),
+                    CustomEndDate = DateTime.Today.AddDays(3)
+                });
+
+            Equal(5, snapshot.Advanced.Anomalies.Count);
+            Equal(
+                "Future|EndBeforeStart|Zero|WallMismatch|Long",
+                string.Join(
+                    "|",
+                    snapshot.Advanced.Anomalies.Select(item => item.GameName)));
+            Equal(
+                true,
+                snapshot.Advanced.Anomalies[0].Reason.Contains("未来"));
+            Equal(
+                true,
+                snapshot.Advanced.Anomalies[1].Reason.Contains("结束早于开始"));
+            Equal(
+                true,
+                snapshot.Advanced.Anomalies[2].Reason.Contains("零秒会话"));
+            Equal(
+                true,
+                snapshot.Advanced.Anomalies[3].Reason.Contains("墙钟"));
+            Equal(
+                true,
+                snapshot.Advanced.Anomalies[4].Reason.Contains("18 小时"));
+            Equal(
+                76320UL,
+                snapshot.Advanced.HourDistribution.Aggregate<
+                    DistributionBarViewModel,
+                    ulong>(
+                    0,
+                    (total, item) => total + item.Seconds));
+            foreach (var session in sessions)
+            {
+                var original = snapshots.First(item =>
+                    item.StartedAtUtc == session.StartedAtUtc &&
+                    item.ElapsedSeconds == session.ElapsedSeconds);
+                Equal(original.EndedAtUtc, session.EndedAtUtc);
+                Equal(original.ElapsedSeconds, session.ElapsedSeconds);
+            }
+
+            var topFifty = Enumerable.Range(0, 55)
+                .Select(index => CreateSession(
+                    gameId,
+                    "F" + index,
+                    now.AddMinutes(10 + index),
+                    60))
+                .ToList();
+            var topSnapshot = new AnalyticsService().CreateSnapshot(
+                new Playnite.SDK.Models.Game[0],
+                topFifty,
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.Custom,
+                    CustomStartDate = DateTime.Today.AddDays(-2),
+                    CustomEndDate = DateTime.Today.AddDays(3)
+                });
+            Equal(50, topSnapshot.Advanced.Anomalies.Count);
+            Equal("F54", topSnapshot.Advanced.Anomalies[0].GameName);
+            Equal("F5", topSnapshot.Advanced.Anomalies[49].GameName);
+        }
+
+        private static int CountOccurrences(string source, string value)
+        {
+            var count = 0;
+            var index = 0;
+            while ((index = source.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+            {
+                count++;
+                index += value.Length;
+            }
+
+            return count;
         }
 
         private static void TestAdvancedDistributions()

@@ -24,15 +24,13 @@ namespace PlaytimeInsights.Services
         }
 
         public AdvancedAnalyticsSnapshot CreateSnapshot(
-            IEnumerable<Game> games,
-            IEnumerable<GameSession> sessions,
+            IList<Game> games,
+            IList<GameSession> sessions,
             AnalyticsDateRange range,
             DayOfWeek firstDayOfWeek,
             IDictionary<DateTime, ulong> rangeDailySeconds,
             DashboardComparisonTotals comparisonTotals)
         {
-            var gameList = (games ?? Enumerable.Empty<Game>()).ToList();
-            var sessionList = (sessions ?? Enumerable.Empty<GameSession>()).ToList();
             var daily = rangeDailySeconds ??
                 new Dictionary<DateTime, ulong>();
             var weekdayLabels = WeekdayLabelService.CreateLabels(
@@ -49,10 +47,16 @@ namespace PlaytimeInsights.Services
 
             var hourSeconds = new ulong[24];
             var weekHourSeconds = new ulong[7, 24];
-            foreach (var session in sessionList)
+            var names = (games ?? new Game[0])
+                .GroupBy(game => game.Id)
+                .ToDictionary(group => group.Key, group => group.First().Name);
+            var hourlyBuffer = new List<HourlyAllocation>(4);
+            var anomalyCandidates =
+                new List<Tuple<DateTime, AnomalySessionViewModel>>();
+            foreach (var session in sessions)
             {
-                foreach (var allocation in hourlyAllocationService
-                    .SplitByLocalHour(session))
+                hourlyAllocationService.SplitByLocalHour(session, hourlyBuffer);
+                foreach (var allocation in hourlyBuffer)
                 {
                     if (allocation.LocalDate.Date < range.StartDate ||
                         allocation.LocalDate.Date > range.EndDate ||
@@ -68,7 +72,19 @@ namespace PlaytimeInsights.Services
                     weekHourSeconds[weekdayIndex, allocation.Hour] +=
                         allocation.Seconds;
                 }
+
+                var candidate = CreateAnomalyCandidate(session, range, names);
+                if (candidate != null)
+                {
+                    anomalyCandidates.Add(candidate);
+                }
             }
+
+            var anomalies = anomalyCandidates
+                .OrderByDescending(item => item.Item1)
+                .Take(50)
+                .Select(item => item.Item2)
+                .ToList();
 
             var activeDates = daily
                 .Where(value => value.Value > 0)
@@ -101,7 +117,6 @@ namespace PlaytimeInsights.Services
             var currentSeconds = daily.Aggregate<KeyValuePair<DateTime, ulong>, ulong>(
                 0,
                 (current, value) => current + value.Value);
-            var anomalies = CreateAnomalies(gameList, sessionList, range);
 
             return new AdvancedAnalyticsSnapshot
             {
@@ -403,96 +418,83 @@ namespace PlaytimeInsights.Services
             }
         }
 
-        private static IList<AnomalySessionViewModel> CreateAnomalies(
-            IList<Game> games,
-            IList<GameSession> sessions,
-            AnalyticsDateRange range)
+        private static Tuple<DateTime, AnomalySessionViewModel> CreateAnomalyCandidate(
+            GameSession session,
+            AnalyticsDateRange range,
+            IDictionary<Guid, string> names)
         {
-            var names = games
-                .GroupBy(game => game.Id)
-                .ToDictionary(group => group.Key, group => group.First().Name);
-            var result = new List<Tuple<DateTime, AnomalySessionViewModel>>();
-            foreach (var session in sessions)
+            var localStart = new DateTimeOffset(
+                DateTime.SpecifyKind(session.StartedAtUtc, DateTimeKind.Utc))
+                .ToOffset(TimeSpan.FromMinutes(session.StartUtcOffsetMinutes))
+                .DateTime;
+            var localEnd = new DateTimeOffset(
+                DateTime.SpecifyKind(session.EndedAtUtc, DateTimeKind.Utc))
+                .ToOffset(TimeSpan.FromMinutes(session.EndUtcOffsetMinutes))
+                .DateTime;
+            if (localEnd.Date < range.StartDate ||
+                localStart.Date > range.EndDate)
             {
-                var localStart = new DateTimeOffset(
-                    DateTime.SpecifyKind(session.StartedAtUtc, DateTimeKind.Utc))
-                    .ToOffset(TimeSpan.FromMinutes(session.StartUtcOffsetMinutes))
-                    .DateTime;
-                var localEnd = new DateTimeOffset(
-                    DateTime.SpecifyKind(session.EndedAtUtc, DateTimeKind.Utc))
-                    .ToOffset(TimeSpan.FromMinutes(session.EndUtcOffsetMinutes))
-                    .DateTime;
-                if (localEnd.Date < range.StartDate ||
-                    localStart.Date > range.EndDate)
-                {
-                    continue;
-                }
-
-                var reasons = new List<string>();
-                if (session.ElapsedSeconds == 0)
-                {
-                    reasons.Add(LocalizationService.Get(
-                        "LOCPlaytimeInsightsAnomalyZeroSeconds",
-                        "零秒会话"));
-                }
-                if (session.EndedAtUtc < session.StartedAtUtc)
-                {
-                    reasons.Add(LocalizationService.Get(
-                        "LOCPlaytimeInsightsAnomalyEndBeforeStart",
-                        "结束早于开始"));
-                }
-                if (session.StartedAtUtc > DateTime.UtcNow.AddMinutes(5))
-                {
-                    reasons.Add(LocalizationService.Get(
-                        "LOCPlaytimeInsightsAnomalyFutureStart",
-                        "开始时间位于未来"));
-                }
-                if (session.ElapsedSeconds >= 18UL * 3600UL)
-                {
-                    reasons.Add(LocalizationService.Get(
-                        "LOCPlaytimeInsightsAnomalyLongDuration",
-                        "持续至少 18 小时"));
-                }
-
-                var wallSeconds =
-                    (session.EndedAtUtc - session.StartedAtUtc).TotalSeconds;
-                if (wallSeconds >= 0 &&
-                    session.ElapsedSeconds > wallSeconds + 300)
-                {
-                    reasons.Add(LocalizationService.Get(
-                        "LOCPlaytimeInsightsAnomalyWallClockMismatch",
-                        "记录秒数明显大于墙钟时长"));
-                }
-                if (reasons.Count == 0)
-                {
-                    continue;
-                }
-
-                string name;
-                names.TryGetValue(session.GameId, out name);
-                result.Add(Tuple.Create(
-                    session.StartedAtUtc,
-                    new AnomalySessionViewModel
-                    {
-                        GameName = string.IsNullOrWhiteSpace(name)
-                            ? session.GameName
-                            : name,
-                        StartedText = localStart.ToString("yyyy/M/d HH:mm"),
-                        DurationText = AnalyticsService.FormatDurationPrecise(
-                            session.ElapsedSeconds),
-                        Reason = string.Join(
-                            LocalizationService.Get(
-                                "LOCPlaytimeInsightsListSeparator",
-                                "；"),
-                            reasons)
-                    }));
+                return null;
             }
 
-            return result
-                .OrderByDescending(item => item.Item1)
-                .Take(50)
-                .Select(item => item.Item2)
-                .ToList();
+            var reasons = new List<string>();
+            if (session.ElapsedSeconds == 0)
+            {
+                reasons.Add(LocalizationService.Get(
+                    "LOCPlaytimeInsightsAnomalyZeroSeconds",
+                    "零秒会话"));
+            }
+            if (session.EndedAtUtc < session.StartedAtUtc)
+            {
+                reasons.Add(LocalizationService.Get(
+                    "LOCPlaytimeInsightsAnomalyEndBeforeStart",
+                    "结束早于开始"));
+            }
+            if (session.StartedAtUtc > DateTime.UtcNow.AddMinutes(5))
+            {
+                reasons.Add(LocalizationService.Get(
+                    "LOCPlaytimeInsightsAnomalyFutureStart",
+                    "开始时间位于未来"));
+            }
+            if (session.ElapsedSeconds >= 18UL * 3600UL)
+            {
+                reasons.Add(LocalizationService.Get(
+                    "LOCPlaytimeInsightsAnomalyLongDuration",
+                    "持续至少 18 小时"));
+            }
+
+            var wallSeconds =
+                (session.EndedAtUtc - session.StartedAtUtc).TotalSeconds;
+            if (wallSeconds >= 0 &&
+                session.ElapsedSeconds > wallSeconds + 300)
+            {
+                reasons.Add(LocalizationService.Get(
+                    "LOCPlaytimeInsightsAnomalyWallClockMismatch",
+                    "记录秒数明显大于墙钟时长"));
+            }
+            if (reasons.Count == 0)
+            {
+                return null;
+            }
+
+            string name;
+            names.TryGetValue(session.GameId, out name);
+            return Tuple.Create(
+                session.StartedAtUtc,
+                new AnomalySessionViewModel
+                {
+                    GameName = string.IsNullOrWhiteSpace(name)
+                        ? session.GameName
+                        : name,
+                    StartedText = localStart.ToString("yyyy/M/d HH:mm"),
+                    DurationText = AnalyticsService.FormatDurationPrecise(
+                        session.ElapsedSeconds),
+                    Reason = string.Join(
+                        LocalizationService.Get(
+                            "LOCPlaytimeInsightsListSeparator",
+                            "；"),
+                        reasons)
+                });
         }
 
         private static int GetWeekdayIndex(

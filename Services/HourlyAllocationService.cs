@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace PlaytimeInsights.Services
 {
-    public sealed class HourlyAllocation
+    public struct HourlyAllocation
     {
         public DateTime LocalDate { get; set; }
 
@@ -29,10 +29,22 @@ namespace PlaytimeInsights.Services
 
         public IList<HourlyAllocation> SplitByLocalHour(GameSession session)
         {
-            var result = new List<HourlyAllocation>();
+            var destination = new List<HourlyAllocation>();
+            SplitByLocalHour(session, destination);
+            return destination;
+        }
+
+        public void SplitByLocalHour(GameSession session, IList<HourlyAllocation> destination)
+        {
+            if (destination == null)
+            {
+                throw new ArgumentNullException(nameof(destination));
+            }
+
+            destination.Clear();
             if (session == null)
             {
-                return result;
+                return;
             }
 
             var startedAtUtc = DateTime.SpecifyKind(
@@ -45,13 +57,13 @@ namespace PlaytimeInsights.Services
             if (endedAtUtc <= startedAtUtc)
             {
                 var local = TimeZoneInfo.ConvertTimeFromUtc(startedAtUtc, timeZone);
-                result.Add(new HourlyAllocation
+                destination.Add(new HourlyAllocation
                 {
                     LocalDate = local.Date,
                     Hour = local.Hour,
                     Seconds = session.ElapsedSeconds
                 });
-                return result;
+                return;
             }
 
             var wallSeconds = (endedAtUtc - startedAtUtc).TotalSeconds;
@@ -94,7 +106,7 @@ namespace PlaytimeInsights.Services
                     }
                 }
 
-                result.Add(new HourlyAllocation
+                destination.Add(new HourlyAllocation
                 {
                     LocalDate = localCursor.Date,
                     Hour = localCursor.Hour,
@@ -109,15 +121,13 @@ namespace PlaytimeInsights.Services
                 var finalLocal = TimeZoneInfo.ConvertTimeFromUtc(
                     endedAtUtc.AddTicks(-1),
                     timeZone);
-                result.Add(new HourlyAllocation
+                destination.Add(new HourlyAllocation
                 {
                     LocalDate = finalLocal.Date,
                     Hour = finalLocal.Hour,
                     Seconds = remainingElapsed
                 });
             }
-
-            return result;
         }
 
         private static DateTime FindNextLocalHourBoundary(
