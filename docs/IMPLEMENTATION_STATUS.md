@@ -2,7 +2,7 @@
 
 最后更新：2026-09-03
 
-当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵仅剩减弱动效，实际读屏器已跳过；100k 分析性能与 All Sessions 热力图 UI 性能均已在本地 `codex/dashboard-performance-optimization` 收敛达标。性能分支仍待虚拟化后实机矩阵、推送、合并与部署；正式 1.1.0 发版尚未开始
+当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵仅剩减弱动效，实际读屏器已跳过；100k 分析性能与 All Sessions 热力图 UI 性能均已在本地 `codex/dashboard-performance-optimization` 收敛达标并部署。性能分支仍待虚拟化后实机矩阵、推送与合并；正式 1.1.0 发版尚未开始
 
 ## 2026-09-03 Calendar 热力图 UI 性能收敛（codex/dashboard-performance-optimization）
 
@@ -13,7 +13,8 @@
 - 历史样本保留：原始非虚拟化实现 All Sessions 最大 707.6 ms；轻量 Button 前五样本门禁 All Sessions 最大 855.3 ms、一年最大 203.9 ms；均记录于 `docs/CLIENT_ACCEPTANCE_1.1.0.md`，未删除；
 - 虚拟化后主题 / DPI / 双语言 / 键盘 / Tooltip / 月轴滚动同步实机矩阵待用户验收；实际读屏器播报延续既定决定跳过，Reduced motion 仍待实机确认；
 - 2026-09-03 状态同步时的新鲜复跑：两个 Release 构建 0 warning / 0 error，完整回归通过；100k 五样本 508 / 524 / 555 / 609 / 647 ms（median 555、max 647），schema 4 为 1,074 ms；一年热力图 max 139.3 ms，All Sessions max 102.6 ms。此前约 1,714 ms 的整机负载样本保留为环境噪声记录，不再是当前阻塞项；
-- 交付状态：本地分支相对远端领先 12 个提交；远端性能分支与 `main` 仍为 `d9a5d34`。性能构建 DLL SHA-256 为 `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`，当前已安装 DLL 仍为视觉基线 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`，因此性能版本尚未部署；
+- 部署状态：2026-09-03 部署前两个 Release 构建 0 warning / 0 error，完整回归通过；100k median/max 530/540 ms，schema 4 为 1,000 ms，一年/All Sessions UI max 135.9/107.4 ms。Release 与安装目录严格 9/9 文件哈希一致，DLL SHA-256 为 `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`；旧版 9 文件备份位于 `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260903-212723`；部署前后 7 个用户数据文件联合指纹均为 `A1CCAB93B14ACC88EF4C78253169FE149947DD9FD3701F1C4AC3E6944DF8932E`；部署时 Playnite 未运行；
+- 分支状态：性能提交仍只在本地，远端性能分支与 `main` 仍为 `d9a5d34`；尚未推送或合并；
 
 ## 2026-09-03 Dashboard 分析性能收敛（codex/dashboard-performance-optimization）
 
@@ -1061,7 +1062,7 @@ Windows 地区而显示中文月份，0.9.2 最终候选已改为插件控制的
 
 ## 下一动作
 
-1. 部署本地 `codex/dashboard-performance-optimization` 构建，完成虚拟化后的主题 / DPI / 双语言 / 键盘 / Tooltip / 月轴同步实机矩阵；实际读屏器播报继续跳过；
+1. 启动已部署的 `codex/dashboard-performance-optimization` 构建，完成虚拟化后的主题 / DPI / 双语言 / 键盘 / Tooltip / 月轴同步实机矩阵；实际读屏器播报继续跳过；
 2. 补齐 Task 7 Reduced motion 实机核验，并同步 `docs\CLIENT_ACCEPTANCE_1.1.0.md`；
-3. 人工验收通过后推送性能分支、合并回 `main` 并部署合并产物；
+3. 人工验收通过后推送性能分支并合并回 `main`；合并后重新构建并核对安装产物与 `main` 一致；
 4. 视觉与性能口径确认后，另立正式 1.1.0 发版任务，统一版本号、CHANGELOG、PEXT、标签和公开发布流程。

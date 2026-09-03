@@ -137,7 +137,7 @@ Playnite 的累计时长以分钟为主要展示单位，插件会话内部保�
 - 会话存储使用本地 JSON，文件体积会随会话数量增长；
 - All Sessions 跨越多年时，日历热力图使用水平虚拟化周列与同步月份轴，仅实现视口附近的日期格；1,820 格的 Measure + Arrange 成本已从约 0.7 秒收敛到 0.2 秒以内（预算 <= 300 ms，未放宽）；
 - 10 年 / 100k 会话分析的 Release 硬预算仍为不高于 750 ms；合并视觉分支时测得的 715 / 759 ms（一次超预算 9 ms）作为历史基线保留，不代表当前性能分支结果；
-- 本地 `codex/dashboard-performance-optimization` 已完成分析与 Calendar UI 自动化收敛：既有五轮独立门禁中 100k 五样本中位数 532–587 ms、最大值 546–667 ms，All Sessions 1,820 格最大 168.4 ms；2026-09-03 状态复跑为分析 median 555 / max 647 ms、schema 4 1,074 ms、All Sessions UI max 102.6 ms。预算均未放宽；该分支仍待实机复验、推送、合并和部署；
+- 本地 `codex/dashboard-performance-optimization` 已完成分析与 Calendar UI 自动化收敛：既有五轮独立门禁中 100k 五样本中位数 532–587 ms、最大值 546–667 ms，All Sessions 1,820 格最大 168.4 ms；2026-09-03 部署门禁复跑为分析 median 530 / max 540 ms、schema 4 1,000 ms、All Sessions UI max 107.4 ms。预算均未放宽；性能构建已部署，仍待实机复验、推送和合并；
 - 下一轮 Dashboard 视觉增强的减弱动效人工矩阵仍在验收；实际读屏器播报已决定跳过，不能据此声明原生 Polite live-region 语义；
 - Fullscreen 模式尚无专用统计界面；
 

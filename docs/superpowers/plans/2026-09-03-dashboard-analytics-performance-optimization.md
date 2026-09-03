@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status (2026-09-03):** Task 1–6 已全部实现、逐项提交并通过自动化门禁。当前性能分支尚未推送、合并或部署；交付状态以 `docs/IMPLEMENTATION_STATUS.md` 为准。
+**Status (2026-09-03):** Task 1–6 已全部实现、逐项提交并通过自动化门禁；性能构建已部署到本机 Playnite。当前性能分支尚未推送或合并；交付状态以 `docs/IMPLEMENTATION_STATUS.md` 为准。
 
 **Goal:** 将 10 年 / 5,000 游戏 / 100,000 会话 Dashboard 分析从临界的 695–759 ms 收敛到五轮中位数不高于 650 ms、最大值不高于 700 ms，同时保持既有 750 ms 发布硬门禁、统计语义和选择性刷新边界不变。
 
