@@ -2,17 +2,18 @@
 
 最后更新：2026-09-03
 
-当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵仅剩减弱动效，实际读屏器已跳过；100k 分析性能与 All Sessions 热力图 UI 性能均已在 `codex/dashboard-performance-optimization` 收敛达标；正式 1.1.0 发版尚未开始
+当前阶段：Dashboard Visual Elevation 已实现、部署、提交并推送；Task 7 人工矩阵仅剩减弱动效，实际读屏器已跳过；100k 分析性能与 All Sessions 热力图 UI 性能均已在本地 `codex/dashboard-performance-optimization` 收敛达标。性能分支仍待虚拟化后实机矩阵、推送、合并与部署；正式 1.1.0 发版尚未开始
 
 ## 2026-09-03 Calendar 热力图 UI 性能收敛（codex/dashboard-performance-optimization）
 
-- 实施计划：`docs/superpowers/plans/2026-09-03-calendar-heatmap-ui-performance-optimization.md`；Task 1–2 完成后按硬分支判定执行了 Task 3–4，Task 5 完成；全部逐项提交；
+- 实施计划：`docs/superpowers/plans/2026-09-03-calendar-heatmap-ui-performance-optimization.md`；Task 1–2 完成后按硬分支判定执行了 Task 3–4；Task 5 的自动化、范围审查、证据记录与提交步骤已完成，虚拟化后实机矩阵仍待用户验收；
 - 提交映射：Task 1 五样本 UI 门禁 `e86a214`；Task 2 轻量自绘 `HeatmapCellButton` `3d84624`；Task 3 周列发布（引用复用、不复制 Cell 模型）`cbb498c`；Task 4 水平 Recycling 虚拟化周列 + 月份轴同步 `280ee33`；Task 5 本文档证据冻结；
 - 五轮独立 Release 门禁证据：一年 371 格五样本 max 187.3 / 188.9 / 192.0 / 180.3 / 179.9 ms（目标 <= 200）；All Sessions 1,820 格五样本 max 152.5 / 153.7 / 157.4 / 168.4 / 151.2 ms（目标 <= 300，五轮中位 137.8–143.3 ms）；realized 周列容器 25–26（< 60）、realized 日期按钮 175–182（< 420），ViewModel 日期数据仍为完整 1,820 格；
 - 月份轴同步：滚动全程 HorizontalOffset 与周列内容 offset 差 0.0 DIP（<= 0.5 DIP 契约，含滚动末端钳位点）；实现方式为月份轴 ScrollViewer 以 `Padding="1,0"` 镜像 ListBox 默认模板每侧 1 DIP 的内容内衬；
 - 历史样本保留：原始非虚拟化实现 All Sessions 最大 707.6 ms；轻量 Button 前五样本门禁 All Sessions 最大 855.3 ms、一年最大 203.9 ms；均记录于 `docs/CLIENT_ACCEPTANCE_1.1.0.md`，未删除；
-- 主题 / DPI / 键盘 / Tooltip / 读屏器人工矩阵待用户人工验收；实际读屏器播报延续既定决定跳过；
-- 备注：同分支分析性能五轮门禁此前已在安静窗口达标（中位 532–587 ms、max 546–667 ms、schema 4 最大 1,364 ms）；本轮末尾复跑时整机整体变慢（未被本计划触碰的 schema 4 加载从 1,197 ms 同比例升至约 1,714 ms，GC 剖面不变），判定为环境负载而非代码回退，建议在机器空闲/接通电源状态下复跑确认。
+- 虚拟化后主题 / DPI / 双语言 / 键盘 / Tooltip / 月轴滚动同步实机矩阵待用户验收；实际读屏器播报延续既定决定跳过，Reduced motion 仍待实机确认；
+- 2026-09-03 状态同步时的新鲜复跑：两个 Release 构建 0 warning / 0 error，完整回归通过；100k 五样本 508 / 524 / 555 / 609 / 647 ms（median 555、max 647），schema 4 为 1,074 ms；一年热力图 max 139.3 ms，All Sessions max 102.6 ms。此前约 1,714 ms 的整机负载样本保留为环境噪声记录，不再是当前阻塞项；
+- 交付状态：本地分支相对远端领先 12 个提交；远端性能分支与 `main` 仍为 `d9a5d34`。性能构建 DLL SHA-256 为 `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`，当前已安装 DLL 仍为视觉基线 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`，因此性能版本尚未部署；
 
 ## 2026-09-03 Dashboard 分析性能收敛（codex/dashboard-performance-optimization）
 
@@ -20,8 +21,8 @@
 - 提交映射：Task 1 五样本门禁 `bb335c6`；Task 2 共享时区解析缓存 `b7ca3e6`（新增 `Services/SessionTimeZoneResolver.cs`）；Task 3 日分配缓冲区复用 `b126006`；Task 4 当前/上一周期/去年同期单趟累计 `50b7d31`（删除 `CalculateRangeSeconds` 两次全量重扫）；Task 5 小时缓冲区复用 + Advanced 单会话循环 `e33cfe3`（`HourlyAllocation` 改为 struct、异常候选并入同一循环）；Task 6 本文档证据冻结；
 - 五轮独立 Release 门禁证据：两个构建 0 warning / 0 error；100k 五样本中位数 560 / 550 / 563 / 587 / 532 ms（最大中位 587 ms，目标 ≤ 650）；五样本最大值 579 / 567 / 600 / 667 / 546 ms（总最大 667 ms，目标 ≤ 700）；schema 4 加载 1,364 / 1,260 / 1,190 / 1,318 / 1,197 ms（最大 1,364 ms ≤ 1,400）；GC 0/1/2 增量稳定 59/15/4（基线 189/31/7）；
 - 基线与历史失败样本保留：Task 1 基线五样本 622–720 ms（中位 707）；合并门禁 715/759 ms 已知项与一轮环境噪声污染轮（max 719 ms、schema 4 1,403 ms，复跑即通过）均如实记录于 `docs/CLIENT_ACCEPTANCE_1.1.0.md`，未删除；
-- 与 main 相比 `Views/`、`Controls/`、`Localization/`、`Resources/` 无差异；跨零点、DST、比较区间、异常、排行和选择性刷新语义由既有回归全部保持；
-- 剩余性能项：All Sessions 1,820 个热力格 Measure + Arrange 最大 707.6 ms，由同分支 `docs/superpowers/plans/2026-09-03-calendar-heatmap-ui-performance-optimization.md` 处理。
+- 分析 Task 1–6 的提交本身未修改 `Views/`、`Controls/`、`Localization/` 或 `Resources/`；当前分支后续为热力图性能新增了 `Controls/HeatmapCellButton.cs` 并修改 Dashboard View。跨零点、DST、比较区间、异常、排行和选择性刷新语义由既有回归全部保持；
+- 分析侧无剩余自动化性能项；原 All Sessions 707.6 ms 后续项已由同分支 Calendar 计划收敛至五轮 max 168.4 ms，状态同步复跑 max 102.6 ms。
 
 ## 2026-08-30 Dashboard Visual Elevation 最终状态
 
@@ -32,7 +33,7 @@
 - 部署前后 7 个用户数据文件联合指纹一致；Playnite 仅在本次启动进程内使用 10456 端口的 HTTP/HTTPS 代理，未写入仓库、测试或系统全局配置；
 - 2026-09-03 已人工完成：640、900、1159、1160、1199、1200、1440、1600 DIP 内容宽度及双向滞回，空范围/排行/下钻/跨月/六周月份/一年/All Sessions 数据状态，Default Dark/Default Light/Seaside Dark/Windows High Contrast，zh_CN / en_US，100%–200% DPI，Calendar Button 键盘链路，Calendar/Week×Hour 视觉区分，以及区间榜/累计榜跨零点相对日期；
 - 实际读屏器播报已由用户决定跳过，不作为本轮验收门禁；自动化仍只证明 Automation Name 与 `NameProperty` 事件路径，不声明原生 Polite live-region 语义；
-- 尚未完成：Task 7 的减弱动效人工矩阵；All Sessions 1,820 个热力格 Measure + Arrange 最大 707.6 ms，仍是后续性能决策项；
+- 尚未完成：Task 7 的减弱动效人工矩阵，以及性能分支虚拟化后的主题 / DPI / 双语言 / 键盘 / Tooltip / 月轴同步实机复验；All Sessions 707.6 ms 性能决策项已由性能分支完成，不再列为待办；
 - 正式 1.1.0 发版尚未开始，当前 `extension.yaml`、程序集和最近公开标签仍为 1.0.0；版本升级、CHANGELOG、PEXT、标签与公开发布应另立发版任务。
 
 ## 2026-08-14 1.0.0 发布候选整合
@@ -1060,6 +1061,7 @@ Windows 地区而显示中文月份，0.9.2 最终候选已改为插件控制的
 
 ## 下一动作
 
-1. 按需要继续补齐 `docs\CLIENT_ACCEPTANCE_1.1.0.md` 中未勾选的 Task 7 人工矩阵，并只记录实际完成的证据；
-2. 决定是否为 All Sessions 热力图约 0.71 秒的 UI 布局成本实施虚拟化、轻量可聚焦元素或按月分段；
-3. 视觉与性能口径确认后，另立正式 1.1.0 发版任务，统一版本号、CHANGELOG、PEXT、标签和公开发布流程。
+1. 部署本地 `codex/dashboard-performance-optimization` 构建，完成虚拟化后的主题 / DPI / 双语言 / 键盘 / Tooltip / 月轴同步实机矩阵；实际读屏器播报继续跳过；
+2. 补齐 Task 7 Reduced motion 实机核验，并同步 `docs\CLIENT_ACCEPTANCE_1.1.0.md`；
+3. 人工验收通过后推送性能分支、合并回 `main` 并部署合并产物；
+4. 视觉与性能口径确认后，另立正式 1.1.0 发版任务，统一版本号、CHANGELOG、PEXT、标签和公开发布流程。

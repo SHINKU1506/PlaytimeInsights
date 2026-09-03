@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status (2026-09-03):** Task 1–6 已全部实现、逐项提交并通过自动化门禁。当前性能分支尚未推送、合并或部署；交付状态以 `docs/IMPLEMENTATION_STATUS.md` 为准。
+
 **Goal:** 将 10 年 / 5,000 游戏 / 100,000 会话 Dashboard 分析从临界的 695–759 ms 收敛到五轮中位数不高于 650 ms、最大值不高于 700 ms，同时保持既有 750 ms 发布硬门禁、统计语义和选择性刷新边界不变。
 
 **Architecture:** 保留 `AnalyticsService` 作为完整快照协调边界，但让一次按日拆分同时服务当前范围、上一等长区间和去年同期，避免 Advanced 阶段重复扫描并重复拆分全部会话。抽取一个由按日/按小时拆分器共享的时区解析缓存；为按日和按小时拆分增加可复用目标缓冲区，消除每会话 Dictionary、LINQ 迭代器、List 和小时分片对象分配。Advanced 阶段只做一次会话扫描，并在同一循环内完成小时累计和异常候选生成。
@@ -47,7 +49,7 @@
 - Produces: `MeasureAnalyticsSamples(Func<DashboardSnapshot> action, int warmupCount, int measuredCount)`
 - Preserves: existing fixture size, query, semantic assertions and 750 ms hard limit
 
-- [ ] **Step 1: Register a deterministic summary test**
+- [x] **Step 1: Register a deterministic summary test**
 
 在 `Main()` 的 100k 性能测试之前注册：
 
@@ -75,7 +77,7 @@ private static void TestAnalyticsPerformanceSampleSummary()
 }
 ```
 
-- [ ] **Step 2: Run the focused test to verify RED**
+- [x] **Step 2: Run the focused test to verify RED**
 
 Run:
 
@@ -85,7 +87,7 @@ dotnet build Tests\PlaytimeInsights.Tests.csproj -c Release --no-restore -p:Play
 
 Expected: 编译失败，指出 `AnalyticsPerformanceSampleSummary` 尚不存在。
 
-- [ ] **Step 3: Add the sample summary and measurement helper**
+- [x] **Step 3: Add the sample summary and measurement helper**
 
 在 `Tests/Program.cs` 的测试辅助类型区域增加：
 
@@ -125,7 +127,7 @@ private sealed class AnalyticsPerformanceSampleSummary
 
 `MeasureAnalyticsSamples` 必须先执行一次不计时 `action()`，再记录 GC 计数、连续执行五次 `action()`，最后计算差值。不得在五个正式样本之间调用 `GC.Collect()`。
 
-- [ ] **Step 4: Convert `TestLargeTenYearAnalytics` to the five-sample contract**
+- [x] **Step 4: Convert `TestLargeTenYearAnalytics` to the five-sample contract**
 
 保留 fixture 和现有快照语义断言；用同一个 `Func<DashboardSnapshot>` 进行一次预热与五次正式测量。打印格式固定为：
 
@@ -135,7 +137,7 @@ private sealed class AnalyticsPerformanceSampleSummary
 
 此任务只建立证据，不立即要求 650/700 优化目标。继续保留现有 `MaxMilliseconds <= 750` 发布门禁；把当前五轮结果写入测试输出，作为后续任务 RED 基线。
 
-- [ ] **Step 5: Run the complete regression and commit the harness**
+- [x] **Step 5: Run the complete regression and commit the harness**
 
 Run:
 
@@ -171,7 +173,7 @@ git commit -m "test: stabilize dashboard analytics performance evidence"
 - Produces: `AdvancedAnalyticsService(SessionTimeZoneResolver resolver)`
 - Preserves: parameterless constructors for existing callers and tests
 
-- [ ] **Step 1: Add cache identity and fallback tests**
+- [x] **Step 1: Add cache identity and fallback tests**
 
 注册并实现：
 
@@ -182,11 +184,11 @@ Run("Session timezone resolver caches valid and fallback zones",
 
 测试使用两个 `TimeZoneId="China Standard Time"`、offset 480 的不同会话，断言两次 `Resolve` 返回同一引用；再使用无效 TimeZoneId + offset 330 的两个会话，断言返回同一固定偏移引用且 `BaseUtcOffset == TimeSpan.FromMinutes(330)`。
 
-- [ ] **Step 2: Run the focused test to verify RED**
+- [x] **Step 2: Run the focused test to verify RED**
 
 Run test build. Expected: `SessionTimeZoneResolver` 类型不存在。
 
-- [ ] **Step 3: Implement one thread-safe resolver**
+- [x] **Step 3: Implement one thread-safe resolver**
 
 `SessionTimeZoneResolver` 使用 `Dictionary<string, TimeZoneInfo>(StringComparer.OrdinalIgnoreCase)` 和现有 lock 模式。cache key 固定为：
 
@@ -198,7 +200,7 @@ var cacheKey = !string.IsNullOrWhiteSpace(session.TimeZoneId)
 
 先尝试 `FindSystemTimeZoneById`；失败时创建固定偏移时区。解析完成后在锁内二次检查并发布，保证并发调用只保留一个缓存实例。
 
-- [ ] **Step 4: Inject the resolver into both allocation services**
+- [x] **Step 4: Inject the resolver into both allocation services**
 
 两个服务都保留参数less constructor，并委托到带 resolver 的 constructor：
 
@@ -216,7 +218,7 @@ public DailyAllocationService(SessionTimeZoneResolver resolver)
 
 `AnalyticsService` 的构造函数创建一个 resolver，并传给 `DailyAllocationService` 与 `AdvancedAnalyticsService`；Advanced 再把同一实例传给 `HourlyAllocationService`。删除两个拆分器中的重复 ResolveTimeZone 实现和 Hourly 私有缓存。
 
-- [ ] **Step 5: Run allocation, DST, cross-midnight and full tests**
+- [x] **Step 5: Run allocation, DST, cross-midnight and full tests**
 
 Expected: 所有时间分配测试通过；五轮 100k 样本相较 Task 1 不得退化；Release 0 warning / 0 error。
 
@@ -239,15 +241,15 @@ git commit -m "perf: share cached session timezone resolution"
 - Produces: `DailyAllocationService.SplitByLocalDay(GameSession session, IList<DailyAllocation> destination) : void`
 - Preserves: existing `SplitByLocalDay(GameSession) : IDictionary<DateTime, ulong>` API
 
-- [ ] **Step 1: Add destination-reuse equivalence tests**
+- [x] **Step 1: Add destination-reuse equivalence tests**
 
 测试创建普通、跨午夜、DST 和 `EndedAtUtc <= StartedAtUtc` 四类会话。对每类会话分别调用旧 Dictionary API 与新 destination API，断言日期和秒数完全一致；在同一个 `List<DailyAllocation>` 上连续调用两次，断言第二次结果不包含第一次残留。
 
-- [ ] **Step 2: Run the test build to verify RED**
+- [x] **Step 2: Run the test build to verify RED**
 
 Expected: `DailyAllocation` 和 destination overload 不存在。
 
-- [ ] **Step 3: Implement the value buffer overload**
+- [x] **Step 3: Implement the value buffer overload**
 
 新增：
 
@@ -265,7 +267,7 @@ public void SplitByLocalDay(
 
 方法入口调用 `destination.Clear()`，现有循环直接向 destination 合并同一天条目。旧 Dictionary API 创建一个小 List、调用 overload，再投影为 Dictionary，保证兼容调用方语义不变。
 
-- [ ] **Step 4: Replace the main-loop allocation pipeline**
+- [x] **Step 4: Replace the main-loop allocation pipeline**
 
 在 `CreateSnapshotWithContext` 外层创建一次：
 
@@ -280,7 +282,7 @@ allocations.Where(...).ToList();
 includedAllocations.Aggregate(...);
 ```
 
-- [ ] **Step 5: Verify semantics, five-sample evidence and commit**
+- [x] **Step 5: Verify semantics, five-sample evidence and commit**
 
 Expected: 所有分配/范围/排行测试通过；Task 1 五轮 GC Gen 0 增量和最大时间不高于前一提交。
 
@@ -305,7 +307,7 @@ git commit -m "perf: reuse daily allocation buffers"
 - Consumes: each `DailyAllocation` exactly once per session
 - Removes: `AdvancedAnalyticsService.CalculateRangeSeconds`
 
-- [ ] **Step 1: Add overlapping-range accumulator tests**
+- [x] **Step 1: Add overlapping-range accumulator tests**
 
 定义测试数据覆盖：当前范围与去年同期重叠、上一周期不重叠、闰日和跨午夜。断言同一日可以同时计入 Current 与 YearOverYear，但只按各自范围判断一次。
 
@@ -322,23 +324,23 @@ public sealed class DashboardComparisonTotals
 }
 ```
 
-- [ ] **Step 2: Run tests to verify RED**
+- [x] **Step 2: Run tests to verify RED**
 
 Expected: `ComparisonTotals` 属性不存在。
 
-- [ ] **Step 3: Resolve comparison ranges before the session loop**
+- [x] **Step 3: Resolve comparison ranges before the session loop**
 
 当 `RangePreset != AllSessions` 时，使用现有 `CreatePreviousPeriodRange` 和 `CreateYearOverYearRange` 生成两个范围；All Sessions 发布 `Enabled=false` 且两个 range 为 null。
 
-- [ ] **Step 4: Add comparison totals to the existing allocation foreach**
+- [x] **Step 4: Add comparison totals to the existing allocation foreach**
 
 在 Task 3 的 `foreach (var allocation in dailyAllocationBuffer)` 中，先独立判断 PreviousRange 和 YearOverYearRange 并累计到两个 ulong，再判断是否属于 Current。比较累计必须发生在 `includedSeconds == 0` 的 current-range `continue` 之前，否则完全位于上一周期或去年同期的会话会被漏掉。当前范围逻辑保持原样；范围重叠时允许同一 allocation 同时进入 Current 和 YearOverYear。
 
-- [ ] **Step 5: Consume totals in Advanced and delete two rescans**
+- [x] **Step 5: Consume totals in Advanced and delete two rescans**
 
 `AdvancedAnalyticsService.CreateSnapshot` 接收 `DashboardComparisonTotals comparisonTotals`。直接用其中的 range/seconds 创建两个 ComparisonMetricViewModel，删除 `CalculateRangeSeconds` 和两次 100k session 扫描。
 
-- [ ] **Step 6: Run comparison semantics and performance gate**
+- [x] **Step 6: Run comparison semantics and performance gate**
 
 Expected: previous/year/leap-day/All Sessions 比较测试不变；五轮 100k 中位数 `<= 650 ms`、最大值 `<= 700 ms`。若最大值仍超过 700 ms，继续 Task 5；不得放宽目标。
 
@@ -364,37 +366,37 @@ git commit -m "perf: aggregate comparison ranges in one pass"
 - Preserves: anomaly sort, top-50 limit, text and no-mutation behavior
 - Preserves: exactly one hourly split per session
 
-- [ ] **Step 1: Add hourly destination-reuse tests**
+- [x] **Step 1: Add hourly destination-reuse tests**
 
 为普通、跨小时、跨午夜和 DST 会话分别调用旧返回值 API 与新的 destination API，断言日期、小时、秒数和总秒数完全一致。在同一个 `List<HourlyAllocation>` 上连续调用两次，断言第二次结果不含第一次残留；断言 `typeof(HourlyAllocation).IsValueType` 为 true。
 
-- [ ] **Step 2: Run the hourly tests to verify RED**
+- [x] **Step 2: Run the hourly tests to verify RED**
 
 Expected: destination overload 不存在，`HourlyAllocation` 仍是 reference type。
 
-- [ ] **Step 3: Implement the value buffer overload**
+- [x] **Step 3: Implement the value buffer overload**
 
 把 `HourlyAllocation` 改为 `struct`。新增 destination overload，入口先 `destination.Clear()`，并把当前所有 `result.Add(new HourlyAllocation { ... })` 写入 destination。旧 API 只创建 List、调用 overload 并返回，保持所有现有调用方兼容。
 
-- [ ] **Step 4: Add a source-loop contract and anomaly equivalence tests**
+- [x] **Step 4: Add a source-loop contract and anomaly equivalence tests**
 
 注册 `Advanced analytics processes sessions in one loop`。测试读取完整 `AdvancedAnalyticsService.cs`，最终契约直接断言 `CountOccurrences(source, "foreach (var session in") == 1`，并断言不存在 `CreateAnomalies(gameList, sessionList, range)`。源码计数使用测试文件内新增的 `CountOccurrences(string source, string value)`，不得用脆弱的行号。
 
 同时保留运行时等价测试：构造覆盖零秒、结束早于开始、未来开始、18 小时以上、墙钟不一致和正常会话的固定集合，断言异常原因、降序顺序、top-50、小时分布与输入对象不变。
 
-- [ ] **Step 5: Run the Advanced test to verify RED**
+- [x] **Step 5: Run the Advanced test to verify RED**
 
 Expected: 源码契约失败，因为当前 `CreateSnapshot` 的小时循环之外仍调用接收完整 `sessionList` 的 `CreateAnomalies`；运行时等价测试继续通过。
 
-- [ ] **Step 6: Fold allocation and anomaly creation into one loop**
+- [x] **Step 6: Fold allocation and anomaly creation into one loop**
 
 在进入 session loop 前创建一个 `List<HourlyAllocation>(4)`、names 字典和 anomaly tuple list。每个 session 调用新的 destination overload，遍历复用缓冲区完成现有小时累计，再调用 `CreateAnomalyCandidate`；非异常返回 null，异常加入列表。循环后保持现有 `OrderByDescending().Take(50)` 投影。
 
-- [ ] **Step 7: Remove redundant materialization**
+- [x] **Step 7: Remove redundant materialization**
 
 将 Advanced 参数改为 `IList<Game>` 与 `IList<GameSession>`；删除入口的 `.ToList()`。`AnalyticsService` 已传入 list，因此不改变调用语义。
 
-- [ ] **Step 8: Run anomaly/hourly/full regression and commit**
+- [x] **Step 8: Run anomaly/hourly/full regression and commit**
 
 Expected: 完整回归通过；五轮 100k 中位数 `<= 650 ms`、最大值 `<= 700 ms`；schema 4 `<= 1400 ms`。
 
@@ -417,11 +419,11 @@ git commit -m "perf: combine advanced session scans"
 - Consumes: Task 1 five-sample summary
 - Produces: auditable final median/max/GC evidence
 
-- [ ] **Step 1: Run five independent complete Release gates**
+- [x] **Step 1: Run five independent complete Release gates**
 
 每轮执行两个 Release build 和完整回归；记录每轮内部五样本的 median/max。所有轮次必须满足：plugin/test 0 warning / 0 error、100k 五样本 max `<= 700 ms`、median `<= 650 ms`、schema 4 `<= 1400 ms`。
 
-- [ ] **Step 2: Compare semantics and scope**
+- [x] **Step 2: Compare semantics and scope**
 
 Run:
 
@@ -432,11 +434,11 @@ git diff main -- Views Controls Localization Resources
 
 Expected: 第二条命令无差异；本计划不得改变 XAML、视觉资源、本地化文本或控件布局。
 
-- [ ] **Step 3: Update evidence without hiding the historical failure**
+- [x] **Step 3: Update evidence without hiding the historical failure**
 
 README 保留历史 715/759 ms 说明，并追加新五轮范围和“预算未放宽”；`IMPLEMENTATION_STATUS` 与 `CLIENT_ACCEPTANCE_1.1.0` 写入最终 max/median/GC。不得删除 759 ms 失败样本。
 
-- [ ] **Step 4: Commit final analytics evidence**
+- [x] **Step 4: Commit final analytics evidence**
 
 ```powershell
 git add README.md docs\IMPLEMENTATION_STATUS.md docs\CLIENT_ACCEPTANCE_1.1.0.md Tests\Program.cs

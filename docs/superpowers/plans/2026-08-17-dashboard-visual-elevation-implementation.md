@@ -61,7 +61,7 @@
 - 最终提交映射：Task 0 为 `71a599d`；Task 1 为 `cda8081`；Task 2 与 Task 2.5 为 `0180a81`；Task 3 与 Task 3.5 为 `108a4c4`；Task 4 与 Task 4.5 为 `301708c`；Task 6 为 `a0983ee`；Task 7 及最终比较胶囊修复为 `e59f9bf`。
 - Task 5 已于 2026-08-28 明确跳过，未实施 Hero/Tier 2 拆分；其未勾选 Steps 是已否决方案的历史记录，不是当前待办。
 - Task 1 Step 2 和 Task 2 Step 2 的 RED 期望在 2026-08-22 对账时已不可复现，因此按“确认实现存在且回归为 GREEN”完成；没有为制造 RED 回退已有实现。
-- Task 7 的精确内容宽度、完整数据状态、全主题、zh_CN / en_US、全 DPI、Calendar 键盘链路、Calendar/Week×Hour 视觉区分和跨零点相对日期已于 2026-09-03 完成人工核验；实际读屏器播报由用户决定跳过，且不得据此声称具备原生 Polite live-region 语义。人工矩阵仅剩减弱动效；All Sessions 1,820 格的 UI Measure + Arrange 最大 707.6 ms，仍登记为待收敛性能项。
+- Task 7 的精确内容宽度、完整数据状态、全主题、zh_CN / en_US、全 DPI、Calendar 键盘链路、Calendar/Week×Hour 视觉区分和跨零点相对日期已于 2026-09-03 完成人工核验；实际读屏器播报由用户决定跳过，且不得据此声称具备原生 Polite live-region 语义。视觉基线人工矩阵仅剩减弱动效。All Sessions 1,820 格 UI Measure + Arrange 的 707.6 ms 后续项已由本地 `codex/dashboard-performance-optimization` 收敛到五轮 max 168.4 ms，状态同步复跑 max 102.6 ms；性能版仍待虚拟化后实机复验、推送、合并与部署。
 - 2026-08-30 最终部署的严格 9 个文件与当前 Release 源产物一致；DLL SHA-256 为 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`。详细证据见 `docs/CLIENT_ACCEPTANCE_1.1.0.md`。
 
 ## Relationship to the 2026-08-14 Plan
@@ -1690,7 +1690,7 @@ git commit -m "feat: anchor dashboard drilldown to selection source"
 
 ### Task 7: Integrate Contracts and Execute the Acceptance Matrix
 
-> **状态（2026-09-03）：自动护栏、Release 门禁、真实热力图布局成本、证据记录、范围审查与最终提交已完成；人工矩阵仅剩减弱动效。** 最终连续五轮回归通过；100k / schema 4 最大值分别为 692 / 1,031 ms。640–1600 DIP 精确内容宽度、完整数据状态、全主题、zh_CN / en_US、全 DPI、Calendar 键盘链路、Calendar/Week×Hour 视觉区分和跨零点相对日期已完成人工核验；实际读屏器由用户决定跳过，不计为通过。All Sessions 1,820 格 Measure + Arrange 最大 707.6 ms，登记为后续待收敛项。最终提交同时包含用户验收发现的比较胶囊纵向排列修复及其真实 WPF 布局回归，不改变 8 卡响应式架构。
+> **状态（2026-09-03）：自动护栏、Release 门禁、真实热力图布局成本、证据记录、范围审查与最终提交已完成；视觉基线人工矩阵仅剩减弱动效。** 最终连续五轮回归通过；100k / schema 4 最大值分别为 692 / 1,031 ms。640–1600 DIP 精确内容宽度、完整数据状态、全主题、zh_CN / en_US、全 DPI、Calendar 键盘链路、Calendar/Week×Hour 视觉区分和跨零点相对日期已完成人工核验；实际读屏器由用户决定跳过，不计为通过。All Sessions 707.6 ms 后续项已由本地性能分支自动化收敛；性能版虚拟化后实机矩阵仍待执行。最终提交同时包含用户验收发现的比较胶囊纵向排列修复及其真实 WPF 布局回归，不改变 8 卡响应式架构。
 
 **Files:**
 - Modify: `Tests/Program.cs`
@@ -1937,4 +1937,4 @@ Task 1 和 Task 2 的章节保留为规格记录，其中 Step 2 的 RED 期望�
 
 Task 3 / 3.5 已由 `108a4c4` 提交，Task 4 / 4.5 已由 `301708c` 提交，Task 5 已于 2026-08-28 跳过，Task 6 已由 `a0983ee` 提交，Task 7 与最终比较胶囊修复已由 `e59f9bf` 提交。
 
-所有已实施任务均已按用户指示提交并推送；各 Task 内的 `git add` / `git commit` 命令只保留为历史执行记录。当前尚未完成的是 Task 7 的人工矩阵与 All Sessions 热力图 UI 性能收敛，不应通过补勾提交步骤掩盖。
+视觉分支所有已实施任务均已按用户指示提交并推送；各 Task 内的 `git add` / `git commit` 命令只保留为历史执行记录。当前尚未完成的是 Reduced motion、性能版虚拟化后实机复验，以及性能分支的推送、合并与部署；All Sessions 自动化 UI 性能收敛已经完成，不再列为待办。

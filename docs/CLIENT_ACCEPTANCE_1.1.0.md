@@ -1,6 +1,6 @@
 # Client Acceptance 1.1.0 — Dashboard Visual Elevation
 
-状态：Task 7 自动化发布门禁通过；人工矩阵仅剩减弱动效，实际读屏器已跳过；All Sessions UI 成本待收敛
+状态：Task 7 自动化发布门禁通过；100k 分析与 All Sessions UI 自动化性能预算已收敛；性能分支仍待虚拟化后实机矩阵、推送、合并与部署。Reduced motion 待验收，实际读屏器已跳过
 日期：2026-09-03
 
 ## Frozen Layout Contract
@@ -56,7 +56,7 @@
 - [x] 100k 五样本最大值 <= 700 ms：五轮最大值为 579 / 567 / 600 / 667 / 546 ms，总最大值 **667 ms**。
 - [x] schema 4 加载 <= 1400 ms：五轮为 1,364 / 1,260 / 1,190 / 1,318 / 1,197 ms，最大 **1,364 ms**。
 - [x] GC 0/1/2 增量在全部五轮稳定为 **59/15/4**（基线 189/31/7）。
-- [x] 与 main 相比 `Views/`、`Controls/`、`Localization/`、`Resources/` 无差异；统计口径、比较区间、异常、排行与选择性刷新语义由既有回归全部保持。
+- [x] 分析 Task 1–6 的提交未修改 `Views/`、`Controls/`、`Localization/` 或 `Resources/`；统计口径、比较区间、异常、排行与选择性刷新语义由既有回归全部保持。当前分支后续存在 Calendar UI 优化差异，不再将整条分支描述为“与 main 无 UI 差异”。
 
 被环境负载污染的一轮如实保留：五样本 562 / 619 / 619 / 636 / **719 ms**（max 719 > 700 目标），schema 4 加载 **1,403 ms** 超预算 3 ms；同一二进制复跑立即通过（五样本 518–546 ms、schema 4 1,197 ms）。该轮按环境噪声弃用，记录不删除。
 
@@ -83,13 +83,24 @@
 - [x] All Sessions 1,820 格五样本 max <= 300 ms：五轮为 152.5 / 153.7 / 157.4 / 168.4 / 151.2 ms（五轮中位 137.8–143.3 ms）。
 - [x] 虚拟化契约：初始与滚动末端的 realized 周列容器 25–26 个（< 60）、realized `HeatmapCellButton` 175–182 个（< 420）；滚动到末端后首周容器被回收（`ContainerFromIndex(0)` 为 null），最后一周 7 格可实现且 Command/CommandParameter/Automation Name/Focusable 保持；ViewModel 数据仍为完整 1,820 格。
 - [x] 月份轴同步：滚动到末端时月份轴 HorizontalOffset 与周列内容 offset 差为 0.0 DIP（<= 0.5 DIP 契约）；月份轴保留全部约 60 个轻量 TextBlock，不虚拟化。
-- [x] 键盘与无障碍结构：日期仍为 `HeatmapCellButton : Button`（26×26 DIP 命中、24×24 自绘光泽、CornerRadius 3），Command/ToolTip/AutomationProperties.Name 由运行时测试逐项断言；主题/DPI/读屏器与跨零点实机矩阵待用户人工验收（与既定验收流程一致）。
+- [x] 键盘与无障碍自动化结构：日期仍为 `HeatmapCellButton : Button`（26×26 DIP 命中、24×24 自绘光泽、CornerRadius 3），Command/ToolTip/AutomationProperties.Name 由运行时测试逐项断言。
+- [ ] 性能版实机复验：虚拟化后的主题、DPI、zh_CN / en_US、Tab、Space/Enter、Tooltip、月轴滚动同步与跨零点显示待用户验收；实际读屏器播报继续按既定决定跳过，不计作失败。
 
 实现路径：Task 2 轻量自绘 Button 后一年已达标（max 203.9 → 192.0 范围），All Sessions 未达 300 ms，因此按计划硬分支执行了 Task 3（周列发布，不复制 Cell 模型）与 Task 4（水平 Recycling 虚拟化 + 月份轴同步）。
 
-## Actual UI Evidence
+状态同步复跑（2026-09-03）：两个 Release 构建 0 warning / 0 error，完整回归输出 `All Playtime Insights tests passed.`；100k 五样本 508 / 524 / 555 / 609 / 647 ms（median 555、max 647），schema 4 为 1,074 ms；一年热力图五样本 max 139.3 ms，All Sessions max 102.6 ms。
 
-以下为 2026-08-30 的 Codex 临时屏幕捕获观察；截图未写入仓库。Playnite 正由本任务启动，启动进程单独使用 `HTTP_PROXY` / `HTTPS_PROXY=http://127.0.0.1:10456`，没有修改仓库、测试或全局代理设置。
+## Performance Branch Delivery State
+
+- [x] 本地实现与自动化性能门禁完成；状态同步前代码工作树干净，本次未修改生产代码。
+- [ ] 推送：本地性能分支领先远端 12 个提交；远端性能分支与 `main` 仍为 `d9a5d34`。
+- [ ] 合并：性能分支尚未合并回 `main`。
+- [ ] 部署：性能构建 DLL SHA-256 为 `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`；当前已安装 DLL 仍为视觉基线 `6D79971D2E50B6EA701AFAAC581FCB9BB5B0FDFABB988532776E303C10C55937`。
+- [ ] 人工验收：虚拟化后实机矩阵与 Reduced motion 尚未完成；实际读屏器播报已明确跳过。
+
+## Actual UI Evidence（性能虚拟化前的视觉基线）
+
+以下记录来自性能虚拟化前的视觉分支，用于后续回归对照，不代表性能分支最终实机验收。2026-08-30 的 Codex 临时屏幕捕获未写入仓库；Playnite 启动进程单独使用 `HTTP_PROXY` / `HTTPS_PROXY=http://127.0.0.1:10456`，没有修改仓库、测试或全局代理设置。
 
 - [x] 当前中文深色主题、2026 年 8 月数据、Playnite 整窗约 1451×979 px：布局为双栏；8 张指标卡无横向溢出；Trend Area 未遮挡网格、折线和节点；Ranking 位于右栏。
 - [x] 当前中文深色主题、Playnite 整窗约 1261×979 px：布局为单栏；8 张指标卡无横向溢出；Trend 先于 Ranking，页面无横向滚动。
@@ -104,9 +115,9 @@
 - [x] Calendar 与 Week×Hour 同卡片视觉区分、图例管辖关系及 24 DIP 对角光泽完成实机核验（2026-09-03 用户人工验收）。
 - [x] 区间榜与累计榜跨零点前后的相对日期完成实机对照（2026-09-03 用户人工验收），两个 Tab 使用一致的“今天 / 昨天 / 日期”口径。
 
-2026-08-30 检测到用户重新操作前台窗口时，Codex 停止继续控制 Playnite。2026-09-03 用户后续独立完成精确内容宽度、完整数据状态、全主题、zh_CN / en_US、全 DPI、Calendar 键盘链路、Calendar/Week×Hour 视觉区分和跨零点相对日期矩阵；实际读屏器播报明确跳过。当前人工矩阵只剩 Reduced motion，另有 All Sessions UI 成本待收敛。
+2026-08-30 检测到用户重新操作前台窗口时，Codex 停止继续控制 Playnite。2026-09-03 用户后续独立完成性能虚拟化前的精确内容宽度、完整数据状态、全主题、zh_CN / en_US、全 DPI、Calendar 键盘链路、Calendar/Week×Hour 视觉区分和跨零点相对日期矩阵；实际读屏器播报明确跳过。All Sessions 自动化 UI 成本现已收敛；当前人工待办是 Reduced motion 与性能虚拟化后的聚焦复验矩阵。
 
-## Final Delivery Record
+## Visual Baseline Delivery Record（不含性能分支）
 
 - [x] 最终提交 `e59f9bf` 已推送到 `origin/codex/dashboard-visual-refactor`；本地分支与远端一致。
 - [x] 最终部署使用 Release 严格 9 个文件，源产物与安装目录逐文件哈希一致。
@@ -115,7 +126,7 @@
 - [x] 覆盖前后 7 个 `ExtensionsData` 用户数据文件联合指纹一致；Playnite 日志确认 Playtime Insights 1.0.0 已加载。
 - [x] Playnite 仅在本次启动进程内使用 `HTTP_PROXY` / `HTTPS_PROXY=http://127.0.0.1:10456`；未写入仓库、测试或系统全局代理设置。
 
-最终部署后的审查修订只涉及测试与文档；重新构建后的当前源 DLL 与已安装 DLL 哈希仍一致，因此已部署的生产代码对应最终提交。正式 1.1.0 发版（版本号、CHANGELOG、PEXT、标签和公开发布）是独立后续工作，不属于本次 Task 7 验收状态。
+该记录只证明 Dashboard Visual Elevation 基线已部署；性能分支引入新的分析和热力图生产代码，当前源 DLL 已不再与已安装 DLL 相同。正式 1.1.0 发版（版本号、CHANGELOG、PEXT、标签和公开发布）是独立后续工作，不属于本次 Task 7 验收状态。
 
 ## Known Ranking Behavior
 
