@@ -11,10 +11,10 @@
 发布前先固定以下值：
 
 ```powershell
-$Version = '1.0.0'
-$AssemblyVersion = '1.0.0.0'
+$Version = '1.1.0'
+$AssemblyVersion = '1.1.0.0'
 $AddonId = 'PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd'
-$PackageName = "${AddonId}_1_0_0.pext"
+$PackageName = "${AddonId}_1_1_0.pext"
 $Tag = "v$Version"
 ```
 
@@ -25,8 +25,8 @@ $Tag = "v$Version"
 
 以下文件必须一致：
 
-- `extension.yaml`：`Version: 1.0.0`；
-- `Properties/AssemblyInfo.cs`：`AssemblyVersion` 与 `AssemblyFileVersion` 为 `1.0.0.0`；
+- `extension.yaml`：`Version: 1.1.0`；
+- `Properties/AssemblyInfo.cs`：`AssemblyVersion` 与 `AssemblyFileVersion` 为 `1.1.0.0`；
 - `README.md` 当前版本；
 - `CHANGELOG.md` 和版本 Release Notes；
 - `manifests/installer.yaml` 顶部 package；
@@ -89,11 +89,11 @@ git status --short
 推荐顺序：
 
 1. 提交发布候选，但暂不推进远端 `main`；
-2. 在该提交创建 `v1.0.0` 标签，并仅推送标签：
+2. 在该提交创建 `v1.1.0` 标签，并仅推送标签：
 
    ```powershell
-   git tag -a v1.0.0 -m "Playtime Insights 1.0.0"
-   git push origin v1.0.0
+   git tag -a v1.1.0 -m "Playtime Insights 1.1.0"
+   git push origin v1.1.0
    ```
 
 3. 基于该标签创建 GitHub Release，上传精确名称的 PEXT；
@@ -130,6 +130,6 @@ package 继续保持可用。
 
 - `main`、标签与 Release 指向同一发布提交；
 - PackageUrl、installer/addon raw URL、图标、截图、CHANGELOG、PRIVACY 均匿名 HTTP 200；
-- Playnite Add-on Browser 展示 1.0.0，并能从 0.9.8 更新；
+- Playnite Add-on Browser 展示 1.1.0，并能从 1.0.0 更新；
 - Git 工作区无被误提交的构建物或用户数据；
 - `RELEASE_CHECKLIST.md` 记录最终 DLL/PEXT 大小、SHA-256、测试数、客户端验收和远程 URL 证据。

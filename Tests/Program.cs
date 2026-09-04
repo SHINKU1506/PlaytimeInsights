@@ -10374,7 +10374,7 @@ namespace PlaytimeInsights.Tests
                 "docs",
                 "PRE_RELEASE_WORKFLOW.md"));
 
-            Equal(true, manifest.Contains("Version: 1.0.0"));
+            Equal(true, manifest.Contains("Version: 1.1.0"));
             Equal(true, manifest.Contains("Author: SHINKU1506"));
             Equal(true, manifest.Contains(
                 "https://github.com/SHINKU1506/PlaytimeInsights"));
@@ -10383,9 +10383,9 @@ namespace PlaytimeInsights.Tests
             Equal(true, manifest.Contains(
                 "https://github.com/SHINKU1506/PlaytimeInsights/blob/main/CHANGELOG.md"));
             Equal(true, assemblyInfo.Contains(
-                "AssemblyVersion(\"1.0.0.0\")"));
+                "AssemblyVersion(\"1.1.0.0\")"));
             Equal(true, assemblyInfo.Contains(
-                "AssemblyFileVersion(\"1.0.0.0\")"));
+                "AssemblyFileVersion(\"1.1.0.0\")"));
             Equal(true, assemblyInfo.Contains(
                 "AssemblyCompany(\"SHINKU1506\")"));
             Equal(true, assemblyInfo.Contains(
@@ -10406,7 +10406,8 @@ namespace PlaytimeInsights.Tests
             Equal(false, chinese.Contains(
                 "LOCPlaytimeInsightsSessionsSubtitle"));
 
-            Equal(true, readme.Contains("当前版本：`1.0.0`"));
+            Equal(true, readme.Contains("当前源码版本：`1.1.0`"));
+            Equal(true, readme.Contains("公开安装包仍为 `1.0.0`"));
             Equal(true, readme.Contains(
                 "作者：[SHINKU1506](https://github.com/SHINKU1506)"));
             Equal(true, readme.Contains("## 界面预览"));
@@ -10447,7 +10448,7 @@ namespace PlaytimeInsights.Tests
             Equal(true, preReleaseWorkflow.Contains(
                 "Package-only release"));
             Equal(true, preReleaseWorkflow.Contains(
-                "git push origin v1.0.0"));
+                "git push origin v1.1.0"));
             Equal(true, addonManifest.Contains("Type: Generic"));
             Equal(true, addonManifest.Contains("Author: SHINKU1506"));
             Equal(true, addonManifest.Contains(

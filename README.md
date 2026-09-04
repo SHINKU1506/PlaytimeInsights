@@ -4,9 +4,9 @@ Playtime Insights 是一个面向 Playnite Desktop 的本地游玩时间分析�
 
 插件完全本地运行：不包含遥测，不上传游戏库或会话数据，也不依赖远程网页。
 
-**当前版本：`1.0.0`** · 作者：[SHINKU1506](https://github.com/SHINKU1506) · [GitHub Releases](https://github.com/SHINKU1506/PlaytimeInsights/releases) · [变更日志](CHANGELOG.md) · [隐私说明](PRIVACY.md)
+**当前源码版本：`1.1.0`** · 作者：[SHINKU1506](https://github.com/SHINKU1506) · [GitHub Releases](https://github.com/SHINKU1506/PlaytimeInsights/releases) · [变更日志](CHANGELOG.md) · [隐私说明](PRIVACY.md)
 
-> 当前开发分支已经完成下一轮 Dashboard 视觉增强，但尚未进行正式 1.1.0 发版。公开安装包、版本号和 GitHub Release 仍以 1.0.0 为准；开发分支的验收进度见 [Client Acceptance 1.1.0](docs/CLIENT_ACCEPTANCE_1.1.0.md)。
+> 1.1.0 源码已完成 Dashboard 视觉增强和性能收敛，但正式 PEXT 与 GitHub Release 尚未发布；公开安装包仍为 `1.0.0`。1.1.0 的验收进度见 [Client Acceptance 1.1.0](docs/CLIENT_ACCEPTANCE_1.1.0.md)。
 
 ## 目录
 
@@ -25,7 +25,7 @@ Playtime Insights 是一个面向 Playnite Desktop 的本地游玩时间分析�
 
 ## 界面预览
 
-以下截图来自 0.9.8 发布周期，用于展示插件的基本页面结构。当前开发分支已完成 Dashboard 视觉增强；新版截图将在正式 1.1.0 发版时更新。
+以下截图来自 0.9.8 发布周期，用于展示插件的基本页面结构。1.1.0 源码已完成 Dashboard 视觉增强；新版截图将在正式 1.1.0 发版时更新。
 
 ### 分析页 · 中文
 
@@ -135,9 +135,9 @@ Playnite 的累计时长以分钟为主要展示单位，插件会话内部保�
 - 插件无法从 Playnite 累计时长还原安装前的逐次历史会话；
 - 异常退出恢复精度受一分钟检查点间隔限制；
 - 会话存储使用本地 JSON，文件体积会随会话数量增长；
-- All Sessions 跨越多年时，日历热力图使用水平虚拟化周列与同步月份轴，仅实现视口附近的日期格；1,820 格的 Measure + Arrange 成本已从约 0.7 秒收敛到 0.2 秒以内（预算 <= 300 ms，未放宽）；
-- 10 年 / 100k 会话分析的 Release 硬预算仍为不高于 750 ms；合并视觉分支时测得的 715 / 759 ms（一次超预算 9 ms）作为历史基线保留，不代表当前性能分支结果；
-- 本地 `codex/dashboard-performance-optimization` 已完成分析与 Calendar UI 自动化收敛：既有五轮独立门禁中 100k 五样本中位数 532–587 ms、最大值 546–667 ms，All Sessions 1,820 格最大 168.4 ms；2026-09-03 部署门禁复跑为分析 median 530 / max 540 ms、schema 4 1,000 ms、All Sessions UI max 107.4 ms。预算均未放宽；性能构建已部署，仍待实机复验、推送和合并；
+- All Sessions 跨越多年时，日历热力图使用水平虚拟化周列与同步月份轴，仅实现视口附近的日期格；原始 1,820 格布局峰值约 0.7 秒，1.1.0 十轮“重新构建 → 等待 15 秒 → 完整回归”中 All Sessions 最大 114.4 ms，一年范围最大 127.4 ms（预算分别为 300/200 ms，未放宽）；
+- 10 年 / 100k 会话分析的 Release 硬预算仍为 750 ms。视觉分支合并时的 715 / 759 ms 保留为历史基线；1.1.0 同一十轮受控复现中五样本中位数为 470–505 ms、单样本最大 528 ms，schema 4 最大 975 ms，全部低于预算；
+- 构建完成后立即运行 WPF 布局基准可能受到杀毒软件文件扫描与系统调度争用影响；发布证据固定在每轮构建后等待 15 秒再执行完整回归，并保留异常样本，不通过自动重试或放宽预算规避问题；
 - 下一轮 Dashboard 视觉增强的减弱动效人工矩阵仍在验收；实际读屏器播报已决定跳过，不能据此声明原生 Polite live-region 语义；
 - Fullscreen 模式尚无专用统计界面；
 

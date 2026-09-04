@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 — 2026-09-04
+
+- 重组 Dashboard 视觉层级：统一 8 张响应式指标卡，增强趋势图、排行信息密度、结构化 Tooltip 和来源就近下钻；
+- 保留 24 × 24 DIP Calendar 色块与 26 DIP 坐标节拍，新增轻量自绘 Button、周列 Recycling 虚拟化和同步月份轴；
+- 复用按日/按小时分配缓冲区和时区解析缓存，将当前、上一周期与去年同期改为单趟累计，并合并 Advanced 会话扫描；
+- 十轮“重新构建 → 等待 15 秒 → 完整回归”中，100k 分析五样本中位数为 470–505 ms、最大 528 ms，schema 4 最大 975 ms；一年与 All Sessions 热力图 UI 最大分别为 127.4 / 114.4 ms；
+- 保持 schema 1–4、跨午夜与 DST 口径、键盘 Button 语义、中英文资源和本地数据边界不变；
+- 源码、程序集、README 和预发布流程版本升级为 1.1.0 / 1.1.0.0；正式 PEXT、GitHub Release 与 Installer manifest 顶部 package 留待发布任务生成并验证后更新。
+
 ## 1.0.0 — 2026-08-14
 
 - 完成原生 WPF 架构重构 A–E：ViewModel 不再直接编排具体窗口、文件对话框或 MessageBox，
