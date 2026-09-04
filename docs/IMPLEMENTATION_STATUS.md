@@ -2,7 +2,7 @@
 
 最后更新：2026-09-04
 
-当前阶段：Dashboard Visual Elevation 与性能优化均已实现、提交并合并回本地 `main`；源码和程序集版本已升级至 1.1.0 / 1.1.0.0。当前仍待性能版虚拟化后实机矩阵与 Reduced motion；实际读屏器已跳过。正式 1.1.0 PEXT、GitHub Release、标签和 Installer manifest 更新尚未开始
+当前阶段：Dashboard Visual Elevation 与性能优化均已实现、提交并合并推送至 `main`；源码和程序集版本已升级至 1.1.0 / 1.1.0.0。当前仍待性能版虚拟化后实机矩阵与 Reduced motion；实际读屏器已跳过。正式 1.1.0 PEXT、GitHub Release、标签、Installer manifest 更新和 1.1.0 本机部署尚未开始
 
 ## 2026-09-03 Calendar 热力图 UI 性能收敛（codex/dashboard-performance-optimization）
 
@@ -16,7 +16,8 @@
 - 部署状态：2026-09-03 部署前两个 Release 构建 0 warning / 0 error，完整回归通过；100k median/max 530/540 ms，schema 4 为 1,000 ms，一年/All Sessions UI max 135.9/107.4 ms。Release 与安装目录严格 9/9 文件哈希一致，DLL SHA-256 为 `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`；旧版 9 文件备份位于 `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260903-212723`；部署前后 7 个用户数据文件联合指纹均为 `A1CCAB93B14ACC88EF4C78253169FE149947DD9FD3701F1C4AC3E6944DF8932E`；部署时 Playnite 未运行；
 - 受控复现：2026-09-04 连续十轮重新构建插件与测试项目，每轮等待 15 秒后执行完整回归；十轮构建与回归全部通过。100k 五样本 median 470–505 ms、单样本总最大 528 ms，schema 4 总最大 975 ms；一年 / All Sessions UI 总最大 127.4 / 114.4 ms；
 - 合并结果验证：主工作树首次运行时 schema 4 因新生成文件争用升至 2,161 ms，本地化覆盖测试还误扫描历史 `staging` 源码。新增路径边界回归并让覆盖扫描排除 `Tests/obj/bin/staging/.worktrees`；重新构建并等待 15 秒后完整回归通过，100k median/max 483/488 ms、schema 4 976 ms、一年 / All Sessions UI max 121.3 / 109.3 ms；
-- 分支状态：`codex/dashboard-performance-optimization` 已推送至 `origin` 并 fast-forward 合并回本地 `main`；远端 `main` 待最终合并结果验证后推送；
+- 分支状态：`codex/dashboard-performance-optimization` 已推送至 `origin` 并 fast-forward 合并回 `main`；远端性能分支为 `5311a1a`，远端 `main` 已更新至 `fd18856`；
+- 版本部署边界：本机安装目录已包含性能代码，但仍是 1.0.0.0 构建（DLL `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`）；当前 `main` 的 1.1.0.0 DLL 为 `FCAE819028BBCD7485BD0463F3B170E2414A689DFAFCA66C0271F07F4A9225F4`，本轮未重新部署或发布该版本构建；
 
 ## 2026-09-03 Dashboard 分析性能收敛（codex/dashboard-performance-optimization）
 

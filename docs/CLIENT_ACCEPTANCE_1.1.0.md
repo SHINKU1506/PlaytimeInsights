@@ -98,8 +98,9 @@
 
 - [x] 本地实现与自动化性能门禁完成；状态同步前代码工作树干净，本次未修改生产代码。
 - [x] 推送：`codex/dashboard-performance-optimization` 已推送至 `origin`，版本准备提交为 `5311a1a`。
-- [x] 合并：性能分支已于 2026-09-04 fast-forward 合并回本地 `main`；远端 `main` 在最终合并结果验证后更新。
-- [x] 部署：2026-09-03 部署前两个 Release 构建 0 warning / 0 error，完整回归通过；100k median/max 530/540 ms，schema 4 为 1,000 ms，一年/All Sessions UI max 135.9/107.4 ms。Release 与安装目录严格 9/9 文件哈希一致，DLL SHA-256 为 `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`；旧版备份位于 `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260903-212723`。部署前后 7 个用户数据文件联合指纹均为 `A1CCAB93B14ACC88EF4C78253169FE149947DD9FD3701F1C4AC3E6944DF8932E`。部署时 Playnite 未运行，尚未执行启动加载与人工验证。
+- [x] 合并：性能分支已于 2026-09-04 fast-forward 合并回 `main`，远端 `main` 已推送至 `fd18856`。
+- [x] 性能代码部署：2026-09-03 部署前两个 Release 构建 0 warning / 0 error，完整回归通过；100k median/max 530/540 ms，schema 4 为 1,000 ms，一年/All Sessions UI max 135.9/107.4 ms。Release 与安装目录严格 9/9 文件哈希一致，DLL SHA-256 为 `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`；旧版备份位于 `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260903-212723`。部署前后 7 个用户数据文件联合指纹均为 `A1CCAB93B14ACC88EF4C78253169FE149947DD9FD3701F1C4AC3E6944DF8932E`。
+- [ ] 1.1.0 版本构建部署：当前 `main` DLL 为 1.1.0.0，SHA-256 `FCAE819028BBCD7485BD0463F3B170E2414A689DFAFCA66C0271F07F4A9225F4`；本机安装目录仍是相同性能代码的 1.0.0.0 构建。正式 1.1.0 PEXT 尚未发布，本轮未重新覆盖安装目录。
 - [ ] 人工验收：虚拟化后实机矩阵与 Reduced motion 尚未完成；实际读屏器播报已明确跳过。
 
 ## Actual UI Evidence（性能虚拟化前的视觉基线）
