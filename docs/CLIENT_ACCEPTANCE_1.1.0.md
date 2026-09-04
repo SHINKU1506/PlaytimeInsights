@@ -1,7 +1,7 @@
 # Client Acceptance 1.1.0 — Dashboard Visual Elevation
 
-状态：Task 7 自动化发布门禁通过；100k 分析与 All Sessions UI 自动化性能预算已收敛，性能构建已部署。本轮仍待虚拟化后实机矩阵、推送与合并；Reduced motion 待验收，实际读屏器已跳过
-日期：2026-09-03
+状态：Task 7 自动化发布门禁通过；100k 分析与 All Sessions UI 自动化性能预算已收敛；性能分支已推送并合并回 `main`。本轮仍待虚拟化后实机矩阵；Reduced motion 待验收，实际读屏器已跳过
+日期：2026-09-04
 
 ## Frozen Layout Contract
 
@@ -90,11 +90,15 @@
 
 状态同步复跑（2026-09-03）：两个 Release 构建 0 warning / 0 error，完整回归输出 `All Playtime Insights tests passed.`；100k 五样本 508 / 524 / 555 / 609 / 647 ms（median 555、max 647），schema 4 为 1,074 ms；一年热力图五样本 max 139.3 ms，All Sessions max 102.6 ms。
 
+受控复现（2026-09-04）：连续十轮分别重新构建插件与测试项目，每轮构建后等待 15 秒再执行完整回归。十轮均为两个构建 0 warning / 0 error 且完整回归通过；100k 五样本 median 470–505 ms、单样本总最大 528 ms，schema 4 总最大 975 ms；一年与 All Sessions 热力图 UI 的十轮总最大分别为 127.4 / 114.4 ms。构建后立即测试时出现的 239.3 / 302.6 ms 一年样本作为文件扫描或系统调度争用证据保留，不计入受控发布样本，也未通过放宽预算规避。
+
+合并结果验证（2026-09-04）：首次从主工作树运行时，schema 4 因新生成文件争用升至 2,161 ms；本地化覆盖测试还误扫描了历史 `staging` 源码。后者按 TDD 增加路径边界回归并排除 `Tests/obj/bin/staging/.worktrees`，未删除用户文件。重新构建并等待 15 秒后完整回归通过：100k median/max 483/488 ms，schema 4 为 976 ms，一年/All Sessions UI max 121.3/109.3 ms。
+
 ## Performance Branch Delivery State
 
 - [x] 本地实现与自动化性能门禁完成；状态同步前代码工作树干净，本次未修改生产代码。
-- [ ] 推送：性能提交仍只在本地；远端性能分支与 `main` 仍为 `d9a5d34`。
-- [ ] 合并：性能分支尚未合并回 `main`。
+- [x] 推送：`codex/dashboard-performance-optimization` 已推送至 `origin`，版本准备提交为 `5311a1a`。
+- [x] 合并：性能分支已于 2026-09-04 fast-forward 合并回本地 `main`；远端 `main` 在最终合并结果验证后更新。
 - [x] 部署：2026-09-03 部署前两个 Release 构建 0 warning / 0 error，完整回归通过；100k median/max 530/540 ms，schema 4 为 1,000 ms，一年/All Sessions UI max 135.9/107.4 ms。Release 与安装目录严格 9/9 文件哈希一致，DLL SHA-256 为 `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`；旧版备份位于 `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260903-212723`。部署前后 7 个用户数据文件联合指纹均为 `A1CCAB93B14ACC88EF4C78253169FE149947DD9FD3701F1C4AC3E6944DF8932E`。部署时 Playnite 未运行，尚未执行启动加载与人工验证。
 - [ ] 人工验收：虚拟化后实机矩阵与 Reduced motion 尚未完成；实际读屏器播报已明确跳过。
 

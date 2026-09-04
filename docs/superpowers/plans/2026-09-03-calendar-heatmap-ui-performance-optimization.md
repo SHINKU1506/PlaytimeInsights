@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status (2026-09-03):** Task 1–4 及 Task 5 的自动化、范围审查、证据记录与提交步骤已完成；性能构建已部署到本机 Playnite，Task 5 的虚拟化后实机矩阵仍待用户验收。当前性能分支尚未推送或合并。
+**Status (2026-09-04):** Task 1–4 及 Task 5 的自动化、范围审查、证据记录与提交步骤已完成；性能分支已推送并 fast-forward 合并回 `main`。Task 5 的虚拟化后实机矩阵仍待用户验收。
 
 **Goal:** 将一年 371 格 Calendar 热力图的五轮最大 Measure + Arrange 成本降到 `<= 200 ms`，将 All Sessions 1,820 格成本从约 809–1,914 ms 降到 `<= 300 ms`，同时保留 26 DIP 列节拍、24×24 DIP 光泽色块、Button 键盘语义、Tooltip、Automation Name 和月份/周次/格子对齐。
 

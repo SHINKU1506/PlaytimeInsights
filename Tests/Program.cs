@@ -207,6 +207,7 @@ namespace PlaytimeInsights.Tests
             Run("Session coordinator completes remaining workflows", TestCoordinatorCompletesRemainingWorkflows);
             Run("Session coordinator contains import failure", TestCoordinatorContainsImportFailure);
             Run("Release metadata and public README stay current", TestReleaseMetadataAndReadme);
+            Run("Localization source coverage ignores generated work areas", TestLocalizationSourcePathFiltering);
             Run("Localization keys and format placeholders stay source-complete", TestLocalizationSourceCoverage);
             Run("Release 0.1 through 0.9 settings keep compatible defaults", TestLegacySettingsMatrix);
             Run("Sidebar entries publish distinct transparent icons", TestSidebarIconPublishing);
@@ -10475,6 +10476,22 @@ namespace PlaytimeInsights.Tests
             }
         }
 
+        private static void TestLocalizationSourcePathFiltering()
+        {
+            Equal(true, IsProductionSourcePath(
+                Path.Combine("C:\\repo", "Services", "AnalyticsService.cs")));
+            Equal(false, IsProductionSourcePath(
+                Path.Combine("C:\\repo", "staging", "snapshot", "Services", "AnalyticsService.cs")));
+            Equal(false, IsProductionSourcePath(
+                Path.Combine("C:\\repo", ".worktrees", "feature", "Services", "AnalyticsService.cs")));
+            Equal(false, IsProductionSourcePath(
+                Path.Combine("C:\\repo", "Tests", "Program.cs")));
+            Equal(false, IsProductionSourcePath(
+                Path.Combine("C:\\repo", "obj", "Release", "Generated.cs")));
+            Equal(false, IsProductionSourcePath(
+                Path.Combine("C:\\repo", "bin", "Release", "Generated.cs")));
+        }
+
         private static void TestLocalizationSourceCoverage()
         {
             var sourceRoot = FindSourceRoot();
@@ -10495,15 +10512,7 @@ namespace PlaytimeInsights.Tests
                 RegexOptions.CultureInvariant);
             var referencedKeys = Directory
                 .GetFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
-                .Where(path =>
-                    path.IndexOf(
-                        Path.DirectorySeparatorChar + "Tests" +
-                        Path.DirectorySeparatorChar,
-                        StringComparison.OrdinalIgnoreCase) < 0 &&
-                    path.IndexOf(
-                        Path.DirectorySeparatorChar + "obj" +
-                        Path.DirectorySeparatorChar,
-                        StringComparison.OrdinalIgnoreCase) < 0)
+                .Where(IsProductionSourcePath)
                 .SelectMany(path => keyPattern
                     .Matches(File.ReadAllText(path))
                     .Cast<Match>()
@@ -10517,6 +10526,38 @@ namespace PlaytimeInsights.Tests
                     referencedKeys
                         .Where(key => !resourceKeys.Contains(key))
                         .OrderBy(key => key)));
+        }
+
+        private static bool IsProductionSourcePath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return false;
+            }
+
+            var normalized = path.Replace(
+                Path.AltDirectorySeparatorChar,
+                Path.DirectorySeparatorChar);
+            foreach (var excludedDirectory in new[]
+            {
+                "Tests",
+                "obj",
+                "bin",
+                "staging",
+                ".worktrees"
+            })
+            {
+                var segment = Path.DirectorySeparatorChar +
+                    excludedDirectory + Path.DirectorySeparatorChar;
+                if (normalized.IndexOf(
+                    segment,
+                    StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static void TestLegacySettingsMatrix()
