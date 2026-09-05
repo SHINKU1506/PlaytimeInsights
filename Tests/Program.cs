@@ -105,6 +105,10 @@ namespace PlaytimeInsights.Tests
             Run("Heatmap layout summary reports median maximum and realization",
                 TestHeatmapLayoutSampleSummary);
             Run("Trend points scale to period maximum", TestTrendPointScaling);
+            Run("Trend periods carry future and today metadata", TestPeriodFutureMetadataProjection);
+            Run("Trend projections stay safe on future edge shapes", TestTrendFutureEdgeProjections);
+            Run("Snapshot date change upgrades partial refreshes", TestSnapshotDateRefreshUpgrade);
+            Run("Trend chart keeps future display and click contracts", TestTrendChartFutureDisplayContract);
             Run("Period drilldown bounds clip to range", TestPeriodBoundsClipToRange);
             Run("Session drilldown clips duration and labels recovery", TestSessionDrilldown);
             Run("Session detail pager loads fixed-size batches", TestSessionDetailPager);
@@ -3265,6 +3269,255 @@ namespace PlaytimeInsights.Tests
             };
         }
 
+        private static DashboardAnalysisContext CreateTrendContext(
+            DateTime snapshotDate,
+            DateTime startDate,
+            DateTime endDate,
+            IDictionary<DateTime, ulong> dailySeconds)
+        {
+            return new DashboardAnalysisContext
+            {
+                RangePreset = DateRangePreset.Custom,
+                SnapshotDate = snapshotDate,
+                Range = new AnalyticsDateRange
+                {
+                    StartDate = startDate,
+                    EndDate = endDate,
+                    Label = "test"
+                },
+                FirstDayOfWeek = DayOfWeek.Monday,
+                DailySeconds = dailySeconds,
+                DailyGameNames = new Dictionary<DateTime, IList<string>>(),
+                GameStatistics = new List<DashboardGameRangeStatistics>(),
+                ComparisonTotals = new DashboardComparisonTotals { Enabled = false }
+            };
+        }
+
+        private static void TestPeriodFutureMetadataProjection()
+        {
+            // A8: fixed snapshot inside a month range. The full axis stays, the
+            // curve stops after the snapshot, and historical zero days keep
+            // their zero points.
+            var context = CreateTrendContext(
+                new DateTime(2026, 9, 5),
+                new DateTime(2026, 9, 1),
+                new DateTime(2026, 9, 30),
+                new Dictionary<DateTime, ulong>
+                {
+                    [new DateTime(2026, 9, 1)] = 3600,
+                    [new DateTime(2026, 9, 6)] = 1800
+                });
+            var projection = new AnalyticsService().CreateTrendProjection(
+                context,
+                AggregationPeriod.Day);
+
+            Equal(new DateTime(2026, 9, 5), projection.SnapshotDate);
+            var periods = projection.PeriodActivities;
+            Equal(30, periods.Count);
+
+            for (var index = 0; index < periods.Count; index++)
+            {
+                Equal(index >= 5, periods[index].IsFuture);
+                Equal(index == 4, periods[index].ContainsToday);
+            }
+
+            Equal(3600UL, periods[0].Seconds);
+            // Historical zero days are not future and keep their zero values.
+            Equal(0UL, periods[1].Seconds);
+            Equal(false, periods[1].IsFuture);
+            // An imported future session survives untouched in the raw data.
+            Equal(1800UL, periods[5].Seconds);
+            Equal(true, periods[5].IsFuture);
+
+            // The curve projection carries the observable prefix only.
+            Equal(5, projection.TrendLinePoints.Count);
+            Equal(5, projection.TrendPoints.Count);
+            Equal(74 / 2d + 4 * 74, projection.TrendLinePoints.Last().X);
+
+            // A9: month aggregation keeps the current period as one point with
+            // a today flag instead of extrapolating future days.
+            var monthly = new AnalyticsService().CreateTrendProjection(
+                context,
+                AggregationPeriod.Month);
+            Equal(1, monthly.PeriodActivities.Count);
+            Equal(false, monthly.PeriodActivities[0].IsFuture);
+            Equal(true, monthly.PeriodActivities[0].ContainsToday);
+            Equal(5400UL, monthly.PeriodActivities[0].Seconds);
+            Equal(1, monthly.TrendLinePoints.Count);
+        }
+
+        private static void TestTrendFutureEdgeProjections()
+        {
+            var service = new AnalyticsService();
+
+            // A10: a fully future range keeps the full axis but produces no
+            // drawn points, geometry or clickable nodes.
+            var futureProjection = service.CreateTrendProjection(
+                CreateTrendContext(
+                    new DateTime(2026, 9, 5),
+                    new DateTime(2026, 9, 10),
+                    new DateTime(2026, 9, 20),
+                    new Dictionary<DateTime, ulong>()),
+                AggregationPeriod.Day);
+            Equal(11, futureProjection.PeriodActivities.Count);
+            Equal(true, futureProjection.PeriodActivities.All(
+                period => period.IsFuture));
+            Equal(0, futureProjection.TrendLinePoints.Count);
+            Equal(0, futureProjection.TrendPoints.Count);
+            Equal(true, futureProjection.TrendLineGeometry.IsEmpty());
+            Equal(true, futureProjection.TrendAreaGeometry.IsEmpty());
+
+            // Single observable period: one point, no crash.
+            var singleProjection = service.CreateTrendProjection(
+                CreateTrendContext(
+                    new DateTime(2026, 9, 5),
+                    new DateTime(2026, 9, 5),
+                    new DateTime(2026, 9, 5),
+                    new Dictionary<DateTime, ulong>
+                    {
+                        [new DateTime(2026, 9, 5)] = 120
+                    }),
+                AggregationPeriod.Day);
+            Equal(1, singleProjection.PeriodActivities.Count);
+            Equal(false, singleProjection.PeriodActivities[0].IsFuture);
+            Equal(true, singleProjection.PeriodActivities[0].ContainsToday);
+            Equal(1, singleProjection.TrendLinePoints.Count);
+            Equal(false, singleProjection.TrendLineGeometry.IsEmpty());
+
+            // All-zero observable history keeps every point on the baseline.
+            var zeroProjection = service.CreateTrendProjection(
+                CreateTrendContext(
+                    new DateTime(2026, 9, 5),
+                    new DateTime(2026, 8, 1),
+                    new DateTime(2026, 8, 31),
+                    new Dictionary<DateTime, ulong>()),
+                AggregationPeriod.Day);
+            Equal(31, zeroProjection.PeriodActivities.Count);
+            Equal(true, zeroProjection.PeriodActivities.All(
+                period => !period.IsFuture && period.Seconds == 0UL));
+            Equal(31, zeroProjection.TrendLinePoints.Count);
+            Equal(
+                zeroProjection.TrendLinePoints.First().Y,
+                zeroProjection.TrendLinePoints.Last().Y);
+        }
+
+        private static void TestSnapshotDateRefreshUpgrade()
+        {
+            // A13: a cached snapshot from a previous local day upgrades partial
+            // refreshes to a full analysis without reloading stored sessions.
+            var aggregationPlan = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Aggregation,
+                true,
+                true);
+            Equal(DashboardRefreshMode.FullAnalysis, aggregationPlan.Mode);
+            Equal(false, aggregationPlan.ReloadData);
+            Equal(false, aggregationPlan.RebuildFilter);
+
+            var rankingPlan = DashboardRefreshPlan.Create(
+                DashboardRefreshReason.Ranking,
+                true,
+                true);
+            Equal(DashboardRefreshMode.FullAnalysis, rankingPlan.Mode);
+
+            // Same-day cache keeps the selective plans intact.
+            Equal(
+                DashboardRefreshMode.TrendOnly,
+                DashboardRefreshPlan.Create(
+                    DashboardRefreshReason.Aggregation,
+                    true,
+                    false).Mode);
+            Equal(
+                DashboardRefreshMode.RankingOnly,
+                DashboardRefreshPlan.Create(
+                    DashboardRefreshReason.Ranking,
+                    true,
+                    false).Mode);
+
+            Equal(
+                DashboardRefreshMode.FullAnalysis,
+                DashboardRefreshPlan.Create(
+                    DashboardRefreshReason.Range,
+                    true,
+                    true).Mode);
+        }
+
+        private static void TestTrendChartFutureDisplayContract()
+        {
+            var sourceRoot = FindSourceRoot();
+            var dashboard = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            Equal(true, dashboard.Contains(
+                "SnapshotDate=\"{Binding Distribution.SnapshotDate}\""));
+
+            var chartSource = File.ReadAllText(Path.Combine(
+                sourceRoot,
+                "Controls",
+                "AdaptiveTrendChart.cs"));
+            // The click path must consult the future flag before publishing a
+            // period, and the hover path must special-case future slots.
+            Equal(true, chartSource.Contains(
+                "!renderedItems[hoverIndex].IsFuture"));
+            Equal(true, chartSource.Contains("item.IsFuture"));
+            Equal(true, chartSource.Contains("observableCount"));
+
+            RunOnSta(() =>
+            {
+                // Rendering the four A10 shapes must never throw.
+                foreach (var scenario in new Func<IList<PeriodActivityViewModel>>[]
+                {
+                    () => CreateTrendScenario(30, 5, 600),
+                    () => CreateTrendScenario(11, 0, 0),
+                    () => CreateTrendScenario(1, 1, 120),
+                    () => CreateTrendScenario(31, 31, 0)
+                })
+                {
+                    var chart = new AdaptiveTrendChart
+                    {
+                        Width = 640,
+                        Height = 230,
+                        ItemsSource = scenario(),
+                        SnapshotDate = new DateTime?(new DateTime(2026, 9, 5))
+                    };
+                    chart.Measure(new Size(640, 230));
+                    chart.Arrange(new Rect(0, 0, 640, 230));
+                    chart.UpdateLayout();
+                    var bitmap = new RenderTargetBitmap(
+                        640,
+                        230,
+                        96,
+                        96,
+                        PixelFormats.Pbgra32);
+                    bitmap.Render(chart);
+                }
+            });
+        }
+
+        private static IList<PeriodActivityViewModel> CreateTrendScenario(
+            int periodCount,
+            int observableCount,
+            int peakSeconds)
+        {
+            var periods = new List<PeriodActivityViewModel>();
+            for (var index = 0; index < periodCount; index++)
+            {
+                var day = new DateTime(2026, 9, 1).AddDays(index);
+                var observable = index < observableCount;
+                periods.Add(new PeriodActivityViewModel
+                {
+                    PeriodStart = day,
+                    PeriodEnd = day,
+                    Label = string.Format("{0}/9", day.Day),
+                    Seconds = observable ? (ulong)peakSeconds : 0UL,
+                    IsFuture = !observable,
+                    ContainsToday = observable && index == observableCount - 1
+                });
+            }
+
+            return periods;
+        }
+
         private static void TestTrendPointScaling()
         {
             var snapshot = new AnalyticsService().CreateSnapshot(
@@ -5453,8 +5706,10 @@ namespace PlaytimeInsights.Tests
             Equal(true, source.Contains("reason => Refresh(reason)"));
             Equal(true, source.Contains(
                 "Refresh(DashboardRefreshReason.DataReload)"));
+            // One plan boundary; the cross-midnight guard feeds it.
+            Equal(true, source.Contains("DashboardRefreshPlan.Create("));
             Equal(true, source.Contains(
-                "DashboardRefreshPlan.Create(reason, cacheReady)"));
+                "analysisContext.SnapshotDate != DateTime.Today.Date"));
             Equal(1, Regex.Matches(
                 source,
                 @"Filter\.GetLibraryNames\(\)",
@@ -6003,10 +6258,11 @@ namespace PlaytimeInsights.Tests
             Equal(false, onRender.Contains("Color.FromArgb(102, 63, 140, 255)"));
             Equal(false, onRender.Contains("new SolidColorBrush"));
 
-            // Exactly one closed area geometry, filled exactly once.
+            // Exactly one closed area geometry, filled exactly once - over the
+            // observable prefix, never the future tail.
             Equal(1, CountSubstring(
                 onRender,
-                "CreateSmoothGeometry(renderedPoints, plot.Bottom, true)"));
+                "CreateSmoothGeometry(observablePoints, plot.Bottom, true)"));
             Equal(1, CountSubstring(
                 onRender,
                 "DrawGeometry(areaBrush, null, area)"));

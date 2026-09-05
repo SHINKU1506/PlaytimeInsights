@@ -367,7 +367,11 @@ namespace PlaytimeInsights.ViewModels
             long dataMilliseconds = 0;
             long filterMilliseconds = 0;
             var cacheReady = dataCacheReady && analysisContext != null;
-            var plan = DashboardRefreshPlan.Create(reason, cacheReady);
+            var plan = DashboardRefreshPlan.Create(
+                reason,
+                cacheReady,
+                cacheReady &&
+                    analysisContext.SnapshotDate != DateTime.Today.Date);
 
             var phase = Stopwatch.StartNew();
             if (plan.ReloadData)

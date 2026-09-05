@@ -31,11 +31,23 @@ namespace PlaytimeInsights.ViewModels
 
         public static DashboardRefreshPlan Create(
             DashboardRefreshReason reason,
-            bool cacheReady)
+            bool cacheReady,
+            bool snapshotDateChanged = false)
         {
             if (!cacheReady && reason != DashboardRefreshReason.DataReload)
             {
                 reason = DashboardRefreshReason.DataReload;
+            }
+
+            // A cached snapshot from a previous local day keeps the old date
+            // range and today marker alive. Partial refreshes would reuse it, so
+            // they upgrade to a full analysis (no data reload: sessions did not
+            // change at midnight, only the range resolution).
+            if (snapshotDateChanged &&
+                (reason == DashboardRefreshReason.Aggregation ||
+                 reason == DashboardRefreshReason.Ranking))
+            {
+                reason = DashboardRefreshReason.Range;
             }
 
             switch (reason)

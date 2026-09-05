@@ -54,6 +54,10 @@
     <sys:String x:Key="LOCPlaytimeInsightsCalendarHint">Darker cells indicate more playtime. Select a cell to inspect that day's sessions.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPeriodChartHint">The area trend fits the available width. Hover for period, games, and duration; click to inspect sessions.</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsTrendLine">Playtime trend</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsTrendToday">Today</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsTrendCurrentPeriod">Current period · through today</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsTrendFuture">Future date</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsTrendFutureOnly">The selected range has not started</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLoadMore100">Load 100 _more</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsClearSelection">Clear selection</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLifetimeRanking">All games lifetime playtime ranking</sys:String>

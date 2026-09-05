@@ -18,6 +18,9 @@ namespace PlaytimeInsights.Services
 
         public AnalyticsDateRange Range { get; set; }
 
+        // Local snapshot date from the same clock that resolved the range.
+        public DateTime SnapshotDate { get; set; }
+
         public DayOfWeek FirstDayOfWeek { get; set; }
 
         public IDictionary<DateTime, ulong> DailySeconds { get; set; }
@@ -65,6 +68,8 @@ namespace PlaytimeInsights.Services
     public sealed class DashboardTrendProjection
     {
         public string PeriodTitleText { get; set; }
+
+        public DateTime SnapshotDate { get; set; }
 
         public IList<PeriodActivityViewModel> PeriodActivities { get; set; }
 

@@ -21,6 +21,13 @@ namespace PlaytimeInsights.ViewModels
         public ulong Seconds { get; set; }
 
         public double BarHeight { get; set; }
+
+        // Display metadata relative to the analysis snapshot date (never read
+        // from a clock at render time). A future period keeps its raw Seconds
+        // for statistics but must not be drawn as a zero-value data point.
+        public bool IsFuture { get; set; }
+
+        public bool ContainsToday { get; set; }
     }
 
     public sealed class TrendPointViewModel

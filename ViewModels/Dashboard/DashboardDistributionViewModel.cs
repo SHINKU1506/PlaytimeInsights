@@ -1,4 +1,5 @@
 using PlaytimeInsights.Services;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -9,6 +10,7 @@ namespace PlaytimeInsights.ViewModels
     public sealed class DashboardDistributionViewModel : ObservableObject
     {
         private int heatmapColumnCount = 1;
+        private DateTime snapshotDate;
         private double trendChartWidth = 640;
         private PointCollection trendLinePoints = new PointCollection();
         private Geometry trendLineGeometry = Geometry.Empty;
@@ -48,6 +50,8 @@ namespace PlaytimeInsights.ViewModels
         private string peakPeriodShareText;
 
         public int HeatmapColumnCount { get => heatmapColumnCount; private set => SetValue(ref heatmapColumnCount, value); }
+
+        public DateTime SnapshotDate { get => snapshotDate; private set => SetValue(ref snapshotDate, value); }
 
         public double TrendChartWidth { get => trendChartWidth; private set => SetValue(ref trendChartWidth, value); }
 
@@ -146,10 +150,12 @@ namespace PlaytimeInsights.ViewModels
         public void Apply(DashboardSnapshot snapshot)
         {
             HeatmapColumnCount = snapshot.HeatmapColumnCount;
+            SnapshotDate = snapshot.SnapshotDate;
             AnomalyVisibility = snapshot.Advanced.AnomalyVisibility;
             ApplyTrend(new DashboardTrendProjection
             {
                 PeriodActivities = snapshot.PeriodActivities,
+                SnapshotDate = snapshot.SnapshotDate,
                 TrendChartWidth = snapshot.TrendChartWidth,
                 TrendLinePoints = snapshot.TrendLinePoints,
                 TrendLineGeometry = snapshot.TrendLineGeometry,
@@ -187,6 +193,7 @@ namespace PlaytimeInsights.ViewModels
 
         public void ApplyTrend(DashboardTrendProjection projection)
         {
+            SnapshotDate = projection.SnapshotDate;
             TrendChartWidth = projection.TrendChartWidth;
             TrendLinePoints = projection.TrendLinePoints;
             TrendLineGeometry = projection.TrendLineGeometry;

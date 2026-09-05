@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Media;
@@ -98,6 +99,8 @@ namespace PlaytimeInsights.ViewModels
         public DurationDisplayViewModel LongestSessionDisplay { get; set; }
 
         public string RangeText { get; set; }
+
+        public DateTime SnapshotDate { get; set; }
 
         public string PeriodTitleText { get; set; }
 

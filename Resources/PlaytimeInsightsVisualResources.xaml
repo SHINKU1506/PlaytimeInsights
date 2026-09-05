@@ -42,6 +42,11 @@
         <GradientStop Color="#005B7CFA" Offset="1" />
     </LinearGradientBrush>
     <SolidColorBrush x:Key="TrendNodeFillBrush" Color="#FF4A90E2" />
+    <!-- Low-emphasis wash behind the not-yet-observed tail of the trend chart.
+         Deliberately neutral and faint: it separates "no data yet" from "played
+         nothing" without introducing a new saturated semantic color and without
+         competing with the hover crosshair. -->
+    <SolidColorBrush x:Key="TrendFutureFillBrush" Color="#0DFFFFFF" />
 
     <!-- Calendar heatmap levels: a one-hue ICE-CYAN ordinal ramp on the dark module
          surface (ModuleBackgroundBrush, effective #1B1C24), with a visible per-cell

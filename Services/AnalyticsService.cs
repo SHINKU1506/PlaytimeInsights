@@ -269,6 +269,7 @@ namespace PlaytimeInsights.Services
             var context = new DashboardAnalysisContext
             {
                 RangePreset = query.RangePreset,
+                SnapshotDate = snapshotNow.Date,
                 Range = new AnalyticsDateRange
                 {
                     StartDate = range.StartDate,
@@ -340,6 +341,7 @@ namespace PlaytimeInsights.Services
                     "LOCPlaytimeInsightsPreciseRangeFormat",
                     "{0} · 精确会话",
                     range.Label),
+                SnapshotDate = snapshotNow.Date,
                 PeriodTitleText = trend.PeriodTitleText,
                 RangeRankingTitleText = ranking.RangeRankingTitleText,
                 StatusText = rangeSessionCount == 0
@@ -394,11 +396,17 @@ namespace PlaytimeInsights.Services
             var effectiveAggregationPeriod = ResolveAggregationPeriod(
                 query,
                 context.Range);
+            // Contexts built before the snapshot date existed (or hand-built
+            // ones) fall back to today so future metadata stays meaningful.
+            var snapshotDate = context.SnapshotDate == default
+                ? DateTime.Today.Date
+                : context.SnapshotDate.Date;
             var periodActivities = CreatePeriodActivities(
                 context.DailySeconds,
                 context.Range,
                 effectiveAggregationPeriod,
-                context.FirstDayOfWeek);
+                context.FirstDayOfWeek,
+                snapshotDate);
             ApplyPeriodGameSummaries(periodActivities, context.DailyGameNames);
             double trendChartWidth;
             PointCollection trendLinePoints;
@@ -422,6 +430,7 @@ namespace PlaytimeInsights.Services
                             "LOCPlaytimeInsightsAutomaticSuffix",
                             " · 自动")
                         : string.Empty),
+                SnapshotDate = snapshotDate,
                 PeriodActivities = periodActivities,
                 TrendChartWidth = trendChartWidth,
                 TrendLinePoints = trendLinePoints,
@@ -813,7 +822,8 @@ namespace PlaytimeInsights.Services
             IDictionary<DateTime, ulong> dailySeconds,
             AnalyticsDateRange range,
             AggregationPeriod period,
-            DayOfWeek firstDayOfWeek)
+            DayOfWeek firstDayOfWeek,
+            DateTime snapshotDate)
         {
             var values = new List<PeriodActivityViewModel>();
             var periodSeconds = new Dictionary<DateTime, ulong>();
@@ -830,10 +840,12 @@ namespace PlaytimeInsights.Services
                 ulong seconds;
                 periodSeconds.TryGetValue(cursor, out seconds);
                 maximumSeconds = Math.Max(maximumSeconds, seconds);
+                var periodStart = cursor < range.StartDate ? range.StartDate : cursor;
+                var periodEnd = MinDate(AddPeriod(cursor, period).AddDays(-1), range.EndDate);
                 values.Add(new PeriodActivityViewModel
                 {
-                    PeriodStart = cursor < range.StartDate ? range.StartDate : cursor,
-                    PeriodEnd = MinDate(AddPeriod(cursor, period).AddDays(-1), range.EndDate),
+                    PeriodStart = periodStart,
+                    PeriodEnd = periodEnd,
                     Label = FormatPeriodLabel(cursor, period),
                     DurationText = FormatDurationPrecise(seconds),
                     HoverDurationText = LocalizationService.Format(
@@ -845,7 +857,10 @@ namespace PlaytimeInsights.Services
                         "{0}：{1}（点击查看会话）",
                         FormatPeriodLabel(cursor, period),
                         FormatDurationPrecise(seconds)),
-                    Seconds = seconds
+                    Seconds = seconds,
+                    IsFuture = periodStart.Date > snapshotDate,
+                    ContainsToday = periodStart.Date <= snapshotDate &&
+                        periodEnd.Date >= snapshotDate
                 });
                 cursor = AddPeriod(cursor, period);
             }
@@ -1071,11 +1086,19 @@ namespace PlaytimeInsights.Services
             chartWidth = Math.Max(640, periods.Count * horizontalStep);
             linePoints = new PointCollection();
             var values = new List<TrendPointViewModel>();
-            var maximumSeconds = periods.Count == 0
-                ? 0UL
-                : periods.Max(period => period.Seconds);
 
-            for (var index = 0; index < periods.Count; index++)
+            // The Y scale and every drawn point come from the observable prefix
+            // only: future periods keep their raw Seconds but must not read as
+            // data points, so the observable tail stops at the first one.
+            var observableCount = 0;
+            ulong maximumSeconds = 0;
+            while (observableCount < periods.Count && !periods[observableCount].IsFuture)
+            {
+                maximumSeconds = Math.Max(maximumSeconds, periods[observableCount].Seconds);
+                observableCount++;
+            }
+
+            for (var index = 0; index < observableCount; index++)
             {
                 var period = periods[index];
                 var x = horizontalStep / 2 + index * horizontalStep;

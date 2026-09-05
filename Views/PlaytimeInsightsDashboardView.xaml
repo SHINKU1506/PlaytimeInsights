@@ -1726,6 +1726,7 @@
                                FontWeight="SemiBold"
                                Margin="0,0,0,8" />
                     <controls:AdaptiveTrendChart ItemsSource="{Binding PeriodActivities}"
+                                                 SnapshotDate="{Binding Distribution.SnapshotDate}"
                                                  Height="230"
                                                  MinWidth="320"
                                                  Cursor="Cross"

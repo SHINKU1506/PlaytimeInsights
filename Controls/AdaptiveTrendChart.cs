@@ -34,10 +34,21 @@ namespace PlaytimeInsights.Controls
                     FrameworkPropertyMetadataOptions.AffectsRender,
                     OnItemsSourceChanged));
 
+        public static readonly DependencyProperty SnapshotDateProperty =
+            DependencyProperty.Register(
+                nameof(SnapshotDate),
+                typeof(DateTime?),
+                typeof(AdaptiveTrendChart),
+                new FrameworkPropertyMetadata(
+                    null,
+                    FrameworkPropertyMetadataOptions.AffectsRender,
+                    OnSnapshotDateChanged));
+
         private int hoverIndex = -1;
         private IList<PeriodActivityViewModel> renderedItems =
             new List<PeriodActivityViewModel>();
         private IList<Point> renderedPoints = new List<Point>();
+        private int observableCount;
 
         // Y scale. The gridlines are only worth protecting from the area fill if
         // they carry values, so the plot reserves a measured left gutter and the
@@ -58,11 +69,23 @@ namespace PlaytimeInsights.Controls
             CreateFallbackTrendAreaBrush();
         private static readonly Brush FallbackTrendNodeFillBrush =
             CreateFrozenBrush(Color.FromRgb(74, 144, 226));
+        private static readonly Brush FallbackTrendFutureFillBrush =
+            CreateFrozenBrush(Color.FromArgb(13, 255, 255, 255));
 
         public IEnumerable ItemsSource
         {
             get => (IEnumerable)GetValue(ItemsSourceProperty);
             set => SetValue(ItemsSourceProperty, value);
+        }
+
+        // Local snapshot date of the current projection. Null keeps legacy
+        // callers rendering without a today marker; the production dashboard
+        // binds Distribution.SnapshotDate so the chart re-renders after both
+        // the data and the date metadata have been applied.
+        public DateTime? SnapshotDate
+        {
+            get => (DateTime?)GetValue(SnapshotDateProperty);
+            set => SetValue(SnapshotDateProperty, value);
         }
 
         public event EventHandler<TrendPeriodSelectedEventArgs> PeriodSelected;
@@ -96,6 +119,15 @@ namespace PlaytimeInsights.Controls
             NotifyCollectionChangedEventArgs args)
         {
             ResetRenderedState();
+        }
+
+        private static void OnSnapshotDateChanged(
+            DependencyObject dependencyObject,
+            DependencyPropertyChangedEventArgs args)
+        {
+            // The date application completes the presentation update; drop any
+            // stale hover state so it cannot outlive the old projection.
+            ((AdaptiveTrendChart)dependencyObject).ResetRenderedState();
         }
 
         private void ResetRenderedState()
@@ -167,14 +199,24 @@ namespace PlaytimeInsights.Controls
             var separator = ResolveBrush("PanelSeparatorBrush", Color.FromArgb(80, 128, 128, 128));
             var textBrush = ResolveBrush("TextBrush", Colors.White);
 
-            // Axis first: the maximum depends only on the items, and the gutter
-            // depends only on the label widths, so both are known before any
-            // geometry. Measure the labels rather than guessing a width, so an
-            // axis label is never clipped.
-            axisMaximumSeconds = renderedItems.Count == 0
+            // Observable prefix: future periods form the tail of the collection
+            // and are never drawn as data. The full collection keeps its slot
+            // indices so hit-testing stays aligned with the drawn geometry.
+            observableCount = 0;
+            while (observableCount < renderedItems.Count &&
+                !renderedItems[observableCount].IsFuture)
+            {
+                observableCount++;
+            }
+
+            // Axis first: the maximum depends only on observable items, and the
+            // gutter depends only on the label widths, so both are known before
+            // any geometry. Measure the labels rather than guessing a width, so
+            // an axis label is never clipped.
+            axisMaximumSeconds = observableCount == 0
                 ? 0UL
                 : ResolveAxisMaximumSeconds(
-                    renderedItems.Max(item => item.Seconds));
+                    renderedItems.Take(observableCount).Max(item => item.Seconds));
             var axisLabels = CreateAxisLabels(textBrush);
             axisGutter = 12d;
             if (axisLabels.Count > 0)
@@ -219,9 +261,55 @@ namespace PlaytimeInsights.Controls
                 }
             }
 
-            var area = CreateSmoothGeometry(renderedPoints, plot.Bottom, true);
-            var line = CreateSmoothGeometry(renderedPoints, plot.Bottom, false);
-            drawingContext.DrawGeometry(areaBrush, null, area);
+            // Low-emphasis future region: starts midway between the last
+            // observable slot and the first future slot so the curve never
+            // appears to reach into it.
+            if (observableCount < renderedItems.Count)
+            {
+                var futureFill = ResolveBrush(
+                    "TrendFutureFillBrush",
+                    FallbackTrendFutureFillBrush);
+                var boundaryX = observableCount == 0
+                    ? plot.Left
+                    : (renderedPoints[observableCount - 1].X +
+                        renderedPoints[observableCount].X) / 2;
+                drawingContext.DrawRectangle(
+                    futureFill,
+                    null,
+                    new Rect(
+                        boundaryX,
+                        plot.Top,
+                        Math.Max(0d, plot.Right - boundaryX),
+                        plot.Height));
+            }
+
+            if (observableCount == 0)
+            {
+                // No observable period at all: the axis stays, the curve does
+                // not, and the state text explains the empty plot.
+                var futureOnlyText = CreateText(
+                    LocalizationService.Get(
+                        "LOCPlaytimeInsightsTrendFutureOnly",
+                        "所选范围尚未开始"),
+                    12,
+                    textBrush,
+                    FontWeights.SemiBold);
+                drawingContext.DrawText(
+                    futureOnlyText,
+                    new Point(
+                        plot.Left + Math.Max(0d, (plot.Width - futureOnlyText.Width) / 2),
+                        plot.Top + Math.Max(0d, (plot.Height - futureOnlyText.Height) / 2)));
+                return;
+            }
+
+            var observablePoints = renderedPoints.Take(observableCount).ToList();
+            if (observableCount > 1)
+            {
+                var area = CreateSmoothGeometry(observablePoints, plot.Bottom, true);
+                drawingContext.DrawGeometry(areaBrush, null, area);
+            }
+
+            var line = CreateSmoothGeometry(observablePoints, plot.Bottom, false);
             var thickness = renderedItems.Count >= 180
                 ? 1
                 : renderedItems.Count >= 90 ? 1.5 : 2.5;
@@ -241,12 +329,13 @@ namespace PlaytimeInsights.Controls
                     nodePen.Freeze();
                 }
 
-                foreach (var point in renderedPoints)
+                foreach (var point in observablePoints)
                 {
                     drawingContext.DrawEllipse(nodeFillBrush, nodePen, point, 3d, 3d);
                 }
             }
 
+            DrawTodayMarker(drawingContext, plot);
             DrawSparseLabels(drawingContext, plot, textBrush);
             DrawHover(drawingContext, plot, textBrush, nodeRingBrush);
         }
@@ -281,7 +370,10 @@ namespace PlaytimeInsights.Controls
         protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonUp(e);
-            if (hoverIndex >= 0 && hoverIndex < renderedItems.Count)
+            // Future slots show a state tooltip only; they must not open a
+            // drilldown for a period that has not started.
+            if (hoverIndex >= 0 && hoverIndex < renderedItems.Count &&
+                !renderedItems[hoverIndex].IsFuture)
             {
                 PeriodSelected?.Invoke(
                     this,
@@ -308,6 +400,8 @@ namespace PlaytimeInsights.Controls
 
             // Normalise against the rounded axis maximum, not the raw peak, so the
             // top gridline is a real reference instead of a restatement of the peak.
+            // Future slots anchor to the baseline: they carry no drawn value, so
+            // hovering them must not float a crosshair above the plot.
             var maximum = axisMaximumSeconds;
             var points = new List<Point>(items.Count);
             for (var index = 0; index < items.Count; index++)
@@ -315,12 +409,55 @@ namespace PlaytimeInsights.Controls
                 var x = items.Count == 1
                     ? plot.Left + plot.Width / 2
                     : plot.Left + plot.Width * index / (items.Count - 1);
-                var y = maximum == 0
+                var y = items[index].IsFuture || maximum == 0
                     ? plot.Bottom
                     : plot.Bottom - plot.Height * items[index].Seconds / maximum;
                 points.Add(new Point(x, y));
             }
             return points;
+        }
+
+        private int FindTodayIndex()
+        {
+            for (var index = 0; index < renderedItems.Count; index++)
+            {
+                if (renderedItems[index].ContainsToday)
+                {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static string ResolveTodayLabel(PeriodActivityViewModel period)
+        {
+            // A day period labels itself "today"; a week/month/year period keeps
+            // its whole-slot meaning instead of claiming an exact moment.
+            return period.PeriodStart.Date == period.PeriodEnd.Date
+                ? LocalizationService.Get("LOCPlaytimeInsightsTrendToday", "今天")
+                : LocalizationService.Get(
+                    "LOCPlaytimeInsightsTrendCurrentPeriod",
+                    "本周期·截至今天");
+        }
+
+        private void DrawTodayMarker(DrawingContext context, Rect plot)
+        {
+            var todayIndex = FindTodayIndex();
+            if (todayIndex < 0)
+            {
+                return;
+            }
+
+            var accent = ResolveBrush("GlyphBrush", Color.FromRgb(120, 177, 235));
+            var tickPen = new Pen(accent, 1.5);
+            if (tickPen.CanFreeze)
+            {
+                tickPen.Freeze();
+            }
+
+            var x = renderedPoints[todayIndex].X;
+            context.DrawLine(tickPen, new Point(x, plot.Bottom - 10), new Point(x, plot.Bottom));
         }
 
         private void DrawSparseLabels(
@@ -341,10 +478,33 @@ namespace PlaytimeInsights.Controls
                 Math.Min(
                     plot.Right - lastText.Width,
                     renderedPoints[lastIndex].X - lastText.Width / 2));
+
+            // The today label anchors to its own slot and wins collisions: when
+            // it would overlap a normal tick, the normal tick is dropped.
+            var todayIndex = FindTodayIndex();
+            FormattedText todayText = null;
+            double todayLeft = 0d;
+            if (todayIndex >= 0)
+            {
+                var accent = ResolveBrush("GlyphBrush", Color.FromRgb(120, 177, 235));
+                todayText = CreateText(
+                    ResolveTodayLabel(renderedItems[todayIndex]),
+                    10,
+                    accent,
+                    FontWeights.SemiBold);
+                todayLeft = Math.Max(
+                    plot.Left,
+                    Math.Min(
+                        plot.Right - todayText.Width,
+                        renderedPoints[todayIndex].X - todayText.Width / 2));
+            }
+
+            var lastIsToday = todayIndex == lastIndex;
             var previousRight = double.NegativeInfinity;
             foreach (var index in Enumerable.Range(0, renderedItems.Count)
                 .Where(index =>
                     index != lastIndex &&
+                    index != todayIndex &&
                     (index == 0 || index % step == 0)))
             {
                 var text = CreateText(renderedItems[index].Label, 10, textBrush);
@@ -355,11 +515,25 @@ namespace PlaytimeInsights.Controls
                 {
                     continue;
                 }
+
+                if (todayText != null && !lastIsToday &&
+                    x < todayLeft + todayText.Width + 8 &&
+                    todayLeft < x + text.Width + 8)
+                {
+                    continue;
+                }
+
                 context.DrawText(text, new Point(x, plot.Bottom + 7));
                 previousRight = x + text.Width;
             }
 
-            if (lastLeft >= previousRight + 8)
+            if (todayText != null)
+            {
+                context.DrawText(todayText, new Point(todayLeft, plot.Bottom + 7));
+                previousRight = Math.Max(previousRight, todayLeft + todayText.Width);
+            }
+
+            if (!lastIsToday && lastLeft >= previousRight + 8)
             {
                 context.DrawText(
                     lastText,
@@ -396,6 +570,51 @@ namespace PlaytimeInsights.Controls
                 new Point(point.X, plot.Top),
                 new Point(point.X, plot.Bottom));
 
+            var item = renderedItems[hoverIndex];
+            if (item.IsFuture)
+            {
+                // Future slot: state card only. No node, no duration - showing
+                // a zero would misread as "played nothing that day".
+                var futureState = CreateText(
+                    LocalizationService.Get(
+                        "LOCPlaytimeInsightsTrendFuture",
+                        "未来日期"),
+                    11,
+                    glyph);
+                var futureDate = CreateText(
+                    item.Label,
+                    11,
+                    textBrush,
+                    FontWeights.SemiBold);
+                var futureWidth = Math.Min(
+                    Math.Max(140, Math.Max(futureDate.Width, futureState.Width) + 24),
+                    Math.Max(140, ActualWidth - 24));
+                var futureLeft = point.X + 14;
+                if (futureLeft + futureWidth > ActualWidth - 8)
+                {
+                    futureLeft = point.X - futureWidth - 14;
+                }
+
+                futureLeft = Math.Max(8, futureLeft);
+                var futureTop = Math.Max(8, Math.Min(point.Y - 50, plot.Bottom - 56));
+                var futureCard = new Rect(futureLeft, futureTop, futureWidth, 46);
+                context.DrawRoundedRectangle(
+                    popupBackground,
+                    new Pen(separator, 1),
+                    futureCard,
+                    7,
+                    7);
+                context.PushClip(new RectangleGeometry(new Rect(
+                    futureCard.Left + 10,
+                    futureCard.Top + 5,
+                    futureCard.Width - 20,
+                    futureCard.Height - 10)));
+                context.DrawText(futureDate, new Point(futureCard.Left + 11, futureCard.Top + 6));
+                context.DrawText(futureState, new Point(futureCard.Left + 11, futureCard.Top + 24));
+                context.Pop();
+                return;
+            }
+
             // Same ring brush as the normal nodes, only a larger radius.
             context.DrawEllipse(
                 glyph,
@@ -404,7 +623,6 @@ namespace PlaytimeInsights.Controls
                 4.5,
                 4.5);
 
-            var item = renderedItems[hoverIndex];
             var date = CreateText(item.Label, 11, textBrush, FontWeights.SemiBold);
             var games = CreateText(item.GameSummaryText ?? string.Empty, 11, textBrush);
             var duration = CreateText(
