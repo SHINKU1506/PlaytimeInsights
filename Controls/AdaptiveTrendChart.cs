@@ -285,8 +285,9 @@ namespace PlaytimeInsights.Controls
 
             if (observableCount == 0)
             {
-                // No observable period at all: the axis stays, the curve does
-                // not, and the state text explains the empty plot.
+                // No observable period at all: the curve is skipped but the
+                // state text, date labels and hover layer below still cover
+                // every future slot.
                 var futureOnlyText = CreateText(
                     LocalizationService.Get(
                         "LOCPlaytimeInsightsTrendFutureOnly",
@@ -299,39 +300,40 @@ namespace PlaytimeInsights.Controls
                     new Point(
                         plot.Left + Math.Max(0d, (plot.Width - futureOnlyText.Width) / 2),
                         plot.Top + Math.Max(0d, (plot.Height - futureOnlyText.Height) / 2)));
-                return;
             }
-
-            var observablePoints = renderedPoints.Take(observableCount).ToList();
-            if (observableCount > 1)
+            else
             {
-                var area = CreateSmoothGeometry(observablePoints, plot.Bottom, true);
-                drawingContext.DrawGeometry(areaBrush, null, area);
-            }
-
-            var line = CreateSmoothGeometry(observablePoints, plot.Bottom, false);
-            var thickness = renderedItems.Count >= 180
-                ? 1
-                : renderedItems.Count >= 90 ? 1.5 : 2.5;
-            var linePen = new Pen(lineBrush, thickness);
-            if (linePen.CanFreeze)
-            {
-                linePen.Freeze();
-            }
-
-            drawingContext.DrawGeometry(null, linePen, line);
-
-            if (renderedItems.Count <= 90)
-            {
-                var nodePen = new Pen(nodeRingBrush, 1.5);
-                if (nodePen.CanFreeze)
+                var observablePoints = renderedPoints.Take(observableCount).ToList();
+                if (observableCount > 1)
                 {
-                    nodePen.Freeze();
+                    var area = CreateSmoothGeometry(observablePoints, plot.Bottom, true);
+                    drawingContext.DrawGeometry(areaBrush, null, area);
                 }
 
-                foreach (var point in observablePoints)
+                var line = CreateSmoothGeometry(observablePoints, plot.Bottom, false);
+                var thickness = renderedItems.Count >= 180
+                    ? 1
+                    : renderedItems.Count >= 90 ? 1.5 : 2.5;
+                var linePen = new Pen(lineBrush, thickness);
+                if (linePen.CanFreeze)
                 {
-                    drawingContext.DrawEllipse(nodeFillBrush, nodePen, point, 3d, 3d);
+                    linePen.Freeze();
+                }
+
+                drawingContext.DrawGeometry(null, linePen, line);
+
+                if (renderedItems.Count <= 90)
+                {
+                    var nodePen = new Pen(nodeRingBrush, 1.5);
+                    if (nodePen.CanFreeze)
+                    {
+                        nodePen.Freeze();
+                    }
+
+                    foreach (var point in observablePoints)
+                    {
+                        drawingContext.DrawEllipse(nodeFillBrush, nodePen, point, 3d, 3d);
+                    }
                 }
             }
 

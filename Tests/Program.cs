@@ -3493,6 +3493,45 @@ namespace PlaytimeInsights.Tests
                         PixelFormats.Pbgra32);
                     bitmap.Render(chart);
                 }
+
+                // A fully future range keeps the complete date axis: the label
+                // band below the plot baseline must carry text even though the
+                // curve is skipped entirely.
+                var futureChart = new AdaptiveTrendChart
+                {
+                    Width = 640,
+                    Height = 230,
+                    ItemsSource = CreateTrendScenario(11, 0, 0),
+                    SnapshotDate = new DateTime?(new DateTime(2026, 9, 5))
+                };
+                futureChart.Measure(new Size(640, 230));
+                futureChart.Arrange(new Rect(0, 0, 640, 230));
+                futureChart.UpdateLayout();
+                var futureBitmap = new RenderTargetBitmap(
+                    640,
+                    230,
+                    96,
+                    96,
+                    PixelFormats.Pbgra32);
+                futureBitmap.Render(futureChart);
+                var pixels = new byte[640 * 230 * 4];
+                futureBitmap.CopyPixels(pixels, 640 * 4, 0);
+                // Plot bottom is 230 - 42 = 188; the date labels sit below the
+                // baseline and the axis maximum is 0, so no y-axis label can
+                // reach into this band.
+                var labelTextPixels = 0;
+                for (var y = 204; y < 228; y++)
+                {
+                    for (var x = 0; x < 640; x++)
+                    {
+                        if (pixels[(y * 640 + x) * 4 + 3] > 32)
+                        {
+                            labelTextPixels++;
+                        }
+                    }
+                }
+
+                Equal(true, labelTextPixels > 0);
             });
         }
 
