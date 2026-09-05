@@ -18,6 +18,7 @@
                 <ResourceDictionary Source="../Resources/PlaytimeInsightsVisualResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
         <converters:CoverImageConverter x:Key="CoverImageConverter" />
+        <converters:DistributionHourLabelConverter x:Key="DistributionHourLabelConverter" />
         <sys:Double x:Key="TextOpacityPrimary">1</sys:Double>
         <sys:Double x:Key="TextOpacitySecondary">0.72</sys:Double>
         <sys:Double x:Key="TextOpacityTertiary">0.58</sys:Double>
@@ -1839,23 +1840,33 @@
                     </ItemsControl>
 
                     <TextBlock Text="{Binding HourDistributionTitle}" FontWeight="SemiBold" Margin="0,20,0,8" />
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                    <ScrollViewer x:Name="HourDistributionScrollViewer"
+                                  HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Disabled"
-                                  PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel">
-                        <ItemsControl ItemsSource="{Binding HourDistribution}">
+                                  PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
+                                  SizeChanged="DistributionViewport_SizeChanged">
+                        <ItemsControl x:Name="HourDistributionChart"
+                                      ItemsSource="{Binding HourDistribution}"
+                                      AlternationCount="24">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
+                                    <!-- Explicit width = exactly 24 equal slots, so
+                                         all hours stay reachable; the old fixed
+                                         42 DIP gutter is gone. Labels keep their
+                                         hour number; unlabelled hours keep bar and
+                                         hit area. -->
+                                    <UniformGrid Columns="24"
+                                                 Width="{Binding HourContentWidth, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Width="42" Margin="1,0">
+                                    <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="108" />
                                             <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
-                                        <Border Width="24"
+                                        <Border Width="{Binding HourBarWidth, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                 Height="{Binding BarHeight}"
                                                 VerticalAlignment="Bottom"
                                                 HorizontalAlignment="Center"
@@ -1863,10 +1874,19 @@
                                                 CornerRadius="6,6,0,0"
                                                 ToolTip="{Binding TooltipText}" />
                                         <TextBlock Grid.Row="1"
-                                                   Text="{Binding Label}"
                                                    HorizontalAlignment="Center"
-                                                   FontSize="9"
-                                                   Opacity="{StaticResource TextOpacityTertiary}" />
+                                                   FontSize="11"
+                                                   Opacity="{StaticResource TextOpacityTertiary}">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource DistributionHourLabelConverter}">
+                                                    <Binding Path="Label" />
+                                                    <Binding Path="(ItemsControl.AlternationIndex)"
+                                                             RelativeSource="{RelativeSource AncestorType={x:Type ContentPresenter}}" />
+                                                    <Binding Path="HourLabelStep"
+                                                             RelativeSource="{RelativeSource AncestorType={x:Type UserControl}}" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -1874,11 +1894,14 @@
                     </ScrollViewer>
 
                     <TextBlock Text="{DynamicResource LOCPlaytimeInsightsWeekHourHeatmap}" FontWeight="SemiBold" Margin="0,20,0,8" />
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                    <ScrollViewer x:Name="WeekHourHeatmapScrollViewer"
+                                  HorizontalScrollBarVisibility="Auto"
                                   VerticalScrollBarVisibility="Disabled"
                                   PreviewMouseWheel="NestedScrollViewer_PreviewMouseWheel"
-                                  HorizontalContentAlignment="Center">
-                        <Grid HorizontalAlignment="Center">
+                                  SizeChanged="DistributionViewport_SizeChanged">
+                        <Grid x:Name="WeekHourHeatmapGrid"
+                              HorizontalAlignment="Left"
+                              Width="{Binding WeekHourContentWidth, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="20" />
                                 <RowDefinition Height="Auto" />
@@ -1888,7 +1911,8 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <ItemsControl Grid.Column="1"
-                                          ItemsSource="{Binding AdvancedHourLabels}">
+                                          ItemsSource="{Binding AdvancedHourLabels}"
+                                          AlternationCount="24">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <StackPanel Orientation="Horizontal" />
@@ -1896,11 +1920,19 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding}"
-                                                   Width="32"
-                                                   FontSize="9"
+                                        <TextBlock Width="{Binding WeekHourSlotWidth, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                   FontSize="11"
                                                    HorizontalAlignment="Center"
-                                                   Opacity="{StaticResource TextOpacityTertiary}" />
+                                                   Opacity="{StaticResource TextOpacityTertiary}">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource DistributionHourLabelConverter}">
+                                                    <Binding Path="" />
+                                                    <Binding Path="(ItemsControl.AlternationIndex)"
+                                                             RelativeSource="{RelativeSource AncestorType={x:Type ContentPresenter}}" />
+                                                    <Binding Source="2" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -1914,7 +1946,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding}"
-                                                   Height="32"
+                                                   Height="{Binding WeekHourSlotWidth, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                    VerticalAlignment="Center"
                                                    FontSize="10"
                                                    Opacity="{StaticResource TextOpacityTertiary}" />
@@ -1931,8 +1963,8 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Width="30"
-                                                Height="30"
+                                        <Border Width="{Binding WeekHourCellSize, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                Height="{Binding WeekHourCellSize, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
                                                 Margin="1"
                                                 CornerRadius="3"
                                                 Background="Transparent"

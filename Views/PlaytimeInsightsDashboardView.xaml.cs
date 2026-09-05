@@ -21,6 +21,89 @@ namespace PlaytimeInsights.Views
         private bool rankingTabMouseInteraction;
         private readonly DispatcherTimer rankingTabMouseInteractionTimer;
 
+        // V5 distribution layout: measured viewport width -> local size values.
+        // The DataTemplates bind these; nothing here touches analytics state.
+        public static readonly DependencyProperty HourContentWidthProperty =
+            DependencyProperty.Register(
+                nameof(HourContentWidth),
+                typeof(double),
+                typeof(PlaytimeInsightsDashboardView),
+                new PropertyMetadata(480d));
+
+        public static readonly DependencyProperty HourBarWidthProperty =
+            DependencyProperty.Register(
+                nameof(HourBarWidth),
+                typeof(double),
+                typeof(PlaytimeInsightsDashboardView),
+                new PropertyMetadata(16d));
+
+        public static readonly DependencyProperty HourLabelStepProperty =
+            DependencyProperty.Register(
+                nameof(HourLabelStep),
+                typeof(int),
+                typeof(PlaytimeInsightsDashboardView),
+                new PropertyMetadata(2));
+
+        public static readonly DependencyProperty WeekHourContentWidthProperty =
+            DependencyProperty.Register(
+                nameof(WeekHourContentWidth),
+                typeof(double),
+                typeof(PlaytimeInsightsDashboardView),
+                new PropertyMetadata(672d));
+
+        public static readonly DependencyProperty WeekHourSlotWidthProperty =
+            DependencyProperty.Register(
+                nameof(WeekHourSlotWidth),
+                typeof(double),
+                typeof(PlaytimeInsightsDashboardView),
+                new PropertyMetadata(26d));
+
+        public static readonly DependencyProperty WeekHourCellSizeProperty =
+            DependencyProperty.Register(
+                nameof(WeekHourCellSize),
+                typeof(double),
+                typeof(PlaytimeInsightsDashboardView),
+                new PropertyMetadata(24d));
+
+        private double lastHourViewportWidth = -1d;
+        private double lastWeekHourViewportWidth = -1d;
+
+        public double HourContentWidth
+        {
+            get => (double)GetValue(HourContentWidthProperty);
+            set => SetValue(HourContentWidthProperty, value);
+        }
+
+        public double HourBarWidth
+        {
+            get => (double)GetValue(HourBarWidthProperty);
+            set => SetValue(HourBarWidthProperty, value);
+        }
+
+        public int HourLabelStep
+        {
+            get => (int)GetValue(HourLabelStepProperty);
+            set => SetValue(HourLabelStepProperty, value);
+        }
+
+        public double WeekHourContentWidth
+        {
+            get => (double)GetValue(WeekHourContentWidthProperty);
+            set => SetValue(WeekHourContentWidthProperty, value);
+        }
+
+        public double WeekHourSlotWidth
+        {
+            get => (double)GetValue(WeekHourSlotWidthProperty);
+            set => SetValue(WeekHourSlotWidthProperty, value);
+        }
+
+        public double WeekHourCellSize
+        {
+            get => (double)GetValue(WeekHourCellSizeProperty);
+            set => SetValue(WeekHourCellSizeProperty, value);
+        }
+
         public PlaytimeInsightsDashboardView()
         {
             InitializeComponent();
@@ -269,6 +352,109 @@ namespace PlaytimeInsights.Views
 
             HeatmapMonthScrollViewer?.ScrollToHorizontalOffset(
                 e.HorizontalOffset);
+        }
+
+        private void DistributionViewport_SizeChanged(
+            object sender,
+            SizeChangedEventArgs e)
+        {
+            var viewport = sender as ScrollViewer;
+            if (viewport == null)
+            {
+                return;
+            }
+
+            // The ScrollViewer is the finite viewport (vertical scrollbar is
+            // disabled); never measure the scrollable content itself.
+            var width = viewport.ViewportWidth;
+            if (width <= 0d || double.IsNaN(width) || double.IsInfinity(width))
+            {
+                width = viewport.ActualWidth;
+            }
+
+            if (width <= 0d || double.IsNaN(width) || double.IsInfinity(width))
+            {
+                return;
+            }
+
+            if (ReferenceEquals(sender, WeekHourHeatmapScrollViewer))
+            {
+                if (Math.Abs(width - lastWeekHourViewportWidth) < 0.5d)
+                {
+                    return;
+                }
+
+                lastWeekHourViewportWidth = width;
+            }
+            else
+            {
+                if (Math.Abs(width - lastHourViewportWidth) < 0.5d)
+                {
+                    return;
+                }
+
+                lastHourViewportWidth = width;
+            }
+
+            ApplyDistributionLayout(viewport, width);
+        }
+
+        private void ApplyDistributionLayout(
+            ScrollViewer viewport,
+            double viewportWidth)
+        {
+            var metrics = DistributionLayoutMetrics.Create(viewportWidth);
+            HourContentWidth = metrics.HourContentWidth;
+            HourBarWidth = metrics.HourBarWidth;
+            HourLabelStep = metrics.HourLabelStep;
+            WeekHourContentWidth = metrics.WeekHourContentWidth;
+            WeekHourSlotWidth = metrics.WeekHourSlotWidth;
+            WeekHourCellSize = metrics.WeekHourCellSize;
+
+            // Centering only while the content is narrower than the viewport;
+            // an overflowing centered child would clip its leading edge.
+            if (HourDistributionChart != null)
+            {
+                HourDistributionChart.HorizontalAlignment =
+                    metrics.HourCentersContent
+                        ? HorizontalAlignment.Center
+                        : HorizontalAlignment.Left;
+            }
+
+            if (WeekHourHeatmapGrid != null)
+            {
+                WeekHourHeatmapGrid.HorizontalAlignment =
+                    metrics.WeekHourCentersContent
+                        ? HorizontalAlignment.Center
+                        : HorizontalAlignment.Left;
+            }
+
+            // Content widths land after this layout pass; normalize the saved
+            // offsets then. Selections, queries and drilldown state stay put.
+            viewport.Dispatcher.BeginInvoke(
+                new Action(() => ClampDistributionOffset(viewport)),
+                DispatcherPriority.Loaded);
+        }
+
+        private static void ClampDistributionOffset(ScrollViewer viewport)
+        {
+            if (viewport.ScrollableWidth <= 0d)
+            {
+                if (viewport.HorizontalOffset != 0d)
+                {
+                    viewport.ScrollToHorizontalOffset(0d);
+                }
+
+                return;
+            }
+
+            var clamped = Math.Min(
+                viewport.HorizontalOffset,
+                viewport.ScrollableWidth);
+            if (Math.Abs(clamped - viewport.HorizontalOffset) > 0.01d)
+            {
+                viewport.ScrollToHorizontalOffset(clamped);
+            }
         }
 
         private void DrilldownHost_IsVisibleChanged(

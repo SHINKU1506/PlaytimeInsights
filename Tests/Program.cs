@@ -109,6 +109,8 @@ namespace PlaytimeInsights.Tests
             Run("Trend projections stay safe on future edge shapes", TestTrendFutureEdgeProjections);
             Run("Snapshot date change upgrades partial refreshes", TestSnapshotDateRefreshUpgrade);
             Run("Trend chart keeps future display and click contracts", TestTrendChartFutureDisplayContract);
+            Run("Distribution layout metrics follow the width table", TestDistributionLayoutMetricsFormulas);
+            Run("Distribution charts fit, scroll and center on real templates", TestDistributionLayoutRealTemplates);
             Run("Period drilldown bounds clip to range", TestPeriodBoundsClipToRange);
             Run("Session drilldown clips duration and labels recovery", TestSessionDrilldown);
             Run("Session detail pager loads fixed-size batches", TestSessionDetailPager);
@@ -8919,7 +8921,19 @@ namespace PlaytimeInsights.Tests
             Equal(true, dashboardCode.Contains(
                 "Loaded += PlaytimeInsightsDashboardView_Loaded;"));
             Equal(false, dashboardCode.Contains("IsCompactHeroLayout"));
-            Equal(false, dashboardCode.Contains("SizeChanged"));
+            // V5 adds exactly one resize boundary: the distribution layout
+            // handler. It applies layout values only, never analytics state.
+            Equal(1, Regex.Matches(
+                dashboardCode,
+                Regex.Escape(
+                    "private void DistributionViewport_SizeChanged("))
+                .Count);
+            var distributionLayout = ExtractSourceBlock(
+                dashboardCode,
+                "private void DistributionViewport_SizeChanged(",
+                "private void DrilldownHost_IsVisibleChanged(");
+            Equal(false, distributionLayout.Contains("AnalyticsService"));
+            Equal(false, distributionLayout.Contains("CreateSnapshot"));
             var drilldownReveal = ExtractSourceBlock(
                 dashboardCode,
                 "private void DrilldownHost_IsVisibleChanged(",
@@ -10067,6 +10081,329 @@ namespace PlaytimeInsights.Tests
             public MetricQuantityDisplayViewModel AnomalyCountDisplay { get; set; }
 
             public int AnomalyCount { get; set; }
+        }
+
+        private static void TestDistributionLayoutMetricsFormulas()
+        {
+            // A14: the spec width table, computed with double precision.
+            DistributionLayoutMetrics metrics = DistributionLayoutMetrics.Create(440);
+            AssertDistributionMetrics(metrics, 440, 20, 480, 12, 2, 26, 24, 672);
+            Equal(true, metrics.HourCentersContent == false);
+            Equal(true, metrics.WeekHourCentersContent == false);
+
+            metrics = DistributionLayoutMetrics.Create(480);
+            AssertDistributionMetrics(metrics, 480, 20, 480, 12, 2, 26, 24, 672);
+
+            metrics = DistributionLayoutMetrics.Create(672);
+            AssertDistributionMetrics(metrics, 672, 28, 672, 20, 2, 26, 24, 672);
+
+            metrics = DistributionLayoutMetrics.Create(700);
+            Equal(29.166666666666668d, metrics.HourSlotWidth);
+            Equal(700d, metrics.HourContentWidth);
+            Equal(27.166666666666668d, metrics.WeekHourSlotWidth);
+            Equal(700d, metrics.WeekHourContentWidth);
+
+            metrics = DistributionLayoutMetrics.Create(900);
+            AssertDistributionMetrics(metrics, 900, 37.5, 900, 24, 2, 32, 30, 816);
+            Equal(false, metrics.HourCentersContent);
+            Equal(true, metrics.WeekHourCentersContent);
+
+            metrics = DistributionLayoutMetrics.Create(1100);
+            AssertDistributionMetrics(metrics, 1100, 44, 1056, 24, 1, 32, 30, 816);
+            Equal(true, metrics.HourCentersContent);
+            Equal(true, metrics.WeekHourCentersContent);
+
+            // Invalid widths fall back to 480 DIP until a valid size arrives.
+            foreach (var invalid in new[]
+            {
+                double.NaN,
+                double.PositiveInfinity,
+                double.NegativeInfinity,
+                0d,
+                -12d
+            })
+            {
+                metrics = DistributionLayoutMetrics.Create(invalid);
+                AssertDistributionMetrics(metrics, 480, 20, 480, 12, 2, 26, 24, 672);
+            }
+        }
+
+        private static void AssertDistributionMetrics(
+            DistributionLayoutMetrics metrics,
+            double viewportWidth,
+            double hourSlot,
+            double hourContent,
+            double hourBar,
+            int hourStep,
+            double weekSlot,
+            double weekCell,
+            double weekContent)
+        {
+            Equal(viewportWidth, metrics.ViewportWidth);
+            Equal(hourSlot, metrics.HourSlotWidth);
+            Equal(hourContent, metrics.HourContentWidth);
+            Equal(hourBar, metrics.HourBarWidth);
+            Equal(hourStep, metrics.HourLabelStep);
+            Equal(weekSlot, metrics.WeekHourSlotWidth);
+            Equal(weekCell, metrics.WeekHourCellSize);
+            Equal(weekContent, metrics.WeekHourContentWidth);
+            Equal(2, metrics.WeekHourLabelStep);
+        }
+
+        private static DashboardSnapshot CreateDistributionSnapshot()
+        {
+            var hourBars = new List<DistributionBarViewModel>();
+            for (var hour = 0; hour < 24; hour++)
+            {
+                hourBars.Add(new DistributionBarViewModel
+                {
+                    Label = string.Format("{0:00}:00", hour),
+                    Seconds = (ulong)(hour * 120),
+                    BarHeight = 20 + hour * 3,
+                    TooltipText = string.Format("时段 {0:00}:00", hour)
+                });
+            }
+
+            var weekdayBars = new List<DistributionBarViewModel>();
+            var weekdayNames = new[]
+            {
+                "周一", "周二", "周三", "周四", "周五", "周六", "周日"
+            };
+            for (var day = 0; day < 7; day++)
+            {
+                weekdayBars.Add(new DistributionBarViewModel
+                {
+                    Label = weekdayNames[day],
+                    Seconds = (ulong)(day * 600),
+                    BarHeight = 30 + day * 8,
+                    TooltipText = weekdayNames[day]
+                });
+            }
+
+            var cells = new List<WeekHourCellViewModel>();
+            for (var day = 0; day < 7; day++)
+            {
+                for (var hour = 0; hour < 24; hour++)
+                {
+                    cells.Add(new WeekHourCellViewModel
+                    {
+                        DayLabel = weekdayNames[day],
+                        HourLabel = string.Format("{0:00}:00", hour),
+                        Seconds = (ulong)(((day * 24 + hour) % 7) * 300),
+                        HeatOpacity = 0.1 + ((day * 24 + hour) % 7) * 0.1,
+                        TooltipText = string.Format(
+                            "{0} {1:00}:00",
+                            weekdayNames[day],
+                            hour)
+                    });
+                }
+            }
+
+            return new DashboardSnapshot
+            {
+                SnapshotDate = new DateTime(2026, 9, 5),
+                PeriodActivities = new List<PeriodActivityViewModel>
+                {
+                    new PeriodActivityViewModel
+                    {
+                        PeriodStart = new DateTime(2026, 9, 1),
+                        PeriodEnd = new DateTime(2026, 9, 5),
+                        Label = "9/1",
+                        Seconds = 3600
+                    },
+                    new PeriodActivityViewModel
+                    {
+                        PeriodStart = new DateTime(2026, 9, 6),
+                        PeriodEnd = new DateTime(2026, 9, 30),
+                        Label = "9/6",
+                        Seconds = 0,
+                        IsFuture = true
+                    }
+                },
+                Advanced = new AdvancedAnalyticsSnapshot
+                {
+                    WeekdayDistribution = weekdayBars,
+                    HourDistribution = hourBars,
+                    WeekHourCells = cells,
+                    WeekdayLabels = weekdayNames,
+                    HourLabels = Enumerable.Range(0, 24)
+                        .Select(hour => string.Format("{0:00}", hour))
+                        .ToList(),
+                    Anomalies = new List<AnomalySessionViewModel>(),
+                    AnomalyVisibility = Visibility.Collapsed,
+                    AnomalyCount = 0,
+                    ComparisonVisibility = Visibility.Collapsed
+                }
+            };
+        }
+
+        private static void TestDistributionLayoutRealTemplates()
+        {
+            RunOnSta(() =>
+            {
+                var dashboard = CreateDashboardViewModelForLayout();
+                dashboard.Distribution.Apply(CreateDistributionSnapshot());
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    DataContext = dashboard
+                };
+                var hourViewer = (ScrollViewer)view.FindName(
+                    "HourDistributionScrollViewer");
+                var heatViewer = (ScrollViewer)view.FindName(
+                    "WeekHourHeatmapScrollViewer");
+                var hourChart = (ItemsControl)view.FindName(
+                    "HourDistributionChart");
+                var heatGrid = (Grid)view.FindName("WeekHourHeatmapGrid");
+
+                // A16 narrow start: both charts overflow and keep scrolling.
+                ApplyDashboardViewWidth(view, 560);
+                var narrowHourMetrics = DistributionLayoutMetrics.Create(
+                    hourViewer.ViewportWidth);
+                Equal(true, hourViewer.ScrollableWidth > 0);
+                Equal(true, heatViewer.ScrollableWidth > 0);
+                Equal(narrowHourMetrics.HourContentWidth, view.HourContentWidth);
+                Equal(HorizontalAlignment.Left, hourChart.HorizontalAlignment);
+
+                // A15: axis labels and cells share slot centers within 1 DIP.
+                AssertHeatmapAxisAlignment(view);
+
+                // A16: weekday selection survives resizes in both directions.
+                var weekdayBar = dashboard.WeekdayDistribution[1];
+                dashboard.SelectWeekdayDistribution(weekdayBar);
+                Equal(true, weekdayBar.IsSelected);
+                var filteredTitle = dashboard.HourDistributionTitle;
+
+                ApplyDashboardViewWidth(view, 1000);
+                ApplyDashboardViewWidth(view, 560);
+                Equal(true, weekdayBar.IsSelected);
+                Equal(filteredTitle, dashboard.HourDistributionTitle);
+                Equal(true,
+                    hourViewer.HorizontalOffset <=
+                    hourViewer.ScrollableWidth + 0.01);
+                Equal(true,
+                    heatViewer.HorizontalOffset <=
+                    heatViewer.ScrollableWidth + 0.01);
+
+                // Scrolling right reaches the last hour: 24 bars stay realized.
+                Equal(24, FindVisualDescendants<Border>(hourChart)
+                    .Where(border => border.GetValue(FrameworkElement.WidthProperty) is double &&
+                        Math.Abs((double)border.GetValue(FrameworkElement.WidthProperty) -
+                            view.HourBarWidth) < 0.01)
+                    .Count());
+                hourViewer.ScrollToHorizontalOffset(hourViewer.ScrollableWidth);
+                view.UpdateLayout();
+                Equal(hourViewer.ScrollableWidth, hourViewer.HorizontalOffset);
+
+                // Wide single-column layout: the hour chart fills the viewport,
+                // the heatmap hits its 816 DIP cap and centers.
+                ApplyDashboardViewWidth(view, 1000);
+                Equal(0, hourViewer.ScrollableWidth);
+                Equal(0, heatViewer.ScrollableWidth);
+                Equal(HorizontalAlignment.Left, hourChart.HorizontalAlignment);
+                Equal(HorizontalAlignment.Center, heatGrid.HorizontalAlignment);
+                Equal(816d, view.WeekHourContentWidth);
+                Equal(32d, view.WeekHourSlotWidth);
+                Equal(30d, view.WeekHourCellSize);
+                Equal(2, view.HourLabelStep);
+
+                // Wider than the 1056 DIP hour cap: both charts center and stop
+                // stretching.
+                ApplyDashboardViewWidth(view, 1900);
+                Equal(1056d, view.HourContentWidth);
+                Equal(816d, view.WeekHourContentWidth);
+                Equal(0, hourViewer.ScrollableWidth);
+                Equal(0, heatViewer.ScrollableWidth);
+                Equal(HorizontalAlignment.Center, hourChart.HorizontalAlignment);
+                Equal(HorizontalAlignment.Center, heatGrid.HorizontalAlignment);
+                Equal(1, view.HourLabelStep);
+                Equal(24d, view.HourBarWidth);
+                AssertHeatmapAxisAlignment(view);
+
+                // Returning to the overflowing width zeroes the clamped offsets
+                // without clearing the weekday selection.
+                ApplyDashboardViewWidth(view, 560);
+                Equal(true, weekdayBar.IsSelected);
+                Equal(filteredTitle, dashboard.HourDistributionTitle);
+                Equal(true,
+                    hourViewer.HorizontalOffset <=
+                    hourViewer.ScrollableWidth + 0.01);
+            });
+        }
+
+        private static void ApplyDashboardViewWidth(
+            PlaytimeInsightsDashboardView view,
+            double width)
+        {
+            view.Width = width;
+            view.Measure(new Size(width, double.PositiveInfinity));
+            view.Arrange(new Rect(0, 0, width, view.DesiredSize.Height));
+            view.UpdateLayout();
+            // Headless measure/arrange never raises SizeChanged; drive the same
+            // handler the live resize path uses for both chart viewports.
+            InvokeDistributionLayoutHandler(
+                view,
+                (ScrollViewer)view.FindName("HourDistributionScrollViewer"));
+            InvokeDistributionLayoutHandler(
+                view,
+                (ScrollViewer)view.FindName("WeekHourHeatmapScrollViewer"));
+            view.UpdateLayout();
+            Dispatcher.CurrentDispatcher.Invoke(
+                () => { },
+                DispatcherPriority.Loaded);
+            view.UpdateLayout();
+        }
+
+        private static void InvokeDistributionLayoutHandler(
+            PlaytimeInsightsDashboardView view,
+            ScrollViewer viewport)
+        {
+            var handler = typeof(PlaytimeInsightsDashboardView).GetMethod(
+                "DistributionViewport_SizeChanged",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            handler.Invoke(view, new object[] { viewport, null });
+        }
+
+        private static void AssertHeatmapAxisAlignment(
+            PlaytimeInsightsDashboardView view)
+        {
+            var heatGrid = (Grid)view.FindName("WeekHourHeatmapGrid");
+            // Hour axis labels carry the slot width; weekday rows carry the
+            // slot height, so the width filter isolates the hour axis.
+            var labels = FindVisualDescendants<TextBlock>(heatGrid)
+                .Where(block => block.GetValue(FrameworkElement.WidthProperty) is double &&
+                    Math.Abs((double)block.GetValue(FrameworkElement.WidthProperty) -
+                        view.WeekHourSlotWidth) < 0.01 &&
+                    !string.IsNullOrEmpty(block.Text))
+                .ToList();
+            var cells = FindVisualDescendants<Border>(heatGrid)
+                .Where(border => border.GetValue(FrameworkElement.WidthProperty) is double &&
+                    Math.Abs((double)border.GetValue(FrameworkElement.WidthProperty) -
+                        view.WeekHourCellSize) < 0.01)
+                .ToList();
+            // 00, 02 ... 22 stay labelled; 168 cells stay realized.
+            Equal(12, labels.Count);
+            Equal("00", labels[0].Text);
+            Equal("22", labels[11].Text);
+            Equal(168, cells.Count);
+
+            for (var index = 0; index < labels.Count; index++)
+            {
+                var cellIndex = index * 2;
+                var labelCenter = CenterX(view, labels[index]);
+                var cellCenter = CenterX(view, cells[cellIndex]);
+                Equal(
+                    true,
+                    Math.Abs(labelCenter - cellCenter) <= 1d);
+            }
+        }
+
+        private static double CenterX(
+            FrameworkElement view,
+            FrameworkElement element)
+        {
+            return element.TransformToAncestor(view)
+                .Transform(new Point(0, 0)).X +
+                element.ActualWidth / 2;
         }
 
         private static void TestActiveMetadataFilterSummary()
