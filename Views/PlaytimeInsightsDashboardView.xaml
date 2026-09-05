@@ -264,6 +264,149 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Quick range chips stay plain Buttons so SelectRangeCommand keeps its
+             same-value refresh protection; selection is a read-only visual state
+             driven by Filter.SelectedRangeOption.Value. Per-preset styles set the
+             Tag="Selected" marker the template uses to keep hover and pressed
+             feedback off the active chip, because clicking it is a no-op. -->
+        <Style x:Key="QuickRangeButtonStyle"
+               TargetType="{x:Type Button}">
+            <Setter Property="Background"
+                    Value="{StaticResource QuickRangeIdleBackgroundBrush}" />
+            <Setter Property="BorderBrush"
+                    Value="{StaticResource QuickRangeIdleBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground"
+                    Value="{StaticResource MetricCardTextBrush}" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="QuickRangeChrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="Tag" Value="{x:Null}" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="QuickRangeChrome"
+                                        Property="Background"
+                                        Value="{StaticResource QuickRangeHoverBackgroundBrush}" />
+                                <Setter TargetName="QuickRangeChrome"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource QuickRangeHoverBorderBrush}" />
+                            </MultiTrigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsPressed" Value="True" />
+                                    <Condition Property="Tag" Value="{x:Null}" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="QuickRangeChrome"
+                                        Property="Background"
+                                        Value="{StaticResource QuickRangePressedBackgroundBrush}" />
+                            </MultiTrigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="QuickRangeChrome"
+                                        Property="BorderBrush"
+                                        Value="{StaticResource QuickRangeFocusBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="QuickRangeChrome"
+                                        Property="Opacity"
+                                        Value="{StaticResource TextOpacityDisabled}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="QuickRangeLast7DaysStyle"
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource QuickRangeButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filter.SelectedRangeOption.Value}"
+                             Value="{x:Static services:DateRangePreset.Last7Days}">
+                    <Setter Property="Tag" Value="Selected" />
+                    <Setter Property="Background"
+                            Value="{StaticResource QuickRangeSelectedBackgroundBrush}" />
+                    <Setter Property="BorderBrush"
+                            Value="{StaticResource QuickRangeSelectedBorderBrush}" />
+                    <Setter Property="Foreground"
+                            Value="{StaticResource MetricDurationForegroundBrush}" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="AutomationProperties.HelpText"
+                            Value="{DynamicResource LOCPlaytimeInsightsQuickRangeSelectedState}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="QuickRangeLast30DaysStyle"
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource QuickRangeButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filter.SelectedRangeOption.Value}"
+                             Value="{x:Static services:DateRangePreset.Last30Days}">
+                    <Setter Property="Tag" Value="Selected" />
+                    <Setter Property="Background"
+                            Value="{StaticResource QuickRangeSelectedBackgroundBrush}" />
+                    <Setter Property="BorderBrush"
+                            Value="{StaticResource QuickRangeSelectedBorderBrush}" />
+                    <Setter Property="Foreground"
+                            Value="{StaticResource MetricDurationForegroundBrush}" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="AutomationProperties.HelpText"
+                            Value="{DynamicResource LOCPlaytimeInsightsQuickRangeSelectedState}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="QuickRangeThisYearStyle"
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource QuickRangeButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filter.SelectedRangeOption.Value}"
+                             Value="{x:Static services:DateRangePreset.ThisYear}">
+                    <Setter Property="Tag" Value="Selected" />
+                    <Setter Property="Background"
+                            Value="{StaticResource QuickRangeSelectedBackgroundBrush}" />
+                    <Setter Property="BorderBrush"
+                            Value="{StaticResource QuickRangeSelectedBorderBrush}" />
+                    <Setter Property="Foreground"
+                            Value="{StaticResource MetricDurationForegroundBrush}" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="AutomationProperties.HelpText"
+                            Value="{DynamicResource LOCPlaytimeInsightsQuickRangeSelectedState}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="QuickRangeAllSessionsStyle"
+               TargetType="{x:Type Button}"
+               BasedOn="{StaticResource QuickRangeButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Filter.SelectedRangeOption.Value}"
+                             Value="{x:Static services:DateRangePreset.AllSessions}">
+                    <Setter Property="Tag" Value="Selected" />
+                    <Setter Property="Background"
+                            Value="{StaticResource QuickRangeSelectedBackgroundBrush}" />
+                    <Setter Property="BorderBrush"
+                            Value="{StaticResource QuickRangeSelectedBorderBrush}" />
+                    <Setter Property="Foreground"
+                            Value="{StaticResource MetricDurationForegroundBrush}" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="AutomationProperties.HelpText"
+                            Value="{DynamicResource LOCPlaytimeInsightsQuickRangeSelectedState}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="MetricHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -1081,21 +1224,29 @@
                                             VerticalAlignment="Center">
                                     <Button Content="{DynamicResource LOCPlaytimeInsightsQuick7Days}"
                                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick7Days}"
+                                            Style="{StaticResource QuickRangeLast7DaysStyle}"
                                             Margin="0,0,6,0"
                                             Command="{Binding SelectRangeCommand}"
                                             CommandParameter="{x:Static services:DateRangePreset.Last7Days}" />
                                     <Button Content="{DynamicResource LOCPlaytimeInsightsQuick30Days}"
                                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick30Days}"
+                                            Style="{StaticResource QuickRangeLast30DaysStyle}"
                                             Margin="0,0,6,0"
                                             Command="{Binding SelectRangeCommand}"
                                             CommandParameter="{x:Static services:DateRangePreset.Last30Days}" />
+                                    <!-- "1Y" keeps its compact caption, but the accessible
+                                         name and tooltip carry the real meaning: This year,
+                                         not a rolling 365-day window. -->
                                     <Button Content="{DynamicResource LOCPlaytimeInsightsQuick1Year}"
-                                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuick1Year}"
+                                            AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsThisYear}"
+                                            ToolTip="{DynamicResource LOCPlaytimeInsightsThisYear}"
+                                            Style="{StaticResource QuickRangeThisYearStyle}"
                                             Margin="0,0,6,0"
                                             Command="{Binding SelectRangeCommand}"
                                             CommandParameter="{x:Static services:DateRangePreset.ThisYear}" />
                                     <Button Content="{DynamicResource LOCPlaytimeInsightsQuickAll}"
                                             AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsQuickAll}"
+                                            Style="{StaticResource QuickRangeAllSessionsStyle}"
                                             Command="{Binding SelectRangeCommand}"
                                             CommandParameter="{x:Static services:DateRangePreset.AllSessions}" />
                                 </StackPanel>

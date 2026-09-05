@@ -193,6 +193,7 @@ namespace PlaytimeInsights.Tests
             Run("Dashboard refresh plans isolate dependencies", TestDashboardRefreshPlans);
             Run("Quick range selection emits at most one range refresh", TestQuickRangeRefreshPurity);
             Run("Quick range command tracks valid options and refresh state", TestSelectRangeCommandBehavior);
+            Run("Quick range chips highlight exactly the active preset", TestQuickRangeSelectionStates);
             Run("Metadata filter summary counts active constraints", TestActiveMetadataFilterSummary);
             Run("Dashboard ranking tabs are view-only and keep both snapshots", TestRankingTabsStayViewOnly);
             Run("Dashboard analysis context reprojects trend without rescan", TestDashboardTrendProjectionReuse);
@@ -9185,6 +9186,286 @@ namespace PlaytimeInsights.Tests
             Equal(
                 DateRangePreset.Last7Days,
                 viewModel.SelectedRangeOption.Value);
+        }
+
+        private static void TestQuickRangeSelectionStates()
+        {
+            var sourceRoot = FindSourceRoot();
+            var document = XDocument.Load(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var xamlNamespace = XNamespace.Get(
+                "http://schemas.microsoft.com/winfx/2006/xaml");
+
+            var baseStyle = FindStyle(
+                document,
+                xamlNamespace,
+                "QuickRangeButtonStyle");
+            var baseSource = baseStyle.ToString();
+            Equal(true, baseSource.Contains("MultiTrigger"));
+            Equal(true, baseSource.Contains("Property=\"IsMouseOver\""));
+            Equal(true, baseSource.Contains("Property=\"IsPressed\""));
+            Equal(true, baseSource.Contains(
+                "Property=\"IsKeyboardFocused\""));
+            Equal(true, baseSource.Contains("Property=\"IsEnabled\""));
+            Equal(true, baseSource.Contains(
+                "QuickRangeSelectedBorderBrush") == false);
+
+            AssertQuickRangeSelectedStyle(
+                document,
+                xamlNamespace,
+                "QuickRangeLast7DaysStyle",
+                "Last7Days");
+            AssertQuickRangeSelectedStyle(
+                document,
+                xamlNamespace,
+                "QuickRangeLast30DaysStyle",
+                "Last30Days");
+            AssertQuickRangeSelectedStyle(
+                document,
+                xamlNamespace,
+                "QuickRangeThisYearStyle",
+                "ThisYear");
+            AssertQuickRangeSelectedStyle(
+                document,
+                xamlNamespace,
+                "QuickRangeAllSessionsStyle",
+                "AllSessions");
+
+            var quickButtonPanel = document.Descendants()
+                .First(element =>
+                    element.Name.LocalName == "StackPanel" &&
+                    element.Elements().Count(child =>
+                        child.Name.LocalName == "Button") == 4);
+            var buttons = quickButtonPanel.Elements()
+                .Where(element => element.Name.LocalName == "Button")
+                .ToList();
+            Equal(4, buttons.Count);
+            AssertQuickRangeButton(
+                buttons[0],
+                "QuickRangeLast7DaysStyle",
+                "Last7Days",
+                "LOCPlaytimeInsightsQuick7Days");
+            AssertQuickRangeButton(
+                buttons[1],
+                "QuickRangeLast30DaysStyle",
+                "Last30Days",
+                "LOCPlaytimeInsightsQuick30Days");
+            AssertQuickRangeButton(
+                buttons[2],
+                "QuickRangeThisYearStyle",
+                "ThisYear",
+                "LOCPlaytimeInsightsThisYear");
+            Equal(
+                "{DynamicResource LOCPlaytimeInsightsThisYear}",
+                (string)buttons[2].Attribute("ToolTip"));
+            AssertQuickRangeButton(
+                buttons[3],
+                "QuickRangeAllSessionsStyle",
+                "AllSessions",
+                "LOCPlaytimeInsightsQuickAll");
+
+            RunOnSta(() =>
+            {
+                var reasons = new List<DashboardRefreshReason>();
+                var filter = new DashboardFilterViewModel(
+                    null,
+                    new SessionQueryService(new TestGameMetadataAccessor()),
+                    7,
+                    reasons.Add);
+                var view = new PlaytimeInsightsDashboardView
+                {
+                    DataContext = new QuickRangeSelectionContext(filter),
+                    Width = 1200
+                };
+                view.Measure(new Size(1200, double.PositiveInfinity));
+                view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+                view.UpdateLayout();
+
+                var quickButtons = FindVisualDescendants<Button>(view)
+                    .Where(button => button.CommandParameter is DateRangePreset)
+                    .ToList();
+                Equal(4, quickButtons.Count);
+
+                var selectedBackground = AssertViewBrush(
+                    view,
+                    "QuickRangeSelectedBackgroundBrush");
+                var selectedBorder = AssertViewBrush(
+                    view,
+                    "QuickRangeSelectedBorderBrush");
+                var idleBackground = AssertViewBrush(
+                    view,
+                    "QuickRangeIdleBackgroundBrush");
+                var idleBorder = AssertViewBrush(
+                    view,
+                    "QuickRangeIdleBorderBrush");
+
+                foreach (var preset in new[]
+                {
+                    DateRangePreset.Last7Days,
+                    DateRangePreset.Last30Days,
+                    DateRangePreset.ThisYear,
+                    DateRangePreset.AllSessions
+                })
+                {
+                    filter.SelectRange(preset);
+                    view.UpdateLayout();
+                    AssertQuickRangeChrome(
+                        quickButtons,
+                        preset,
+                        selectedBackground,
+                        selectedBorder,
+                        idleBackground,
+                        idleBorder);
+                }
+
+                // Non-quick presets never match by date coincidence: the trigger
+                // compares the preset enum only.
+                foreach (var preset in new[]
+                {
+                    DateRangePreset.Today,
+                    DateRangePreset.ThisWeek,
+                    DateRangePreset.ThisMonth
+                })
+                {
+                    filter.SelectRange(preset);
+                    view.UpdateLayout();
+                    AssertQuickRangeChrome(
+                        quickButtons,
+                        (DateRangePreset)(-1),
+                        selectedBackground,
+                        selectedBorder,
+                        idleBackground,
+                        idleBorder);
+                }
+
+                filter.SelectRange(DateRangePreset.Custom);
+                filter.CustomStartDate = DateTime.Today.AddDays(-6);
+                filter.CustomEndDate = DateTime.Today;
+                view.UpdateLayout();
+                AssertQuickRangeChrome(
+                    quickButtons,
+                    (DateRangePreset)(-1),
+                    selectedBackground,
+                    selectedBorder,
+                    idleBackground,
+                    idleBorder);
+
+                // Re-selecting the active preset stays protected: no extra
+                // refresh, and the highlight does not move.
+                var reasonsBefore = reasons.Count;
+                filter.SelectRange(DateRangePreset.Custom);
+                view.UpdateLayout();
+                Equal(reasonsBefore, reasons.Count);
+                AssertQuickRangeChrome(
+                    quickButtons,
+                    (DateRangePreset)(-1),
+                    selectedBackground,
+                    selectedBorder,
+                    idleBackground,
+                    idleBorder);
+            });
+        }
+
+        private static void AssertQuickRangeSelectedStyle(
+            XDocument document,
+            XNamespace xamlNamespace,
+            string styleKey,
+            string presetName)
+        {
+            var style = FindStyle(document, xamlNamespace, styleKey);
+            Equal(
+                "{StaticResource QuickRangeButtonStyle}",
+                (string)style.Attribute("BasedOn"));
+            var trigger = style.Elements()
+                .Single(element => element.Name.LocalName == "Style.Triggers")
+                .Elements()
+                .Single(element => element.Name.LocalName == "DataTrigger");
+            Equal(
+                "{Binding Filter.SelectedRangeOption.Value}",
+                (string)trigger.Attribute("Binding"));
+            Equal(
+                "{x:Static services:DateRangePreset." + presetName + "}",
+                (string)trigger.Attribute("Value"));
+            var triggerSource = trigger.ToString();
+            Equal(true, triggerSource.Contains("Value=\"Selected\""));
+            Equal(true, triggerSource.Contains(
+                "QuickRangeSelectedBackgroundBrush"));
+            Equal(true, triggerSource.Contains(
+                "QuickRangeSelectedBorderBrush"));
+            Equal(true, triggerSource.Contains(
+                "AutomationProperties.HelpText"));
+        }
+
+        private static void AssertQuickRangeButton(
+            XElement button,
+            string styleKey,
+            string presetName,
+            string automationNameResource)
+        {
+            Equal(
+                "{Binding SelectRangeCommand}",
+                (string)button.Attribute("Command"));
+            Equal(
+                "{x:Static services:DateRangePreset." + presetName + "}",
+                (string)button.Attribute("CommandParameter"));
+            Equal(
+                "{StaticResource " + styleKey + "}",
+                (string)button.Attribute("Style"));
+            Equal(
+                "{DynamicResource " + automationNameResource + "}",
+                (string)button.Attribute("AutomationProperties.Name"));
+        }
+
+        private static Brush AssertViewBrush(
+            FrameworkElement view,
+            string key)
+        {
+            var brush = view.TryFindResource(key) as Brush;
+            if (brush == null)
+            {
+                throw new InvalidOperationException(
+                    "Missing visual resource: " + key);
+            }
+
+            return brush;
+        }
+
+        private static void AssertQuickRangeChrome(
+            IList<Button> buttons,
+            DateRangePreset selectedPreset,
+            Brush selectedBackground,
+            Brush selectedBorder,
+            Brush idleBackground,
+            Brush idleBorder)
+        {
+            foreach (var button in buttons)
+            {
+                var chrome = (Border)button.Template.FindName(
+                    "QuickRangeChrome",
+                    button);
+                if (Equals(selectedPreset, button.CommandParameter))
+                {
+                    Equal(selectedBackground, chrome.Background);
+                    Equal(selectedBorder, chrome.BorderBrush);
+                }
+                else
+                {
+                    Equal(idleBackground, chrome.Background);
+                    Equal(idleBorder, chrome.BorderBrush);
+                }
+            }
+        }
+
+        private sealed class QuickRangeSelectionContext
+        {
+            public QuickRangeSelectionContext(DashboardFilterViewModel filter)
+            {
+                Filter = filter;
+            }
+
+            public DashboardFilterViewModel Filter { get; }
         }
 
         private static void TestActiveMetadataFilterSummary()

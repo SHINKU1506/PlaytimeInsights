@@ -108,6 +108,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsQuick30Days">30D</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsQuick7Days">7D</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsQuickAll">ALL</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsQuickRangeSelectedState">当前范围</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsToday">今天</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLast7Days">近 7 天</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsLast30Days">近 30 天</sys:String>

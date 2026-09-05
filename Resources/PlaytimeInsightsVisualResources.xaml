@@ -216,6 +216,21 @@
     <SolidColorBrush x:Key="MetricCardTextBrush" Color="#FFF0F0F5" />
     <SolidColorBrush x:Key="MetricCardMutedTextBrush" Color="#FF9CA3AF" />
 
+    <!-- Quick range chips. Idle chips stay low-emphasis so exactly the chip whose
+         preset equals Filter.SelectedRangeOption reads as active. The selected
+         state keeps a visible border (never a color-only change), hover and
+         pressed feedback apply only to idle chips because clicking an active
+         chip is a protected no-op, and the focus ring stays distinguishable from
+         selection. Disabled chips dim last so they never read as clickable. -->
+    <SolidColorBrush x:Key="QuickRangeIdleBackgroundBrush" Color="#14FFFFFF" />
+    <SolidColorBrush x:Key="QuickRangeIdleBorderBrush" Color="#1AFFFFFF" />
+    <SolidColorBrush x:Key="QuickRangeHoverBackgroundBrush" Color="#264A90E2" />
+    <SolidColorBrush x:Key="QuickRangeHoverBorderBrush" Color="#664A90E2" />
+    <SolidColorBrush x:Key="QuickRangePressedBackgroundBrush" Color="#334A90E2" />
+    <SolidColorBrush x:Key="QuickRangeSelectedBackgroundBrush" Color="#1A4A90E2" />
+    <SolidColorBrush x:Key="QuickRangeSelectedBorderBrush" Color="#FF60A5FA" />
+    <SolidColorBrush x:Key="QuickRangeFocusBrush" Color="#FFF0F0F5" />
+
     <LinearGradientBrush x:Key="RankingGoldGlowBrush"
                          StartPoint="0,0.5"
                          EndPoint="1,0.5">
