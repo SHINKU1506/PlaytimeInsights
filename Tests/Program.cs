@@ -3466,13 +3466,15 @@ namespace PlaytimeInsights.Tests
 
             RunOnSta(() =>
             {
-                // Rendering the four A10 shapes must never throw.
+                // Rendering the five A10 shapes must never throw; the fifth is
+                // a long range whose only observable point must stay visible.
                 foreach (var scenario in new Func<IList<PeriodActivityViewModel>>[]
                 {
                     () => CreateTrendScenario(30, 5, 600),
                     () => CreateTrendScenario(11, 0, 0),
                     () => CreateTrendScenario(1, 1, 120),
-                    () => CreateTrendScenario(31, 31, 0)
+                    () => CreateTrendScenario(31, 31, 0),
+                    () => CreateTrendScenario(100, 1, 120)
                 })
                 {
                     var chart = new AdaptiveTrendChart
@@ -3493,6 +3495,15 @@ namespace PlaytimeInsights.Tests
                         PixelFormats.Pbgra32);
                     bitmap.Render(chart);
                 }
+
+                // The 90-node budget is a density guard only: a lone observable
+                // point in a long range must still draw its node, while dense
+                // multi-point series keep the budget.
+                Equal(true, AdaptiveTrendChart.ShouldDrawObservableNodes(100, 1));
+                Equal(true, AdaptiveTrendChart.ShouldDrawObservableNodes(90, 90));
+                Equal(true, AdaptiveTrendChart.ShouldDrawObservableNodes(1, 1));
+                Equal(false, AdaptiveTrendChart.ShouldDrawObservableNodes(91, 2));
+                Equal(false, AdaptiveTrendChart.ShouldDrawObservableNodes(180, 45));
 
                 // A fully future range keeps the complete date axis: the label
                 // band below the plot baseline must carry text even though the
@@ -5539,7 +5550,8 @@ namespace PlaytimeInsights.Tests
             Equal(true, adaptiveTrendChart.Contains("lastLeft"));
             Equal(true, adaptiveTrendChart.Contains("previousRight + 8"));
             Equal(true, adaptiveTrendChart.Contains("renderedItems.Count >= 180"));
-            Equal(true, adaptiveTrendChart.Contains("renderedItems.Count <= 90"));
+            Equal(true, adaptiveTrendChart.Contains(
+                "ShouldDrawObservableNodes(renderedItems.Count, observableCount)"));
             Equal(true, adaptiveTrendChart.Contains("GameSummaryText"));
             Equal(true, dashboard.Contains(
                 "<ListView ItemsSource=\"{Binding SessionDetails}\""));
@@ -6308,8 +6320,11 @@ namespace PlaytimeInsights.Tests
                 onRender,
                 "DrawGeometry(areaBrush, null, area)"));
 
-            // Normal nodes gain a ring pen but keep the 90-point budget.
-            Equal(true, onRender.Contains("renderedItems.Count <= 90"));
+            // Normal nodes gain a ring pen but keep the 90-point budget; the
+            // budget lives in ShouldDrawObservableNodes so a lone observable
+            // point can bypass it.
+            Equal(true, onRender.Contains(
+                "ShouldDrawObservableNodes(renderedItems.Count, observableCount)"));
             Equal(true, onRender.Contains("renderedItems.Count >= 180"));
             Equal(true, onRender.Contains(
                 "DrawEllipse(nodeFillBrush, nodePen, point, 3d, 3d)"));

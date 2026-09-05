@@ -162,6 +162,18 @@ namespace PlaytimeInsights.Controls
             return steps * step;
         }
 
+        // Public because it is a pure function and the regression suite asserts
+        // its boundaries; there is no InternalsVisibleTo in this project.
+        // The 90-point budget only guards against node clutter in dense series;
+        // a lone observable point has no area polygon and a sub-pixel line, so
+        // hiding its node would hide the entire series.
+        public static bool ShouldDrawObservableNodes(
+            int totalPeriods,
+            int observableCount)
+        {
+            return totalPeriods <= 90 || observableCount == 1;
+        }
+
         private IList<FormattedText> CreateAxisLabels(Brush textBrush)
         {
             var labels = new List<FormattedText>();
@@ -322,7 +334,7 @@ namespace PlaytimeInsights.Controls
 
                 drawingContext.DrawGeometry(null, linePen, line);
 
-                if (renderedItems.Count <= 90)
+                if (ShouldDrawObservableNodes(renderedItems.Count, observableCount))
                 {
                     var nodePen = new Pen(nodeRingBrush, 1.5);
                     if (nodePen.CanFreeze)
