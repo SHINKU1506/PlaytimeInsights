@@ -10381,7 +10381,37 @@ namespace PlaytimeInsights.Tests
                 Equal(true,
                     hourViewer.HorizontalOffset <=
                     hourViewer.ScrollableWidth + 0.01);
+
+                // Each chart consumes only its own viewport family: applying
+                // one chart's metrics must never overwrite the other's sizes,
+                // so differing viewport widths stay independent.
+                InvokePrivateLayoutApply(
+                    view,
+                    "ApplyHourDistributionLayout",
+                    480);
+                InvokePrivateLayoutApply(
+                    view,
+                    "ApplyWeekHourLayout",
+                    900);
+                Equal(480d, view.HourContentWidth);
+                Equal(12d, view.HourBarWidth);
+                Equal(2, view.HourLabelStep);
+                Equal(816d, view.WeekHourContentWidth);
+                Equal(32d, view.WeekHourSlotWidth);
+                Equal(30d, view.WeekHourCellSize);
             });
+        }
+
+        private static void InvokePrivateLayoutApply(
+            PlaytimeInsightsDashboardView view,
+            string methodName,
+            double viewportWidth)
+        {
+            var metrics = DistributionLayoutMetrics.Create(viewportWidth);
+            typeof(PlaytimeInsightsDashboardView).GetMethod(
+                methodName,
+                BindingFlags.NonPublic | BindingFlags.Instance)
+                .Invoke(view, new object[] { metrics });
         }
 
         private static void ApplyDashboardViewWidth(

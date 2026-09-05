@@ -396,20 +396,32 @@ namespace PlaytimeInsights.Views
                 lastHourViewportWidth = width;
             }
 
-            ApplyDistributionLayout(viewport, width);
+            var metrics = DistributionLayoutMetrics.Create(width);
+            if (ReferenceEquals(sender, WeekHourHeatmapScrollViewer))
+            {
+                ApplyWeekHourLayout(metrics);
+            }
+            else
+            {
+                ApplyHourDistributionLayout(metrics);
+            }
+
+            // Content widths land after this layout pass; normalize the saved
+            // offsets then. Selections, queries and drilldown state stay put.
+            viewport.Dispatcher.BeginInvoke(
+                new Action(() => ClampDistributionOffset(viewport)),
+                DispatcherPriority.Loaded);
         }
 
-        private void ApplyDistributionLayout(
-            ScrollViewer viewport,
-            double viewportWidth)
+        // Each chart consumes only the metrics of its own viewport so a theme
+        // margin or a future layout change can never let one chart's event
+        // overwrite the other's sizes.
+        private void ApplyHourDistributionLayout(
+            DistributionLayoutMetrics metrics)
         {
-            var metrics = DistributionLayoutMetrics.Create(viewportWidth);
             HourContentWidth = metrics.HourContentWidth;
             HourBarWidth = metrics.HourBarWidth;
             HourLabelStep = metrics.HourLabelStep;
-            WeekHourContentWidth = metrics.WeekHourContentWidth;
-            WeekHourSlotWidth = metrics.WeekHourSlotWidth;
-            WeekHourCellSize = metrics.WeekHourCellSize;
 
             // Centering only while the content is narrower than the viewport;
             // an overflowing centered child would clip its leading edge.
@@ -420,6 +432,14 @@ namespace PlaytimeInsights.Views
                         ? HorizontalAlignment.Center
                         : HorizontalAlignment.Left;
             }
+        }
+
+        private void ApplyWeekHourLayout(
+            DistributionLayoutMetrics metrics)
+        {
+            WeekHourContentWidth = metrics.WeekHourContentWidth;
+            WeekHourSlotWidth = metrics.WeekHourSlotWidth;
+            WeekHourCellSize = metrics.WeekHourCellSize;
 
             if (WeekHourHeatmapGrid != null)
             {
@@ -428,12 +448,6 @@ namespace PlaytimeInsights.Views
                         ? HorizontalAlignment.Center
                         : HorizontalAlignment.Left;
             }
-
-            // Content widths land after this layout pass; normalize the saved
-            // offsets then. Selections, queries and drilldown state stay put.
-            viewport.Dispatcher.BeginInvoke(
-                new Action(() => ClampDistributionOffset(viewport)),
-                DispatcherPriority.Loaded);
         }
 
         private static void ClampDistributionOffset(ScrollViewer viewport)
