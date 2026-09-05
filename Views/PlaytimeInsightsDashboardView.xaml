@@ -1963,24 +1963,32 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Width="{Binding WeekHourCellSize, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                                Height="{Binding WeekHourCellSize, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                                Margin="1"
-                                                CornerRadius="3"
-                                                Background="Transparent"
-                                                BorderBrush="{DynamicResource PanelSeparatorBrush}"
-                                                BorderThickness="1"
-                                                ToolTip="{Binding TooltipText}">
-                                            <Grid>
-                                                <Border Background="{DynamicResource TextBrush}"
-                                                        Opacity="0.06"
-                                                        IsHitTestVisible="False" />
-                                                <Border CornerRadius="2"
-                                                        Background="{StaticResource HeatmapActiveBrush}"
-                                                        Opacity="{Binding HeatOpacity}"
-                                                        IsHitTestVisible="False" />
-                                            </Grid>
-                                        </Border>
+                                        <!-- Base wash, heat fill and the separator
+                                             outline stack as siblings: a bordered
+                                             parent would inset the colors by its 1
+                                             DIP thickness and leave an empty ring.
+                                             The outline paints on top so the color
+                                             reaches every edge; the 1 DIP Margin
+                                             keeps the gap between cells. -->
+                                        <Grid Width="{Binding WeekHourCellSize, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                              Height="{Binding WeekHourCellSize, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                              Margin="1"
+                                              Background="Transparent"
+                                              ToolTip="{Binding TooltipText}">
+                                            <Border CornerRadius="3"
+                                                    Background="{DynamicResource TextBrush}"
+                                                    Opacity="0.06"
+                                                    IsHitTestVisible="False" />
+                                            <Border CornerRadius="3"
+                                                    Background="{StaticResource HeatmapActiveBrush}"
+                                                    Opacity="{Binding HeatOpacity}"
+                                                    IsHitTestVisible="False" />
+                                            <Border CornerRadius="3"
+                                                    Background="Transparent"
+                                                    BorderBrush="{DynamicResource PanelSeparatorBrush}"
+                                                    BorderThickness="1"
+                                                    IsHitTestVisible="False" />
+                                        </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>

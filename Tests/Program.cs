@@ -10293,6 +10293,41 @@ namespace PlaytimeInsights.Tests
 
         private static void TestDistributionLayoutRealTemplates()
         {
+            var sourceRoot = FindSourceRoot();
+            var document = XDocument.Load(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+
+            // Review fix: base wash, heat fill and outline stack as siblings so
+            // the color covers the full cell; a bordered parent would inset the
+            // colors by its own 1 DIP thickness and leave an empty ring.
+            var cellTemplate = document.Descendants()
+                .Single(element =>
+                    element.Name.LocalName == "ItemsControl" &&
+                    element.Attributes().Any(attribute =>
+                        attribute.Name.LocalName == "ItemsSource" &&
+                        attribute.Value == "{Binding WeekHourCells}"))
+                .Descendants()
+                .Single(element => element.Name.LocalName == "DataTemplate");
+            var cellRoot = cellTemplate.Elements().Single();
+            Equal("Grid", cellRoot.Name.LocalName);
+            Equal("Transparent", (string)cellRoot.Attribute("Background"));
+            var cellLayers = cellRoot.Elements()
+                .Where(element => element.Name.LocalName == "Border")
+                .ToList();
+            Equal(3, cellLayers.Count);
+            foreach (var colorLayer in cellLayers.Take(2))
+            {
+                Equal(null, (string)colorLayer.Attribute("BorderThickness"));
+                Equal("3", (string)colorLayer.Attribute("CornerRadius"));
+                Equal("False", (string)colorLayer.Attribute("IsHitTestVisible"));
+            }
+
+            var outlineLayer = cellLayers[2];
+            Equal("1", (string)outlineLayer.Attribute("BorderThickness"));
+            Equal("False", (string)outlineLayer.Attribute("IsHitTestVisible"));
+
             RunOnSta(() =>
             {
                 var dashboard = CreateDashboardViewModelForLayout();
@@ -10459,9 +10494,11 @@ namespace PlaytimeInsights.Tests
                         view.WeekHourSlotWidth) < 0.01 &&
                     !string.IsNullOrEmpty(block.Text))
                 .ToList();
-            var cells = FindVisualDescendants<Border>(heatGrid)
-                .Where(border => border.GetValue(FrameworkElement.WidthProperty) is double &&
-                    Math.Abs((double)border.GetValue(FrameworkElement.WidthProperty) -
+            // The cell root is now a sized Grid wrapping the stacked color and
+            // outline borders, so the slot filter targets Grids.
+            var cells = FindVisualDescendants<Grid>(heatGrid)
+                .Where(grid => grid.GetValue(FrameworkElement.WidthProperty) is double &&
+                    Math.Abs((double)grid.GetValue(FrameworkElement.WidthProperty) -
                         view.WeekHourCellSize) < 0.01)
                 .ToList();
             // 00, 02 ... 22 stay labelled; 168 cells stay realized.
