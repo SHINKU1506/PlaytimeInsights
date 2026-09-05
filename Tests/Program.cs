@@ -42,6 +42,7 @@ namespace PlaytimeInsights.Tests
             Run("Playnite-style minute rounding", TestMinuteRounding);
             Run("Precise short duration display", TestPreciseDuration);
             Run("Duration display separates values units and automation text", TestDurationDisplayProjection);
+            Run("Metric quantity display keeps value unit and automation text", TestMetricQuantityDisplayStructure);
             Run("Cross-midnight allocation", TestCrossMidnightAllocation);
             Run("Allocation preserves total seconds", TestAllocationPreservesTotal);
             Run("Cross-hour allocation preserves total and hour buckets", TestHourlyAllocation);
@@ -147,6 +148,7 @@ namespace PlaytimeInsights.Tests
             Run("Dashboard metrics use responsive semantic visual foundation", TestResponsiveMetricVisualFoundation);
             Run("Duration comparison pills stack without horizontal clipping", TestDurationComparisonPillsStackVertically);
             Run("Dashboard metric additions expose behavior", TestDashboardMetricAdditionsBehavior);
+            Run("Metric cards build hierarchy from text and state", TestMetricCardValueHierarchy);
             Run("Advanced filter toggle keeps real interaction contract", TestAdvancedFilterToggleInteraction);
             Run("Dashboard list hover overlays keep microinteraction contracts", TestDashboardListHoverContracts);
             Run("Dashboard entrance plan maps transitions and reduced motion", TestDashboardEntrancePlanBehavior);
@@ -254,16 +256,46 @@ namespace PlaytimeInsights.Tests
             Equal("1", shortValue.MajorValue);
             Equal("31", shortValue.MinorValue);
             Equal("1 分 31 秒", shortValue.AutomationText);
+            Equal(true, shortValue.HasMinorPart);
 
             var exactHour = AnalyticsService.CreateDurationDisplay(3600);
             Equal("1", exactHour.MajorValue);
             Equal(string.Empty, exactHour.MinorValue);
             Equal("1 小时", exactHour.AutomationText);
+            Equal(false, exactHour.HasMinorPart);
 
             var mixed = AnalyticsService.CreateDurationDisplay(45300);
             Equal("12", mixed.MajorValue);
             Equal("35", mixed.MinorValue);
             Equal("12 小时 35 分", mixed.AutomationText);
+            Equal(true, mixed.HasMinorPart);
+
+            // A6 boundaries: the minor group appears exactly when a nonzero
+            // sub-hour component exists, and the automation text keeps the
+            // legacy wording so nothing re-parses formatted strings.
+            var zero = AnalyticsService.CreateDurationDisplay(0);
+            Equal("0", zero.MajorValue);
+            Equal(false, zero.HasMinorPart);
+            Equal("0 分钟", zero.AutomationText);
+
+            var fiftyNineSeconds = AnalyticsService.CreateDurationDisplay(59);
+            Equal("59", fiftyNineSeconds.MinorValue);
+            Equal(true, fiftyNineSeconds.HasMinorPart);
+            Equal("0 分 59 秒", fiftyNineSeconds.AutomationText);
+
+            var oneMinute = AnalyticsService.CreateDurationDisplay(60);
+            Equal(false, oneMinute.HasMinorPart);
+            Equal("1 分钟", oneMinute.AutomationText);
+
+            var justUnderHour = AnalyticsService.CreateDurationDisplay(3599);
+            Equal(true, justUnderHour.HasMinorPart);
+            Equal("59 分 59 秒", justUnderHour.AutomationText);
+
+            var longMixed = AnalyticsService.CreateDurationDisplay(863 * 3600 + 5 * 60);
+            Equal("863", longMixed.MajorValue);
+            Equal("5", longMixed.MinorValue);
+            Equal(true, longMixed.HasMinorPart);
+            Equal("863 小时 5 分", longMixed.AutomationText);
         }
 
         private static void TestCrossMidnightAllocation()
@@ -8382,8 +8414,12 @@ namespace PlaytimeInsights.Tests
 
             foreach (var binding in new[]
             {
+                // Value Runs bind the structured display view models directly;
+                // separator runs bind computed empty-string properties so an
+                // absent unit or minor group leaves no stray space.
                 "{Binding RangeDurationDisplay.MajorValue, Mode=OneWay}",
                 "{Binding RangeDurationDisplay.MajorUnit, Mode=OneWay}",
+                "{Binding RangeDurationDisplay.MinorSeparator, Mode=OneWay}",
                 "{Binding RangeDurationDisplay.MinorValue, Mode=OneWay}",
                 "{Binding RangeDurationDisplay.MinorUnit, Mode=OneWay}",
                 "{Binding LongestSessionDisplay.MajorValue, Mode=OneWay}",
@@ -8394,14 +8430,15 @@ namespace PlaytimeInsights.Tests
                 "{Binding LifetimeDurationDisplay.MajorUnit, Mode=OneWay}",
                 "{Binding LifetimeDurationDisplay.MinorValue, Mode=OneWay}",
                 "{Binding LifetimeDurationDisplay.MinorUnit, Mode=OneWay}",
-                "{Binding SessionCountText}",
+                "{Binding SessionCountDisplay.ValueText, Mode=OneWay}",
+                "{Binding SessionCountDisplay.UnitText, Mode=OneWay}",
+                "{Binding ActiveDaysDisplay.ValueText, Mode=OneWay}",
+                "{Binding CurrentStreakDisplay.ValueText, Mode=OneWay}",
+                "{Binding AnomalyCountDisplay.ValueText, Mode=OneWay}",
                 "{Binding AverageSessionSummaryText}",
-                "{Binding ActiveDaysText}",
                 "{Binding StreakCardTitle}",
                 "{Binding LongestStreakText, Mode=OneWay}",
-                "{Binding CurrentStreakText}",
                 "{Binding CurrentStreakDateText, Mode=OneWay}",
-                "{Binding AnomalyCountText}",
                 "{Binding AnomalyCount}",
                 "{Binding PeakPeriodCardTitle}",
                 "{Binding PeakPeriodText}",
@@ -9466,6 +9503,314 @@ namespace PlaytimeInsights.Tests
             }
 
             public DashboardFilterViewModel Filter { get; }
+        }
+
+        private static void TestMetricQuantityDisplayStructure()
+        {
+            // Metrics without a visible unit must not grow a fabricated one.
+            var bare = AnalyticsService.CreateCountDisplay(42, null, null);
+            Equal("42", bare.ValueText);
+            Equal(string.Empty, bare.UnitText);
+            Equal(false, bare.HasUnit);
+            Equal("42", bare.AutomationText);
+
+            var days = AnalyticsService.CreateCountDisplay(
+                3,
+                "LOCPlaytimeInsightsDayUnit",
+                "天");
+            Equal("3", days.ValueText);
+            Equal("天", days.UnitText);
+            Equal(true, days.HasUnit);
+            Equal("3 天", days.AutomationText);
+
+            var advanced = new AdvancedAnalyticsService(
+                new SessionTimeZoneResolver()).CreateSnapshot(
+                new List<Playnite.SDK.Models.Game>(),
+                new List<GameSession>(),
+                new AnalyticsDateRange
+                {
+                    StartDate = new DateTime(2026, 9, 1),
+                    EndDate = new DateTime(2026, 9, 7),
+                    Label = "test"
+                },
+                DayOfWeek.Monday,
+                new Dictionary<DateTime, ulong>(),
+                null);
+            Equal(0, advanced.AnomalyCount);
+            Equal("0", advanced.AnomalyCountDisplay.ValueText);
+            Equal(true, advanced.AnomalyCountDisplay.HasUnit);
+            Equal("0 条", advanced.AnomalyCountDisplay.AutomationText);
+            Equal(advanced.AnomalyCountText, advanced.AnomalyCountDisplay.AutomationText);
+            Equal("0", advanced.CurrentStreakDisplay.ValueText);
+            Equal("0 天", advanced.CurrentStreakDisplay.AutomationText);
+            Equal(advanced.CurrentStreakText, advanced.CurrentStreakDisplay.AutomationText);
+
+            var snapshot = new AnalyticsService().CreateSnapshot(
+                new List<Playnite.SDK.Models.Game>(),
+                new List<GameSession>(),
+                new AnalyticsQuery
+                {
+                    RangePreset = DateRangePreset.ThisMonth,
+                    AggregationPeriod = AggregationPeriod.Day
+                });
+            Equal(snapshot.SessionCountText, snapshot.SessionCountDisplay.AutomationText);
+            Equal(false, snapshot.SessionCountDisplay.HasUnit);
+            Equal(snapshot.ActiveDaysText, snapshot.ActiveDaysDisplay.AutomationText);
+            Equal(false, snapshot.ActiveDaysDisplay.HasUnit);
+
+            var metrics = new DashboardMetricsViewModel(null);
+            metrics.Apply(new DashboardSnapshot
+            {
+                SessionCountText = "12",
+                SessionCountDisplay = AnalyticsService.CreateCountDisplay(12, null, null),
+                ActiveDaysText = "5",
+                ActiveDaysDisplay = AnalyticsService.CreateCountDisplay(5, null, null),
+                Advanced = new AdvancedAnalyticsSnapshot
+                {
+                    ComparisonVisibility = Visibility.Collapsed,
+                    CurrentStreakText = "3 天",
+                    CurrentStreakDisplay = AnalyticsService.CreateCountDisplay(
+                        3,
+                        "LOCPlaytimeInsightsDayUnit",
+                        "天"),
+                    AnomalyCountText = "2 条",
+                    AnomalyCountDisplay = AnalyticsService.CreateCountDisplay(
+                        2,
+                        "LOCPlaytimeInsightsItemUnit",
+                        "条"),
+                    AnomalyCount = 2,
+                    AnomalyVisibility = Visibility.Visible,
+                    WeekdayDistribution = new List<DistributionBarViewModel>(),
+                    HourDistribution = new List<DistributionBarViewModel>(),
+                    WeekHourCells = new List<WeekHourCellViewModel>(),
+                    WeekdayLabels = new List<string>(),
+                    HourLabels = new List<string>(),
+                    Anomalies = new List<AnomalySessionViewModel>()
+                }
+            }, new List<Playnite.SDK.Models.Game>());
+            Equal("12", metrics.SessionCountDisplay.ValueText);
+            Equal("5", metrics.ActiveDaysDisplay.ValueText);
+            Equal("3 天", metrics.CurrentStreakDisplay.AutomationText);
+            Equal("2 条", metrics.AnomalyCountDisplay.AutomationText);
+            // Legacy text properties stay untouched for existing consumers.
+            Equal("12", metrics.SessionCountText);
+            Equal("3 天", metrics.CurrentStreakText);
+            Equal("2 条", metrics.AnomalyCountText);
+        }
+
+        private static void TestMetricCardValueHierarchy()
+        {
+            var sourceRoot = FindSourceRoot();
+            var document = XDocument.Load(Path.Combine(
+                sourceRoot,
+                "Views",
+                "PlaytimeInsightsDashboardView.xaml"));
+            var xamlNamespace = XNamespace.Get(
+                "http://schemas.microsoft.com/winfx/2006/xaml");
+
+            var unitRunStyle = FindStyle(
+                document,
+                xamlNamespace,
+                "MetricUnitRunStyle");
+            AssertStyleSetter(unitRunStyle, "FontSize", "14");
+            AssertStyleSetter(unitRunStyle, "FontWeight", "Normal");
+            AssertStyleSetter(unitRunStyle, "Foreground",
+                "{StaticResource MetricCardMutedTextBrush}");
+
+            var primaryStyle = FindStyle(
+                document,
+                xamlNamespace,
+                "MetricPrimaryValueStyle");
+            Equal(
+                "{StaticResource MetricValueStyle}",
+                (string)primaryStyle.Attribute("BasedOn"));
+            AssertStyleSetter(primaryStyle, "FontSize", "28");
+
+            var anomalyStyle = FindStyle(
+                document,
+                xamlNamespace,
+                "AnomalyMetricValueStyle");
+            Equal(
+                "{StaticResource MetricValueStyle}",
+                (string)anomalyStyle.Attribute("BasedOn"));
+            Equal(true, anomalyStyle.ToString().Contains(
+                "{StaticResource MetricAnomalyForegroundBrush}"));
+            var anomalyTrigger = anomalyStyle.Descendants()
+                .Single(element => element.Name.LocalName == "DataTrigger");
+            Equal("{Binding AnomalyCount}",
+                (string)anomalyTrigger.Attribute("Binding"));
+            Equal("0", (string)anomalyTrigger.Attribute("Value"));
+            Equal(true, anomalyTrigger.Elements().Any(setter =>
+                setter.Name.LocalName == "Setter" &&
+                (string)setter.Attribute("Property") == "FontSize" &&
+                (string)setter.Attribute("Value") == "24"));
+            Equal(true, anomalyTrigger.Elements().Any(setter =>
+                setter.Name.LocalName == "Setter" &&
+                (string)setter.Attribute("Property") == "FontWeight" &&
+                (string)setter.Attribute("Value") == "SemiBold"));
+
+            // Value Runs bind the structured display view models; the legacy
+            // count bindings are gone from the value slots while the legacy text
+            // properties themselves stay for non-value consumers.
+            foreach (var legacyBinding in new[]
+            {
+                "Text=\"{Binding SessionCountText}\"",
+                "Text=\"{Binding ActiveDaysText}\"",
+                "Text=\"{Binding CurrentStreakText}\"",
+                "Text=\"{Binding AnomalyCountText}\""
+            })
+            {
+                Equal(false, document.ToString().Contains(legacyBinding));
+            }
+
+            foreach (var contentBinding in new[]
+            {
+                "Text=\"{Binding RangeDurationDisplay.MajorValue, Mode=OneWay}\"",
+                "Text=\"{Binding RangeDurationDisplay.MinorSeparator, Mode=OneWay}\"",
+                "Text=\"{Binding SessionCountDisplay.ValueText, Mode=OneWay}\"",
+                "Text=\"{Binding SessionCountDisplay.UnitSeparator, Mode=OneWay}\"",
+                "Text=\"{Binding ActiveDaysDisplay.ValueText, Mode=OneWay}\"",
+                "Text=\"{Binding LongestSessionDisplay.MajorValue, Mode=OneWay}\"",
+                "Text=\"{Binding LifetimeDurationDisplay.MajorValue, Mode=OneWay}\"",
+                "Text=\"{Binding CurrentStreakDisplay.ValueText, Mode=OneWay}\"",
+                "Text=\"{Binding AnomalyCountDisplay.ValueText, Mode=OneWay}\""
+            })
+            {
+                Equal(true, document.ToString().Contains(contentBinding));
+            }
+
+            RunOnSta(() =>
+            {
+                var withMinor = new MetricCardDisplayContext
+                {
+                    RangeDurationDisplay = AnalyticsService.CreateDurationDisplay(
+                        863 * 3600 + 5 * 60),
+                    SessionCountDisplay = AnalyticsService.CreateCountDisplay(
+                        42, null, null),
+                    ActiveDaysDisplay = AnalyticsService.CreateCountDisplay(
+                        5, null, null),
+                    LongestSessionDisplay = AnalyticsService.CreateDurationDisplay(
+                        95 * 60),
+                    LifetimeDurationDisplay = AnalyticsService.CreateDurationDisplay(
+                        2 * 3600),
+                    CurrentStreakDisplay = AnalyticsService.CreateCountDisplay(
+                        3, "LOCPlaytimeInsightsDayUnit", "天"),
+                    AnomalyCountDisplay = AnalyticsService.CreateCountDisplay(
+                        0, "LOCPlaytimeInsightsItemUnit", "条"),
+                    AnomalyCount = 0
+                };
+                AssertMetricCardRendering(
+                    withMinor,
+                    new[]
+                    {
+                        "863 小时 5 分",
+                        "42",
+                        "5",
+                        "1 小时 35 分",
+                        "2 小时",
+                        "3 天",
+                        "0 条"
+                    },
+                    assertNeutralAnomaly: true);
+
+                var withoutMinor = new MetricCardDisplayContext
+                {
+                    RangeDurationDisplay = AnalyticsService.CreateDurationDisplay(
+                        3600),
+                    SessionCountDisplay = AnalyticsService.CreateCountDisplay(
+                        7, null, null),
+                    ActiveDaysDisplay = AnalyticsService.CreateCountDisplay(
+                        4, null, null),
+                    LongestSessionDisplay = AnalyticsService.CreateDurationDisplay(
+                        95 * 60),
+                    LifetimeDurationDisplay = AnalyticsService.CreateDurationDisplay(
+                        2 * 3600),
+                    CurrentStreakDisplay = AnalyticsService.CreateCountDisplay(
+                        1, "LOCPlaytimeInsightsDayUnit", "天"),
+                    AnomalyCountDisplay = AnalyticsService.CreateCountDisplay(
+                        2, "LOCPlaytimeInsightsItemUnit", "条"),
+                    AnomalyCount = 2
+                };
+                AssertMetricCardRendering(
+                    withoutMinor,
+                    new[]
+                    {
+                        "1 小时",
+                        "7",
+                        "4",
+                        "1 小时 35 分",
+                        "2 小时",
+                        "1 天",
+                        "2 条"
+                    },
+                    assertNeutralAnomaly: false);
+            });
+        }
+
+        private static void AssertMetricCardRendering(
+            MetricCardDisplayContext context,
+            IList<string> expectedTexts,
+            bool assertNeutralAnomaly)
+        {
+            var view = new PlaytimeInsightsDashboardView
+            {
+                DataContext = context,
+                Width = 1200
+            };
+            view.Measure(new Size(1200, double.PositiveInfinity));
+            view.Arrange(new Rect(0, 0, 1200, view.DesiredSize.Height));
+            view.UpdateLayout();
+            // OneWay Run bindings transfer at DataBind priority; drain the queue
+            // so inline text assertions never race the transfer.
+            Dispatcher.CurrentDispatcher.Invoke(
+                () => { },
+                DispatcherPriority.DataBind);
+
+            // Value TextBlocks are the only large text carrying bound Runs;
+            // headers, helpers and the peak card text carry no inline Runs.
+            var valueTextBlocks = FindVisualDescendants<TextBlock>(view)
+                .Where(block => block.FontSize >= 24 &&
+                    block.Inlines.OfType<System.Windows.Documents.Run>().Any())
+                .ToList();
+            Equal(expectedTexts.Count, valueTextBlocks.Count);
+            for (var index = 0; index < expectedTexts.Count; index++)
+            {
+                Equal(expectedTexts[index], valueTextBlocks[index].Text);
+            }
+
+            var anomalyText = valueTextBlocks[expectedTexts.Count - 1];
+            if (assertNeutralAnomaly)
+            {
+                Equal(24d, anomalyText.FontSize);
+                Equal(FontWeights.SemiBold, anomalyText.FontWeight);
+                Equal(view.TryFindResource("MetricCardTextBrush"), anomalyText.Foreground);
+            }
+            else
+            {
+                Equal(26d, anomalyText.FontSize);
+                Equal(FontWeights.Bold, anomalyText.FontWeight);
+                Equal(view.TryFindResource("MetricAnomalyForegroundBrush"),
+                    anomalyText.Foreground);
+            }
+        }
+
+        private sealed class MetricCardDisplayContext
+        {
+            public DurationDisplayViewModel RangeDurationDisplay { get; set; }
+
+            public MetricQuantityDisplayViewModel SessionCountDisplay { get; set; }
+
+            public MetricQuantityDisplayViewModel ActiveDaysDisplay { get; set; }
+
+            public DurationDisplayViewModel LongestSessionDisplay { get; set; }
+
+            public DurationDisplayViewModel LifetimeDurationDisplay { get; set; }
+
+            public MetricQuantityDisplayViewModel CurrentStreakDisplay { get; set; }
+
+            public MetricQuantityDisplayViewModel AnomalyCountDisplay { get; set; }
+
+            public int AnomalyCount { get; set; }
         }
 
         private static void TestActiveMetadataFilterSummary()

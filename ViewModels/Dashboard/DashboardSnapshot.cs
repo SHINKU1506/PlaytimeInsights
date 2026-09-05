@@ -54,9 +54,13 @@ namespace PlaytimeInsights.ViewModels
 
         public string CurrentStreakText { get; set; }
 
+        public MetricQuantityDisplayViewModel CurrentStreakDisplay { get; set; }
+
         public string CurrentStreakDateText { get; set; }
 
         public string AnomalyCountText { get; set; }
+
+        public MetricQuantityDisplayViewModel AnomalyCountDisplay { get; set; }
 
         public int AnomalyCount { get; set; }
 
@@ -79,7 +83,11 @@ namespace PlaytimeInsights.ViewModels
 
         public string SessionCountText { get; set; }
 
+        public MetricQuantityDisplayViewModel SessionCountDisplay { get; set; }
+
         public string ActiveDaysText { get; set; }
+
+        public MetricQuantityDisplayViewModel ActiveDaysDisplay { get; set; }
 
         public string AverageSessionText { get; set; }
 

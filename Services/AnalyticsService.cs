@@ -329,7 +329,9 @@ namespace PlaytimeInsights.Services
                 RangeDurationText = FormatDurationPrecise(rangeSeconds),
                 RangeDurationDisplay = CreateDurationDisplay(rangeSeconds),
                 SessionCountText = rangeSessionCount.ToString("N0"),
+                SessionCountDisplay = CreateCountDisplay(rangeSessionCount, null, null),
                 ActiveDaysText = activeDays.ToString("N0"),
+                ActiveDaysDisplay = CreateCountDisplay(activeDays, null, null),
                 AverageSessionText = FormatDurationPrecise(averageSessionSeconds),
                 AverageSessionDisplay = CreateDurationDisplay(averageSessionSeconds),
                 LongestSessionText = FormatDurationPrecise(longestSessionSeconds),
@@ -776,6 +778,28 @@ namespace PlaytimeInsights.Services
                         "LOCPlaytimeInsightsMinuteUnitShort",
                         "分"),
                 FormatDurationPrecise(seconds));
+        }
+
+        // Structured display for counted metrics. A null unit key keeps the unit
+        // slot empty (session and active-day counts have no visible unit today),
+        // so the automation text must not gain a fabricated one either. When a
+        // unit exists the automation text reproduces the legacy "{0:N0} unit"
+        // wording without re-parsing any formatted string.
+        public static MetricQuantityDisplayViewModel CreateCountDisplay(
+            int count,
+            string unitKey,
+            string unitFallback)
+        {
+            var valueText = count.ToString("N0");
+            var unitText = unitKey == null
+                ? string.Empty
+                : LocalizationService.Get(unitKey, unitFallback);
+            return new MetricQuantityDisplayViewModel(
+                valueText,
+                unitText,
+                string.IsNullOrEmpty(unitText)
+                    ? valueText
+                    : valueText + " " + unitText);
         }
 
         private static DayOfWeek GetFirstDayOfWeek(bool useIsoWeekStart)

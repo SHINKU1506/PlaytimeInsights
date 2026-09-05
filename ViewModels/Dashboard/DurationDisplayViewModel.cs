@@ -28,6 +28,16 @@ namespace PlaytimeInsights.ViewModels
 
         public string AutomationText { get; }
 
+        // True when a minor value/unit pair exists, so the presentation layer can
+        // choose a template without leaving a dangling separator space behind.
+        public bool HasMinorPart =>
+            !string.IsNullOrEmpty(MinorValue) ||
+            !string.IsNullOrEmpty(MinorUnit);
+
+        // Separator in front of the minor group. An absent minor group renders
+        // empty Runs instead of leftover spaces after the major unit.
+        public string MinorSeparator => HasMinorPart ? " " : string.Empty;
+
         public string CompactText => string.Join(
             " ",
             new[]

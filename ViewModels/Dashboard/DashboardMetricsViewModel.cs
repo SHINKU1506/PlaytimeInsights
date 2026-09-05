@@ -17,7 +17,9 @@ namespace PlaytimeInsights.ViewModels
         private string rangeDurationText;
         private DurationDisplayViewModel rangeDurationDisplay;
         private string sessionCountText;
+        private MetricQuantityDisplayViewModel sessionCountDisplay;
         private string activeDaysText;
+        private MetricQuantityDisplayViewModel activeDaysDisplay;
         private string averageSessionText;
         private DurationDisplayViewModel averageSessionDisplay;
         private string averageSessionSummaryText;
@@ -32,8 +34,10 @@ namespace PlaytimeInsights.ViewModels
         private ComparisonMetricViewModel yearOverYearComparison;
         private string longestStreakText;
         private string currentStreakText;
+        private MetricQuantityDisplayViewModel currentStreakDisplay;
         private string currentStreakDateText;
         private string anomalyCountText;
+        private MetricQuantityDisplayViewModel anomalyCountDisplay;
         private int anomalyCount;
         private IReadOnlyList<GameRankingViewModel> rangeGameRankings =
             new List<GameRankingViewModel>();
@@ -70,7 +74,11 @@ namespace PlaytimeInsights.ViewModels
 
         public string SessionCountText { get => sessionCountText; private set => SetValue(ref sessionCountText, value); }
 
+        public MetricQuantityDisplayViewModel SessionCountDisplay { get => sessionCountDisplay; private set => SetValue(ref sessionCountDisplay, value); }
+
         public string ActiveDaysText { get => activeDaysText; private set => SetValue(ref activeDaysText, value); }
+
+        public MetricQuantityDisplayViewModel ActiveDaysDisplay { get => activeDaysDisplay; private set => SetValue(ref activeDaysDisplay, value); }
 
         public string AverageSessionText { get => averageSessionText; private set => SetValue(ref averageSessionText, value); }
 
@@ -100,9 +108,13 @@ namespace PlaytimeInsights.ViewModels
 
         public string CurrentStreakText { get => currentStreakText; private set => SetValue(ref currentStreakText, value); }
 
+        public MetricQuantityDisplayViewModel CurrentStreakDisplay { get => currentStreakDisplay; private set => SetValue(ref currentStreakDisplay, value); }
+
         public string CurrentStreakDateText { get => currentStreakDateText; private set => SetValue(ref currentStreakDateText, value); }
 
         public string AnomalyCountText { get => anomalyCountText; private set => SetValue(ref anomalyCountText, value); }
+
+        public MetricQuantityDisplayViewModel AnomalyCountDisplay { get => anomalyCountDisplay; private set => SetValue(ref anomalyCountDisplay, value); }
 
         public int AnomalyCount { get => anomalyCount; private set => SetValue(ref anomalyCount, value); }
 
@@ -136,7 +148,9 @@ namespace PlaytimeInsights.ViewModels
             RangeDurationText = snapshot.RangeDurationText;
             RangeDurationDisplay = snapshot.RangeDurationDisplay;
             SessionCountText = snapshot.SessionCountText;
+            SessionCountDisplay = snapshot.SessionCountDisplay;
             ActiveDaysText = snapshot.ActiveDaysText;
+            ActiveDaysDisplay = snapshot.ActiveDaysDisplay;
             AverageSessionText = snapshot.AverageSessionText;
             AverageSessionDisplay = snapshot.AverageSessionDisplay;
             AverageSessionSummaryText = LocalizationService.Format(
@@ -155,8 +169,10 @@ namespace PlaytimeInsights.ViewModels
             YearOverYearComparison = snapshot.Advanced.YearOverYearComparison;
             LongestStreakText = snapshot.Advanced.LongestStreakText;
             CurrentStreakText = snapshot.Advanced.CurrentStreakText;
+            CurrentStreakDisplay = snapshot.Advanced.CurrentStreakDisplay;
             CurrentStreakDateText = snapshot.Advanced.CurrentStreakDateText;
             AnomalyCountText = snapshot.Advanced.AnomalyCountText;
+            AnomalyCountDisplay = snapshot.Advanced.AnomalyCountDisplay;
             AnomalyCount = snapshot.Advanced.AnomalyCount;
             RangeGameRankings = (snapshot.RangeGameRankings ??
                 Enumerable.Empty<GameRankingViewModel>()).ToList();

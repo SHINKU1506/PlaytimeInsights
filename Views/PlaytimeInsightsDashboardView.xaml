@@ -426,6 +426,41 @@
             <Setter Property="Margin" Value="0,4,0,0" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
+        <!-- Numbers and units share one TextBlock baseline; units are muted 14 DIP
+             text, never translate-transformed into place. The separator in front
+             of a unit or minor group is a computed empty string when that group is
+             absent, so no stray space survives. Runs carry direct bindings and all
+             tags stay on one line: whitespace between inline tags would become
+             extra Runs and double every separator space. -->
+        <Style x:Key="MetricUnitRunStyle" TargetType="{x:Type Run}">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground"
+                    Value="{StaticResource MetricCardMutedTextBrush}" />
+        </Style>
+        <Style x:Key="MetricPrimaryValueStyle"
+               TargetType="TextBlock"
+               BasedOn="{StaticResource MetricValueStyle}">
+            <!-- V2: the range duration is the one value allowed to read larger;
+                 fall back to 26 DIP if real data truncates at common card widths. -->
+            <Setter Property="FontSize" Value="28" />
+        </Style>
+        <Style x:Key="AnomalyMetricValueStyle"
+               TargetType="TextBlock"
+               BasedOn="{StaticResource MetricValueStyle}">
+            <!-- A non-zero anomaly count is the emphasized state; zero stays
+                 neutral and slightly lighter. Never dim the whole card. -->
+            <Setter Property="Foreground"
+                    Value="{StaticResource MetricAnomalyForegroundBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding AnomalyCount}" Value="0">
+                    <Setter Property="FontSize" Value="24" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="Foreground"
+                            Value="{StaticResource MetricCardTextBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <SolidColorBrush x:Key="TrendIncreaseBrush" Color="#FF3FA46A" />
         <SolidColorBrush x:Key="TrendIncreaseFillBrush" Color="#243FA46A" />
         <SolidColorBrush x:Key="TrendDecreaseBrush" Color="#FF4E8FD1" />
@@ -1376,14 +1411,9 @@
                                        Style="{StaticResource MetricHeaderStyle}"
                                        TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <TextBlock Style="{StaticResource MetricValueStyle}"
+                        <TextBlock Style="{StaticResource MetricPrimaryValueStyle}"
                                    ToolTip="{Binding RangeDurationDisplay.AutomationText}"
-                                   AutomationProperties.Name="{Binding RangeDurationDisplay.AutomationText}">
-                            <Run Text="{Binding RangeDurationDisplay.MajorValue, Mode=OneWay}" /><Run Text=" " />
-                            <Run Text="{Binding RangeDurationDisplay.MajorUnit, Mode=OneWay}" /><Run Text=" " />
-                            <Run Text="{Binding RangeDurationDisplay.MinorValue, Mode=OneWay}" /><Run Text=" " />
-                            <Run Text="{Binding RangeDurationDisplay.MinorUnit, Mode=OneWay}" />
-                        </TextBlock>
+                                   AutomationProperties.Name="{Binding RangeDurationDisplay.AutomationText}"><Run Text="{Binding RangeDurationDisplay.MajorValue, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding RangeDurationDisplay.MajorUnit, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /><Run Text="{Binding RangeDurationDisplay.MinorSeparator, Mode=OneWay}" /><Run Text="{Binding RangeDurationDisplay.MinorValue, Mode=OneWay}" /><Run Text="{Binding RangeDurationDisplay.MinorSeparator, Mode=OneWay}" /><Run Text="{Binding RangeDurationDisplay.MinorUnit, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /></TextBlock>
                         <StackPanel Margin="0,10,0,0"
                                     Visibility="{Binding ComparisonVisibility}">
                             <Border Style="{StaticResource MetricComparisonTagStyle}"
@@ -1427,9 +1457,8 @@
                                        Style="{StaticResource MetricHeaderStyle}"
                                        TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <TextBlock Text="{Binding SessionCountText}"
-                                   Style="{StaticResource MetricValueStyle}"
-                                   AutomationProperties.Name="{Binding SessionCountText}" />
+                        <TextBlock Style="{StaticResource MetricValueStyle}"
+                                   AutomationProperties.Name="{Binding SessionCountDisplay.AutomationText}"><Run Text="{Binding SessionCountDisplay.ValueText, Mode=OneWay}" /><Run Text="{Binding SessionCountDisplay.UnitSeparator, Mode=OneWay}" /><Run Text="{Binding SessionCountDisplay.UnitText, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /></TextBlock>
                         <TextBlock Text="{Binding AverageSessionSummaryText}"
                                    Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
@@ -1460,7 +1489,8 @@
                                        Style="{StaticResource MetricHeaderStyle}"
                                        TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <TextBlock Text="{Binding ActiveDaysText}" Style="{StaticResource MetricValueStyle}" />
+                        <TextBlock Style="{StaticResource MetricValueStyle}"
+                                   AutomationProperties.Name="{Binding ActiveDaysDisplay.AutomationText}"><Run Text="{Binding ActiveDaysDisplay.ValueText, Mode=OneWay}" /><Run Text="{Binding ActiveDaysDisplay.UnitSeparator, Mode=OneWay}" /><Run Text="{Binding ActiveDaysDisplay.UnitText, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /></TextBlock>
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsActiveNaturalDays}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
@@ -1492,12 +1522,7 @@
                         </Grid>
                         <TextBlock Style="{StaticResource MetricValueStyle}"
                                    ToolTip="{Binding LongestSessionDisplay.AutomationText}"
-                                   AutomationProperties.Name="{Binding LongestSessionDisplay.AutomationText}">
-                            <Run Text="{Binding LongestSessionDisplay.MajorValue, Mode=OneWay}" /><Run Text=" " />
-                            <Run Text="{Binding LongestSessionDisplay.MajorUnit, Mode=OneWay}" /><Run Text=" " />
-                            <Run Text="{Binding LongestSessionDisplay.MinorValue, Mode=OneWay}" /><Run Text=" " />
-                            <Run Text="{Binding LongestSessionDisplay.MinorUnit, Mode=OneWay}" />
-                        </TextBlock>
+                                   AutomationProperties.Name="{Binding LongestSessionDisplay.AutomationText}"><Run Text="{Binding LongestSessionDisplay.MajorValue, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding LongestSessionDisplay.MajorUnit, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /><Run Text="{Binding LongestSessionDisplay.MinorSeparator, Mode=OneWay}" /><Run Text="{Binding LongestSessionDisplay.MinorValue, Mode=OneWay}" /><Run Text="{Binding LongestSessionDisplay.MinorSeparator, Mode=OneWay}" /><Run Text="{Binding LongestSessionDisplay.MinorUnit, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /></TextBlock>
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsClippedToRange}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
@@ -1529,12 +1554,7 @@
                         </Grid>
                         <TextBlock Style="{StaticResource MetricValueStyle}"
                                    ToolTip="{Binding LifetimeDurationDisplay.AutomationText}"
-                                   AutomationProperties.Name="{Binding LifetimeDurationDisplay.AutomationText}">
-                            <Run Text="{Binding LifetimeDurationDisplay.MajorValue, Mode=OneWay}" /><Run Text=" " />
-                            <Run Text="{Binding LifetimeDurationDisplay.MajorUnit, Mode=OneWay}" /><Run Text=" " />
-                            <Run Text="{Binding LifetimeDurationDisplay.MinorValue, Mode=OneWay}" /><Run Text=" " />
-                            <Run Text="{Binding LifetimeDurationDisplay.MinorUnit, Mode=OneWay}" />
-                        </TextBlock>
+                                   AutomationProperties.Name="{Binding LifetimeDurationDisplay.AutomationText}"><Run Text="{Binding LifetimeDurationDisplay.MajorValue, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding LifetimeDurationDisplay.MajorUnit, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /><Run Text="{Binding LifetimeDurationDisplay.MinorSeparator, Mode=OneWay}" /><Run Text="{Binding LifetimeDurationDisplay.MinorValue, Mode=OneWay}" /><Run Text="{Binding LifetimeDurationDisplay.MinorSeparator, Mode=OneWay}" /><Run Text="{Binding LifetimeDurationDisplay.MinorUnit, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /></TextBlock>
                         <TextBlock Text="{Binding TrackedDurationSummaryText}" Style="{StaticResource MetricHelperTextStyle}" />
                     </StackPanel>
                 </Border>
@@ -1564,7 +1584,8 @@
                                        Style="{StaticResource MetricHeaderStyle}"
                                        TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <TextBlock Text="{Binding CurrentStreakText}" Style="{StaticResource MetricValueStyle}" />
+                        <TextBlock Style="{StaticResource MetricValueStyle}"
+                                   AutomationProperties.Name="{Binding CurrentStreakDisplay.AutomationText}"><Run Text="{Binding CurrentStreakDisplay.ValueText, Mode=OneWay}" /><Run Text="{Binding CurrentStreakDisplay.UnitSeparator, Mode=OneWay}" /><Run Text="{Binding CurrentStreakDisplay.UnitText, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /></TextBlock>
                         <TextBlock Style="{StaticResource MetricHelperTextStyle}"
                                    ToolTip="{DynamicResource LOCPlaytimeInsightsCurrentStreakHint}">
                             <Run Text="{Binding CurrentStreakDateText, Mode=OneWay}" /><Run Text=" · " />
@@ -1598,7 +1619,8 @@
                                        Style="{StaticResource MetricHeaderStyle}"
                                        TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <TextBlock Text="{Binding AnomalyCountText}" Style="{StaticResource MetricValueStyle}" />
+                        <TextBlock Style="{StaticResource AnomalyMetricValueStyle}"
+                                   AutomationProperties.Name="{Binding AnomalyCountDisplay.AutomationText}"><Run Text="{Binding AnomalyCountDisplay.ValueText, Mode=OneWay}" /><Run Text="{Binding AnomalyCountDisplay.UnitSeparator, Mode=OneWay}" /><Run Text="{Binding AnomalyCountDisplay.UnitText, Mode=OneWay}" Style="{StaticResource MetricUnitRunStyle}" /></TextBlock>
                         <TextBlock Text="{DynamicResource LOCPlaytimeInsightsAnomalyNormal}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock"

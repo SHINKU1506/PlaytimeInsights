@@ -198,6 +198,8 @@
     <sys:String x:Key="LOCPlaytimeInsightsHourUnitShort">h</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsMinuteUnitShort">m</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSecondUnitShort">s</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsDayUnit">days</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsItemUnit">items</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsChartTooltipFormat">{0}: {1} (select to inspect sessions)</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRankingActiveDaysDetailFormat">{0:N0} active days</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsShareOfTotalFormat">{0:P1} of total playtime</sys:String>

@@ -187,7 +187,11 @@ namespace PlaytimeInsights.ViewModels
 
         public string SessionCountText => Metrics.SessionCountText;
 
+        public MetricQuantityDisplayViewModel SessionCountDisplay => Metrics.SessionCountDisplay;
+
         public string ActiveDaysText => Metrics.ActiveDaysText;
+
+        public MetricQuantityDisplayViewModel ActiveDaysDisplay => Metrics.ActiveDaysDisplay;
 
         public string AverageSessionText => Metrics.AverageSessionText;
 
@@ -229,9 +233,13 @@ namespace PlaytimeInsights.ViewModels
 
         public string CurrentStreakText => Metrics.CurrentStreakText;
 
+        public MetricQuantityDisplayViewModel CurrentStreakDisplay => Metrics.CurrentStreakDisplay;
+
         public string CurrentStreakDateText => Metrics.CurrentStreakDateText;
 
         public string AnomalyCountText => Metrics.AnomalyCountText;
+
+        public MetricQuantityDisplayViewModel AnomalyCountDisplay => Metrics.AnomalyCountDisplay;
 
         public int AnomalyCount => Metrics.AnomalyCount;
 

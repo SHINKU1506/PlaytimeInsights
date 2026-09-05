@@ -198,6 +198,8 @@
     <sys:String x:Key="LOCPlaytimeInsightsHourUnitShort">小时</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsMinuteUnitShort">分</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsSecondUnitShort">秒</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsDayUnit">天</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsItemUnit">条</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsChartTooltipFormat">{0}：{1}（点击查看会话）</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsRankingActiveDaysDetailFormat">{0:N0} 个活跃日</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsShareOfTotalFormat">占总游玩时长 {0:P1}</sys:String>

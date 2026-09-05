@@ -171,6 +171,10 @@ namespace PlaytimeInsights.Services
                     "LOCPlaytimeInsightsCountDaysFormat",
                     "{0:N0} 天",
                     currentStreak),
+                CurrentStreakDisplay = AnalyticsService.CreateCountDisplay(
+                    currentStreak,
+                    "LOCPlaytimeInsightsDayUnit",
+                    "天"),
                 CurrentStreakDateText = LocalizationService.Format(
                     "LOCPlaytimeInsightsCurrentStreakDateFormat",
                     "截至 {0:M/d}",
@@ -179,6 +183,10 @@ namespace PlaytimeInsights.Services
                     "LOCPlaytimeInsightsCountItemsFormat",
                     "{0:N0} 条",
                     anomalies.Count),
+                AnomalyCountDisplay = AnalyticsService.CreateCountDisplay(
+                    anomalies.Count,
+                    "LOCPlaytimeInsightsItemUnit",
+                    "条"),
                 AnomalyCount = anomalies.Count,
                 AnomalyVisibility = anomalies.Count > 0
                     ? Visibility.Visible
