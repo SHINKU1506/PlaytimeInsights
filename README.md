@@ -6,7 +6,7 @@ Playtime Insights 是一个面向 Playnite Desktop 的本地游玩时间分析�
 
 **当前源码版本：`1.1.0`** · 作者：[SHINKU1506](https://github.com/SHINKU1506) · [GitHub Releases](https://github.com/SHINKU1506/PlaytimeInsights/releases) · [变更日志](CHANGELOG.md) · [隐私说明](PRIVACY.md)
 
-> 1.1.0 源码已完成 Dashboard 视觉增强和性能收敛，但正式 PEXT 与 GitHub Release 尚未发布；公开安装包仍为 `1.0.0`。1.1.0 的验收进度见 [Client Acceptance 1.1.0](docs/CLIENT_ACCEPTANCE_1.1.0.md)。
+> 1.1.0 源码已进入发布候选准备阶段，Dashboard 视觉增强、响应式分布图和性能收敛已完成；正式 PEXT 与 GitHub Release 尚未发布，公开安装包仍为 `1.0.0`。1.1.0 的验收进度见 [Client Acceptance 1.1.0](docs/CLIENT_ACCEPTANCE_1.1.0.md)。
 
 ## 目录
 
@@ -178,6 +178,7 @@ dotnet run --project Tests\PlaytimeInsights.Tests.csproj -c Release `
 - [1.0.0 客户端验收](docs/CLIENT_ACCEPTANCE_1.0.0.md)
 - [1.1.0 Dashboard 视觉增强验收](docs/CLIENT_ACCEPTANCE_1.1.0.md)
 - [Dashboard 视觉增强实施计划](docs/superpowers/plans/2026-08-17-dashboard-visual-elevation-implementation.md)
+- [1.1.0 发布说明](docs/RELEASE_NOTES_1.1.0.md)
 - [1.0.0 正式发布就绪审查](docs/RELEASE_READINESS_1.0.md)
 - [1.0.0 发布说明](docs/RELEASE_NOTES_1.0.0.md)
 - [0.9.8 发布说明](docs/RELEASE_NOTES_0.9.8.md)

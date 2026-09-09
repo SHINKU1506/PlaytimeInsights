@@ -1,59 +1,68 @@
-# Playtime Insights 发布检查清单
+# Playtime Insights 1.1.0 发布检查清单
 
-更新日期：2026-08-14
+更新日期：2026-09-09
 
-通用顺序、命令、安全激活和 AddonDatabase 判定见 `PRE_RELEASE_WORKFLOW.md`。本文件只记录
-1.0.0 的实际证据；0.9.8 历史证据保留在 `RELEASE_NOTES_0.9.8.md` 和 Git 历史中。
+通用顺序、安全激活和 Add-on Database 判定见 `PRE_RELEASE_WORKFLOW.md`。本文件记录 1.1.0
+候选的实际证据；1.0.0 历史证据保留在 Git 历史与对应 Release 中。
 
-## 1.0.0 候选
+## 候选身份
 
-- 插件版本：1.0.0；
-- 程序集版本：1.0.0.0；
+- 插件版本：1.1.0；
+- 程序集版本：1.1.0.0；
 - AddonId：`PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd`；
 - 目标框架：.NET Framework 4.6.2；
 - Playnite SDK / Required API：6.16.0；
-- 自动化回归：108/108；
-- DLL：315,904 字节；
-- DLL SHA-256：`6ACFACDA528398A263219511B737A6C9699FE7D8D21CAD43EC4CAB86B7EF2790`；
-- PEXT：147,824 字节；
-- PEXT SHA-256：`EBA048A7F71943B22E2566D899E81BB99BFD5570D0F26A65439789A3E081AB34`；
+- 候选源码提交：待创建最终发布提交；当前功能 HEAD 为 `4da4ab6`；
 - PEXT 文件名：
-  `PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_0_0.pext`；
-- 两轮独立 clean Release 的 DLL 与 PEXT 哈希分别一致；
-- PEXT 严格包含 9 个与 Release 逐项相同的安全条目，含 LICENSE，不含 PDB 或 Playnite SDK DLL；
-- DLL 程序集版本为 1.0.0.0，未发现用户名、开发目录、Playnite 安装路径或 PDB 字符串；
-- 构建和打包前后用户数据均为 7 个文件，联合指纹保持
-  `ABEF90B96891A66A0BD89F4EB19F5FCCF27C6F2FD52BFE120D44E50EB71229A6`。
+  `PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_1_0.pext`。
 
-## 已通过门禁
+## 已通过的自动化和本地部署证据
 
-- [x] `extension.yaml`、程序集、README、CHANGELOG、installer manifest 和自动化断言版本一致；
-- [x] installer manifest 顶部为 1.0.0，并保留 0.9.8 package；
-- [x] 测试项目 Release 构建 0 warning / 0 error；
-- [x] 108/108 回归通过并输出最终 all-pass marker；
-- [x] 主项目两轮 clean Release 构建 0 warning / 0 error；
-- [x] 两轮确定性打包哈希一致；
-- [x] 九文件、路径安全、许可证、版本、AddonId 和依赖边界检查通过；
-- [x] 用户确认侧边栏 View 复用与共享封面缓存性能优化客户端验收通过；
-- [x] 架构重构 A–E 和 Dashboard 选择性刷新已有客户端验收记录；
-- [x] Add-on Database PR #626 已合并，稳定 installer URL 无需为 package-only release 修改。
+- [x] `extension.yaml`、程序集、README 与 CHANGELOG 使用 1.1.0 / 1.1.0.0；
+- [x] installer manifest 已将 1.1.0 放在首位，并保留 1.0.0 与 0.9.8；
+- [x] Playnite SDK 与 RequiredApiVersion 均为 6.16.0；
+- [x] 2026-09-09 主项目和测试项目 Release 构建均为 0 warning / 0 error；
+- [x] 2026-09-09 当前 190 项回归完成；首轮 100k 第五样本受整机并发负载影响升至 784 ms，
+  同一二进制等待 15 秒复跑全部通过，100k 五样本 median/max 497/521 ms、schema 4 1,033 ms，
+  一年/All Sessions 热力图 UI max 135.7/123.8 ms；失败样本保留，未放宽预算；
+- [x] 最终 clean Release 输出严格为 9 个预期文件；DLL 为 401,408 字节、程序集 1.1.0.0，
+  SHA-256 `92A59F52A1AE7CE5DD356A7DE2262A6F33421BF9DCBB8CE83D3E53F4923F3AC5`；
+- [x] 本机曾部署相同功能 HEAD 的增量构建 DLL `E797AE072927001FC9ED7D264FBEA40A2E869556269A9457E78A4CDB59E96016`；
+  部署前后 7 个用户数据文件联合指纹均为
+  `D12D5D8C4D9CC1A77542B129BCD343DF3A206C3B70DB51CB005D085A08FC4D95`；回退备份位于
+  `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260905-222356`。
+
+## 制品门禁
+
+- [x] 两轮独立 clean Release 的 DLL SHA-256 均为
+  `92A59F52A1AE7CE5DD356A7DE2262A6F33421BF9DCBB8CE83D3E53F4923F3AC5`；
+- [x] 两轮确定性 PEXT 均为 176,733 字节，SHA-256 均为
+  `0F76E01E58DD8BF6DB6FDA863A8F946AB01C1B034FD4E36B59BDF669C3F23B41`；
+- [x] PEXT 严格包含 9 个与 Release 逐项哈希一致的安全条目，含 LICENSE、PRIVACY 和两个本地化 XAML；
+- [x] PEXT 不含 PDB、Playnite SDK DLL、绝对路径、父级路径或用户数据；DLL 敏感/调试路径扫描 0 命中；
+- [x] 包内 `extension.yaml` 为 1.1.0 且 AddonId 正确。
+
+## 客户端门禁
+
+- [x] 用户已完成当前源码的常规功能与视觉验收，并授权部署最新构建；
+- [ ] 使用正式候选 PEXT 从公开 1.0.0 原位升级，确认设置、会话和备份保持；
+- [ ] 重启 Playnite 后确认 1.1.0 加载，并复验快捷范围、指标卡、未来趋势、分布图宽度和
+  Week×Hour 完整格填充；
+- [ ] Reduced Motion 实机核验；实际读屏器播报按既定决定跳过，不作为发布失败项。
 
 ## 发布动作门禁
 
-- [ ] 完成 `CLIENT_ACCEPTANCE_1.0.0.md` 中 1.0.0 PEXT 原位升级与视觉矩阵；
-- [x] 提交发布候选 `d4e9ed9` 并创建注释标签 `v1.0.0`；
-- [x] 先推送标签，确认远端 `main` 尚未暴露 1.0.0；
-- [x] 创建公开、非草稿、非预发布 GitHub Release，并上传精确名称的 PEXT；
-- [x] 匿名 PackageUrl 返回 HTTP 200，大小和 SHA-256 与本文件一致；
-- [x] Toolbox 对正式公网 installer/addon manifest 完整校验通过；
-- [x] 附件和 Toolbox 门禁通过后推送 `main`；raw CDN 刷新后已暴露 1.0.0 与 0.9.8；
-- [ ] 远端激活后从 0.9.8 检测并完成 1.0.0 更新；
-- [ ] 决定保留 0.9.8 目录截图，或另提 AddonDatabase 截图/描述 PR。
-
-公开 Release：<https://github.com/SHINKU1506/PlaytimeInsights/releases/tag/v1.0.0>。
-标签 peel 到 `d4e9ed908f30156ea9948c9e3c7fe3415ff2a51a`；远端 `main` 与本地同步。
+- [ ] 提交最终发布候选，并确认三个用户保留的未跟踪项未进入提交；
+- [ ] 创建并推送注释标签 `v1.1.0`，暂不推送新版 `main`；
+- [ ] 创建公开、非草稿、非预发布 GitHub Release，上传精确名称的 PEXT；
+- [ ] 匿名 PackageUrl 返回 HTTP 200，大小、SHA-256 与本文件一致；
+- [ ] Toolbox 对本地新版 installer manifest 校验通过；
+- [ ] 附件门禁通过后推送 `main`，再对公开 installer/addon manifest 做联动校验；
+- [ ] Playnite Add-on Browser 展示 1.1.0，并能从 1.0.0 更新。
 
 ## Git 边界
 
-发布提交不得包含 `bin`、`obj`、`dist`、`staging`、PEXT、测试结果、IDE 设置、日志、转储、
-`perf_test.ps1`、`ExtensionsData`、会话、导出或备份。发布附件只上传 GitHub Release，不进入源码历史。
+以下三个用户保留的未跟踪项不纳入本轮提交：`docs/superpowers/reviews/`、
+`docs/superpowers/specs/2026-09-05-dashboard-visual-hierarchy-and-distribution-layout-design.md`、
+`perf_test.ps1`。发布提交还不得包含 `bin`、`obj`、`dist`、`staging`、PEXT、测试结果、IDE
+设置、日志、转储、`ExtensionsData`、会话、导出或备份。PEXT 只作为 GitHub Release 附件发布。

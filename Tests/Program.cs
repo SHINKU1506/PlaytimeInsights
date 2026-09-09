@@ -11778,12 +11778,21 @@ namespace PlaytimeInsights.Tests
 
             Equal(true, installerManifest.Contains(
                 "AddonId: PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd"));
-            Equal(true, installerManifest.Contains("Version: 1.0.0"));
+            var installerVersion110 = installerManifest.IndexOf(
+                "Version: 1.1.0",
+                StringComparison.Ordinal);
+            var installerVersion100 = installerManifest.IndexOf(
+                "Version: 1.0.0",
+                StringComparison.Ordinal);
+            Equal(true, installerVersion110 >= 0);
+            Equal(true, installerVersion100 > installerVersion110);
             Equal(true, installerManifest.Contains("Version: 0.9.8"));
             Equal(true, installerManifest.Contains(
                 "RequiredApiVersion: 6.16.0"));
             Equal(true, installerManifest.Contains(
-                "/releases/download/v1.0.0/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_0_0.pext"));
+                "/releases/download/v1.1.0/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_1_0.pext"));
+            Equal(true, installerManifest.Contains(
+                "ReleaseDate: 2026-09-09"));
             Equal(true, preReleaseWorkflow.Contains(
                 "PEXT URL returns HTTP 200"));
             Equal(true, preReleaseWorkflow.Contains(

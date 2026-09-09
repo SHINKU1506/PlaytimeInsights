@@ -1,8 +1,28 @@
 # Playtime Insights 实现状态
 
-最后更新：2026-09-04
+最后更新：2026-09-09
 
-当前阶段：Dashboard Visual Elevation 与性能优化均已实现、提交并合并推送至 `main`；源码和程序集版本已升级至 1.1.0 / 1.1.0.0。当前仍待性能版虚拟化后实机矩阵与 Reduced motion；实际读屏器已跳过。正式 1.1.0 PEXT、GitHub Release、标签、Installer manifest 更新和 1.1.0 本机部署尚未开始
+当前阶段：1.1.0 功能代码、自动化与确定性制品门禁完成，本地 `main` 的功能 HEAD 为 `4da4ab6`，比远端
+`main` 多 8 个提交；源码和程序集为 1.1.0 / 1.1.0.0，本机已部署同一功能 HEAD 的增量构建。installer manifest
+已进入 1.1.0 候选准备，仍待正式 PEXT 原位升级、Reduced Motion 与最新
+Dashboard 聚焦复验；实际读屏器已跳过。GitHub Release、标签和远端自动更新尚未激活。
+
+## 2026-09-09 1.1.0 发布候选准备
+
+- 最新功能链为 `5c0e5cc..4da4ab6`：快捷范围单选高亮、指标值/单位层级、趋势未来尾部与稀疏点
+  处理、分布图独立视口适配，以及 Week×Hour 完整格填充；
+- 2026-09-09 主项目和测试项目 Release 构建均为 0 warning / 0 error；首轮 100k 第五样本在
+  并发整机负载下升至 784 ms，同一二进制等待 15 秒复跑 190 项全部通过，100k median/max
+  497/521 ms、schema 4 1,033 ms、一年/All Sessions UI max 135.7/123.8 ms；
+- 两轮 clean Release DLL 哈希一致，最终 DLL 401,408 字节、程序集 1.1.0.0、SHA-256
+  `92A59F52A1AE7CE5DD356A7DE2262A6F33421BF9DCBB8CE83D3E53F4923F3AC5`；两轮确定性 PEXT
+  均为 176,733 字节、SHA-256 `0F76E01E58DD8BF6DB6FDA863A8F946AB01C1B034FD4E36B59BDF669C3F23B41`；
+- 本机安装目录仍为同功能 HEAD 的增量 DLL `E797AE072927001FC9ED7D264FBEA40A2E869556269A9457E78A4CDB59E96016`，
+  正式 clean 候选待通过 PEXT 原位升级覆盖；
+- `manifests/installer.yaml` 已准备 1.1.0 首包并保留 1.0.0/0.9.8；新增
+  `docs/RELEASE_NOTES_1.1.0.md`，版本专属门禁转入 `docs/RELEASE_CHECKLIST.md`；
+- 用户指定的三个未跟踪项保持本地，不进入发布提交；
+- 尚未创建标签、GitHub Release 或推送新版 `main`，Add-on Browser 仍只公开 1.0.0。
 
 ## 2026-09-03 Calendar 热力图 UI 性能收敛（codex/dashboard-performance-optimization）
 
@@ -17,7 +37,9 @@
 - 受控复现：2026-09-04 连续十轮重新构建插件与测试项目，每轮等待 15 秒后执行完整回归；十轮构建与回归全部通过。100k 五样本 median 470–505 ms、单样本总最大 528 ms，schema 4 总最大 975 ms；一年 / All Sessions UI 总最大 127.4 / 114.4 ms；
 - 合并结果验证：主工作树首次运行时 schema 4 因新生成文件争用升至 2,161 ms，本地化覆盖测试还误扫描历史 `staging` 源码。新增路径边界回归并让覆盖扫描排除 `Tests/obj/bin/staging/.worktrees`；重新构建并等待 15 秒后完整回归通过，100k median/max 483/488 ms、schema 4 976 ms、一年 / All Sessions UI max 121.3 / 109.3 ms；
 - 分支状态：`codex/dashboard-performance-optimization` 已推送至 `origin` 并 fast-forward 合并回 `main`；远端性能分支为 `5311a1a`，远端 `main` 已更新至 `fd18856`；
-- 版本部署边界：本机安装目录已包含性能代码，但仍是 1.0.0.0 构建（DLL `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`）；当前 `main` 的 1.1.0.0 DLL 为 `FCAE819028BBCD7485BD0463F3B170E2414A689DFAFCA66C0271F07F4A9225F4`，本轮未重新部署或发布该版本构建；
+- 版本部署边界：该条的 2026-09-03 1.0.0.0 部署已被后续候选覆盖；当前 Release 与本机安装
+  目录均为 1.1.0.0，但 clean 候选/已安装增量 DLL 哈希分别为 `92A59F52...F3AC5` /
+  `E797AE07...E96016`；正式 PEXT 原位升级与公开发布尚未执行；
 
 ## 2026-09-03 Dashboard 分析性能收敛（codex/dashboard-performance-optimization）
 
@@ -38,7 +60,8 @@
 - 2026-09-03 已人工完成：640、900、1159、1160、1199、1200、1440、1600 DIP 内容宽度及双向滞回，空范围/排行/下钻/跨月/六周月份/一年/All Sessions 数据状态，Default Dark/Default Light/Seaside Dark/Windows High Contrast，zh_CN / en_US，100%–200% DPI，Calendar Button 键盘链路，Calendar/Week×Hour 视觉区分，以及区间榜/累计榜跨零点相对日期；
 - 实际读屏器播报已由用户决定跳过，不作为本轮验收门禁；自动化仍只证明 Automation Name 与 `NameProperty` 事件路径，不声明原生 Polite live-region 语义；
 - 尚未完成：Task 7 的减弱动效人工矩阵，以及性能分支虚拟化后的主题 / DPI / 双语言 / 键盘 / Tooltip / 月轴同步实机复验；All Sessions 707.6 ms 性能决策项已由性能分支完成，不再列为待办；
-- 正式 1.1.0 发版尚未开始，当前 `extension.yaml`、程序集和最近公开标签仍为 1.0.0；版本升级、CHANGELOG、PEXT、标签与公开发布应另立发版任务。
+- 正式 1.1.0 候选准备已开始；`extension.yaml`、程序集、CHANGELOG 与 installer 候选元数据为
+  1.1.0，最近公开标签仍为 1.0.0；PEXT、标签与公开发布状态见本文顶部候选准备记录。
 
 ## 2026-08-14 1.0.0 发布候选整合
 
@@ -1065,7 +1088,6 @@ Windows 地区而显示中文月份，0.9.2 最终候选已改为插件控制的
 
 ## 下一动作
 
-1. 启动已部署的 `codex/dashboard-performance-optimization` 构建，完成虚拟化后的主题 / DPI / 双语言 / 键盘 / Tooltip / 月轴同步实机矩阵；实际读屏器播报继续跳过；
-2. 补齐 Task 7 Reduced motion 实机核验，并同步 `docs\CLIENT_ACCEPTANCE_1.1.0.md`；
-3. 人工验收通过后推送性能分支并合并回 `main`；合并后重新构建并核对安装产物与 `main` 一致；
-4. 视觉与性能口径确认后，另立正式 1.1.0 发版任务，统一版本号、CHANGELOG、PEXT、标签和公开发布流程。
+1. 使用正式候选 PEXT 从公开 1.0.0 原位升级，完成最新 Dashboard 聚焦复验与 Reduced Motion；
+2. 创建最终发布提交，确保三个用户保留的未跟踪项不进入提交；
+3. 按 `docs\PRE_RELEASE_WORKFLOW.md` 先发布标签与附件、验证 PackageUrl，再推送 `main` 激活自动更新。

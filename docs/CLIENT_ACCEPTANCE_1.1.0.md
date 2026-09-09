@@ -1,7 +1,26 @@
 # Client Acceptance 1.1.0 — Dashboard Visual Elevation
 
-状态：Task 7 自动化发布门禁通过；100k 分析与 All Sessions UI 自动化性能预算已收敛；性能分支已推送并合并回 `main`。本轮仍待虚拟化后实机矩阵；Reduced motion 待验收，实际读屏器已跳过
-日期：2026-09-04
+状态：1.1.0 发布候选自动化与确定性制品门禁通过；当前功能 HEAD 为 `4da4ab6`。本机已部署同一功能 HEAD 的增量构建，正式 clean PEXT 原位升级、Reduced Motion 与最新 Dashboard 聚焦复验仍待完成；实际读屏器已跳过
+日期：2026-09-09
+
+## 2026-09-09 Release Candidate Refresh
+
+- [x] 当前功能 HEAD `4da4ab6` 包含快捷范围单选高亮、指标值/单位分层、趋势未来尾部处理、
+  分布图按各自视口适配及 Week×Hour 完整格填充。
+- [x] 主项目和测试项目 Release 构建均为 0 warning / 0 error，190 项回归全部通过。
+- [x] 首轮 100k 第五样本在并发整机负载下升至 784 ms；同一二进制等待 15 秒复跑全部通过：
+  100k 五样本 480 / 483 / 497 / 507 / 521 ms（median 497、max 521），schema 4 1,033 ms，
+  一年/All Sessions UI max 135.7/123.8 ms。失败样本保留，未放宽预算。
+- [x] 两轮 clean Release DLL 哈希一致；最终 DLL 401,408 字节、程序集 1.1.0.0、SHA-256
+  `92A59F52A1AE7CE5DD356A7DE2262A6F33421BF9DCBB8CE83D3E53F4923F3AC5`。
+- [x] 两轮确定性 PEXT 均为 176,733 字节、SHA-256
+  `0F76E01E58DD8BF6DB6FDA863A8F946AB01C1B034FD4E36B59BDF669C3F23B41`；包内严格 9 文件并与 Release 逐项一致。
+- [x] 本机已部署同一功能 HEAD 的增量构建 DLL `E797AE072927001FC9ED7D264FBEA40A2E869556269A9457E78A4CDB59E96016`；
+  部署前后 7 个用户数据文件联合指纹均为
+  `D12D5D8C4D9CC1A77542B129BCD343DF3A206C3B70DB51CB005D085A08FC4D95`；回退备份为
+  `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260905-222356`。
+- [ ] 正式候选 PEXT 从公开 1.0.0 原位升级、重启加载和最新 Dashboard 聚焦复验。
+- [ ] Reduced Motion 实机核验；实际读屏器继续明确跳过。
 
 ## Frozen Layout Contract
 
@@ -100,7 +119,9 @@
 - [x] 推送：`codex/dashboard-performance-optimization` 已推送至 `origin`，版本准备提交为 `5311a1a`。
 - [x] 合并：性能分支已于 2026-09-04 fast-forward 合并回 `main`，远端 `main` 已推送至 `fd18856`。
 - [x] 性能代码部署：2026-09-03 部署前两个 Release 构建 0 warning / 0 error，完整回归通过；100k median/max 530/540 ms，schema 4 为 1,000 ms，一年/All Sessions UI max 135.9/107.4 ms。Release 与安装目录严格 9/9 文件哈希一致，DLL SHA-256 为 `574980438951103AEE19CB20CD27CCFC7A352D23E77B5647A3EEA6B2343C0E5D`；旧版备份位于 `C:\Users\chan\AppData\Roaming\Playnite\Backup\PlaytimeInsights-deploy-20260903-212723`。部署前后 7 个用户数据文件联合指纹均为 `A1CCAB93B14ACC88EF4C78253169FE149947DD9FD3701F1C4AC3E6944DF8932E`。
-- [ ] 1.1.0 版本构建部署：当前 `main` DLL 为 1.1.0.0，SHA-256 `FCAE819028BBCD7485BD0463F3B170E2414A689DFAFCA66C0271F07F4A9225F4`；本机安装目录仍是相同性能代码的 1.0.0.0 构建。正式 1.1.0 PEXT 尚未发布，本轮未重新覆盖安装目录。
+- [x] 1.1.0 功能构建部署：本机安装目录 DLL 为 1.1.0.0、SHA-256
+  `E797AE072927001FC9ED7D264FBEA40A2E869556269A9457E78A4CDB59E96016`；正式 clean 候选 DLL 为
+  `92A59F52A1AE7CE5DD356A7DE2262A6F33421BF9DCBB8CE83D3E53F4923F3AC5`，仍待通过候选 PEXT 原位升级覆盖。
 - [ ] 人工验收：虚拟化后实机矩阵与 Reduced motion 尚未完成；实际读屏器播报已明确跳过。
 
 ## Actual UI Evidence（性能虚拟化前的视觉基线）
@@ -131,7 +152,8 @@
 - [x] 覆盖前后 7 个 `ExtensionsData` 用户数据文件联合指纹一致；Playnite 日志确认 Playtime Insights 1.0.0 已加载。
 - [x] Playnite 仅在本次启动进程内使用 `HTTP_PROXY` / `HTTPS_PROXY=http://127.0.0.1:10456`；未写入仓库、测试或系统全局代理设置。
 
-该记录只证明 Dashboard Visual Elevation 基线已部署；性能分支引入新的分析和热力图生产代码，当前源 DLL 已不再与已安装 DLL 相同。正式 1.1.0 发版（版本号、CHANGELOG、PEXT、标签和公开发布）是独立后续工作，不属于本次 Task 7 验收状态。
+该段是 2026-08-30 Dashboard Visual Elevation 历史部署记录；当前实际部署状态以本文顶部
+“2026-09-09 Release Candidate Refresh”为准。正式 1.1.0 PEXT、标签和公开发布仍是独立后续动作。
 
 ## Known Ranking Behavior
 

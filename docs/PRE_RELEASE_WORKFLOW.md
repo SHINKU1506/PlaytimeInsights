@@ -1,6 +1,6 @@
 # Playtime Insights 新版本预发布流程
 
-更新日期：2026-08-14
+更新日期：2026-09-09
 
 本文是版本无关的发布入口。版本专属证据记录在 `RELEASE_CHECKLIST.md`、
 `CLIENT_ACCEPTANCE_<version>.md` 和 `RELEASE_NOTES_<version>.md`。任何步骤没有证据时必须标记
@@ -99,15 +99,18 @@ git status --short
 3. 基于该标签创建 GitHub Release，上传精确名称的 PEXT；
 4. 匿名请求 PackageUrl，要求 **PEXT URL returns HTTP 200**；
 5. 校验下载文件大小、SHA-256 和包内版本；
-6. 运行 Toolbox：
+6. 在激活前运行 Toolbox 校验本地新版 installer manifest：
 
    ```powershell
    D:\software\Playnite\Toolbox.exe verify installer .\manifests\installer.yaml
-   D:\software\Playnite\Toolbox.exe verify addon .\manifests\addon.yaml
    ```
 
 7. 只有以上步骤通过后才推送发布提交到远端 `main`，以激活自动更新；
-8. 再次从公开 raw URL 验证两层 manifest 和 Playnite 内更新检测。
+8. raw CDN 刷新后，再从公开 URL 验证 installer manifest，并运行
+   `Toolbox.exe verify addon .\manifests\addon.yaml`。本地 add-on manifest 的
+   `InstallerManifestUrl` 指向远端 `main`，因此激活前运行该命令只能验证旧的公开 installer，
+   不能证明尚未推送的新 package；
+9. 最后执行 Playnite 内更新检测。
 
 若附件、manifest 或升级验证失败，停止推进 `main`；修正或删除未激活的标签/Release，旧 0.9.8
 package 继续保持可用。
