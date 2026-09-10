@@ -11748,7 +11748,9 @@ namespace PlaytimeInsights.Tests
                 "LOCPlaytimeInsightsSessionsSubtitle"));
 
             Equal(true, readme.Contains("当前源码版本：`1.1.0`"));
-            Equal(true, readme.Contains("公开安装包仍为 `1.0.0`"));
+            Equal(true, readme.Contains("当前公开版本为 `1.1.0`"));
+            Equal(true, readme.Contains("Dashboard 视觉改善"));
+            Equal(true, readme.Contains("性能优化"));
             Equal(true, readme.Contains(
                 "作者：[SHINKU1506](https://github.com/SHINKU1506)"));
             Equal(true, readme.Contains("## 界面预览"));
@@ -11792,7 +11794,7 @@ namespace PlaytimeInsights.Tests
             Equal(true, installerManifest.Contains(
                 "/releases/download/v1.1.0/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_1_0.pext"));
             Equal(true, installerManifest.Contains(
-                "ReleaseDate: 2026-09-09"));
+                "ReleaseDate: 2026-09-10"));
             Equal(true, preReleaseWorkflow.Contains(
                 "PEXT URL returns HTTP 200"));
             Equal(true, preReleaseWorkflow.Contains(

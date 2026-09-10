@@ -6,7 +6,7 @@ Playtime Insights 是一个面向 Playnite Desktop 的本地游玩时间分析�
 
 **当前源码版本：`1.1.0`** · 作者：[SHINKU1506](https://github.com/SHINKU1506) · [GitHub Releases](https://github.com/SHINKU1506/PlaytimeInsights/releases) · [变更日志](CHANGELOG.md) · [隐私说明](PRIVACY.md)
 
-> 1.1.0 源码已进入发布候选准备阶段，Dashboard 视觉增强、响应式分布图和性能收敛已完成；正式 PEXT 与 GitHub Release 尚未发布，公开安装包仍为 `1.0.0`。1.1.0 的验收进度见 [Client Acceptance 1.1.0](docs/CLIENT_ACCEPTANCE_1.1.0.md)。
+> 当前公开版本为 `1.1.0`，本次改动主要集中在 Dashboard 视觉改善、响应式分布图和长范围性能优化。详细验收证据见 [Client Acceptance 1.1.0](docs/CLIENT_ACCEPTANCE_1.1.0.md)。
 
 ## 目录
 
@@ -25,7 +25,7 @@ Playtime Insights 是一个面向 Playnite Desktop 的本地游玩时间分析�
 
 ## 界面预览
 
-以下截图来自 0.9.8 发布周期，用于展示插件的基本页面结构。1.1.0 源码已完成 Dashboard 视觉增强；新版截图将在正式 1.1.0 发版时更新。
+以下截图已于 1.1.0 发布周期原位更新，展示新版 Dashboard 视觉层级、响应式指标卡和当前设置界面。为保持 Playnite Add-on Database 已收录的稳定图片 URL，仓库路径继续沿用历史 `0.9.8` 目录名；`v0.9.8` 标签仍保留旧版截图。
 
 ### 分析页 · 中文
 

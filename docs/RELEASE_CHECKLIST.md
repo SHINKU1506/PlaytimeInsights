@@ -1,6 +1,6 @@
 # Playtime Insights 1.1.0 发布检查清单
 
-更新日期：2026-09-09
+更新日期：2026-09-10
 
 通用顺序、安全激活和 Add-on Database 判定见 `PRE_RELEASE_WORKFLOW.md`。本文件记录 1.1.0
 候选的实际证据；1.0.0 历史证据保留在 Git 历史与对应 Release 中。
@@ -41,6 +41,8 @@
 - [x] PEXT 严格包含 9 个与 Release 逐项哈希一致的安全条目，含 LICENSE、PRIVACY 和两个本地化 XAML；
 - [x] PEXT 不含 PDB、Playnite SDK DLL、绝对路径、父级路径或用户数据；DLL 敏感/调试路径扫描 0 命中；
 - [x] 包内 `extension.yaml` 为 1.1.0 且 AddonId 正确。
+- [x] 中文/英文 Dashboard 与中文设置页截图已在既有 URL 原位更新；图片 URL 未改变，因此
+  package-only 发布无需新增 Add-on Database PR，旧图仍由 `v0.9.8` 标签保留。
 
 ## 客户端门禁
 

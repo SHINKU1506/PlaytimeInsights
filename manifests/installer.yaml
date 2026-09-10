@@ -2,7 +2,7 @@ AddonId: PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd
 Packages:
   - Version: 1.1.0
     RequiredApiVersion: 6.16.0
-    ReleaseDate: 2026-09-09
+    ReleaseDate: 2026-09-10
     PackageUrl: https://github.com/SHINKU1506/PlaytimeInsights/releases/download/v1.1.0/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_1_0.pext
     Changelog:
       - Reworked the dashboard hierarchy, metric value and unit presentation, quick-range state, and responsive distribution layout.
