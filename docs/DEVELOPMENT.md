@@ -458,6 +458,11 @@ Metadata dimension
 
 这些维度读取当前 Playnite 游戏元数据。游戏被删除后会话仍能显示，但无法再匹配当前元数据筛选。
 
+当前 Dashboard 的附加筛选也开放分类与平台。分类复用 `Game.Categories`，平台通过
+`IGameMetadataAccessor` 读取 `Game.Platforms` 的完整名称；多值游戏匹配其中任一名称即可纳入。
+平台筛选沿用当前元数据口径，不解析历史会话的 `PlatformNames`，也不代表会话实际运行环境。
+筛选仍为单个维度与单个值，维度变化和选项刷新沿用现有刷新计划。
+
 筛选集合更新策略：
 
 ```text
