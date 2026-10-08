@@ -123,6 +123,8 @@ namespace PlaytimeInsights.Tests
             Run("Session query sorts newest first", TestSessionQuerySort);
             Run("Metadata options expose and deduplicate Playnite values", TestMetadataOptions);
             Run("Dashboard category filter refreshes options and matches current games", TestDashboardCategoryFilter);
+            Run("Dashboard platform filter refreshes options and matches current games", TestDashboardPlatformFilter);
+            Run("Playnite metadata filters resolve current category and platform ids", TestPlayniteCategoryAndPlatformFilters);
             Run("Game metadata filters support developer genre tag and install status", TestGameMetadataFilters);
             Run("Library metadata maps plugins and manual games", TestLibraryMetadata);
             Run("Refresh guard rejects nested refresh", TestRefreshReentrancyGuard);
@@ -3986,6 +3988,125 @@ namespace PlaytimeInsights.Tests
         private static void TestDashboardCategoryFilter()
         {
             AssertDashboardMetadataFilter(MetadataFilterDimension.Category);
+        }
+
+        private static void TestDashboardPlatformFilter()
+        {
+            MetadataFilterDimension dimension;
+            Equal(true, Enum.TryParse("Platform", out dimension));
+            AssertDashboardMetadataFilter(dimension);
+        }
+
+        private static void TestPlayniteCategoryAndPlatformFilters()
+        {
+            MetadataFilterDimension platformDimension;
+            Equal(true, Enum.TryParse("Platform", out platformDimension));
+            var category = new Playnite.SDK.Models.Category { Id = Guid.NewGuid(), Name = "Backlog" };
+            var pc = new Playnite.SDK.Models.Platform { Id = Guid.NewGuid(), Name = "PC (Windows)" };
+            var console = new Playnite.SDK.Models.Platform { Id = Guid.NewGuid(), Name = "Console, Custom" };
+            var duplicatePc = new Playnite.SDK.Models.Platform { Id = Guid.NewGuid(), Name = "pc (windows)" };
+            var blank = new Playnite.SDK.Models.Platform { Id = Guid.NewGuid(), Name = " " };
+            var first = new Playnite.SDK.Models.Game("First")
+            {
+                Id = Guid.NewGuid(),
+                CategoryIds = new List<Guid> { category.Id },
+                PlatformIds = new List<Guid> { pc.Id, console.Id }
+            };
+            var second = new Playnite.SDK.Models.Game("Second")
+            {
+                Id = Guid.NewGuid(),
+                PlatformIds = new List<Guid> { duplicatePc.Id, blank.Id }
+            };
+            var unassigned = new Playnite.SDK.Models.Game("Unassigned") { Id = Guid.NewGuid() };
+            var games = new[] { first, second, unassigned };
+            var categories = CreateMetadataCollection(new[] { category });
+            var platforms = CreateMetadataCollection(new[] { pc, console, duplicatePc, blank });
+            var database = new MetadataInterfaceProxy(typeof(IGameDatabase), call =>
+            {
+                switch (call.MethodName)
+                {
+                    case "get_Categories": return categories;
+                    case "get_Platforms": return platforms;
+                    default: throw new NotSupportedException(call.MethodName);
+                }
+            }).GetTransparentProxy();
+            var databaseReference = typeof(Playnite.SDK.Models.Game).GetProperty(
+                "DatabaseReference", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            var previousDatabase = databaseReference.GetValue(null);
+            try
+            {
+                databaseReference.SetValue(null, database);
+                var service = new SessionQueryService();
+                Equal("Console, Custom|PC (Windows)", string.Join("|",
+                    service.GetMetadataValues(games, platformDimension)));
+                Equal(first.Id, service.FilterGames(games, platformDimension, "Console, Custom").Single().Id);
+                Equal(2, service.FilterGames(games, platformDimension, "PC (WINDOWS)").Count);
+                Equal(first.Id, service.FilterGames(games, MetadataFilterDimension.Category, "backlog").Single().Id);
+                Equal(3, service.FilterGames(games, platformDimension, string.Empty).Count);
+                Equal(0, service.GetMetadataValues(new[] { unassigned }, platformDimension).Count);
+                Equal(0, service.GetMetadataValues(new Playnite.SDK.Models.Game[] { null }, platformDimension).Count);
+
+                var session = CreateSession(first.Id, "Old name",
+                    new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc), 60);
+                session.PlatformNames = "Historical platform";
+                Equal(session.Id, service.Filter(games, new[] { session }, new SessionQuery
+                {
+                    MetadataDimension = platformDimension,
+                    MetadataValue = "Console, Custom"
+                }).Single().Id);
+                Equal(0, service.Filter(games, new[] { session }, new SessionQuery
+                {
+                    MetadataDimension = platformDimension,
+                    MetadataValue = "Historical platform"
+                }).Count);
+                first.PlatformIds = null;
+                Equal(0, service.FilterGames(games, platformDimension, "Console, Custom").Count);
+            }
+            finally
+            {
+                databaseReference.SetValue(null, previousDatabase);
+            }
+        }
+
+        private static object CreateMetadataCollection<T>(IEnumerable<T> items)
+            where T : Playnite.SDK.Models.DatabaseObject
+        {
+            return new MetadataInterfaceProxy(typeof(IItemCollection<T>), call =>
+            {
+                if (call.MethodName != "Get" || !(call.Args[0] is IList<Guid>))
+                {
+                    throw new NotSupportedException(call.MethodName);
+                }
+                var ids = (IList<Guid>)call.Args[0];
+                return items.Where(item => ids.Contains(item.Id)).ToList();
+            }).GetTransparentProxy();
+        }
+
+        private sealed class MetadataInterfaceProxy : System.Runtime.Remoting.Proxies.RealProxy
+        {
+            private readonly Func<System.Runtime.Remoting.Messaging.IMethodCallMessage, object> invoke;
+
+            public MetadataInterfaceProxy(Type interfaceType,
+                Func<System.Runtime.Remoting.Messaging.IMethodCallMessage, object> invoke)
+                : base(interfaceType)
+            {
+                this.invoke = invoke;
+            }
+
+            public override System.Runtime.Remoting.Messaging.IMessage Invoke(
+                System.Runtime.Remoting.Messaging.IMessage message)
+            {
+                var call = (System.Runtime.Remoting.Messaging.IMethodCallMessage)message;
+                try
+                {
+                    return new System.Runtime.Remoting.Messaging.ReturnMessage(
+                        invoke(call), null, 0, call.LogicalCallContext, call);
+                }
+                catch (Exception ex)
+                {
+                    return new System.Runtime.Remoting.Messaging.ReturnMessage(ex, call);
+                }
+            }
         }
 
         private static void AssertDashboardMetadataFilter(MetadataFilterDimension dimension)

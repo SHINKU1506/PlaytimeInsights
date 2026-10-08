@@ -73,6 +73,7 @@ namespace PlaytimeInsights.ViewModels
                     CreateDimensionOption(MetadataFilterDimension.Genre, "LOCPlaytimeInsightsGenre", "类型"),
                     CreateDimensionOption(MetadataFilterDimension.Tag, "LOCPlaytimeInsightsTag", "标签"),
                     CreateDimensionOption(MetadataFilterDimension.Category, "LOCPlaytimeInsightsCategory", "分类"),
+                    CreateDimensionOption(MetadataFilterDimension.Platform, "LOCPlaytimeInsightsPlatform", "平台"),
                     CreateDimensionOption(MetadataFilterDimension.InstallationStatus, "LOCPlaytimeInsightsInstallationStatus", "安装状态")
                 };
             MetadataValueOptions = new ObservableCollection<SelectionOption<string>>();
