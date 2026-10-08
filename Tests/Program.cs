@@ -122,6 +122,7 @@ namespace PlaytimeInsights.Tests
             Run("Session query combines search source and metadata", TestSessionQueryFilters);
             Run("Session query sorts newest first", TestSessionQuerySort);
             Run("Metadata options expose and deduplicate Playnite values", TestMetadataOptions);
+            Run("Dashboard category filter refreshes options and matches current games", TestDashboardCategoryFilter);
             Run("Game metadata filters support developer genre tag and install status", TestGameMetadataFilters);
             Run("Library metadata maps plugins and manual games", TestLibraryMetadata);
             Run("Refresh guard rejects nested refresh", TestRefreshReentrancyGuard);
@@ -3980,6 +3981,66 @@ namespace PlaytimeInsights.Tests
             Equal("Backlog", service.GetMetadataValues(
                 new[] { first },
                 MetadataFilterDimension.Category)[0]);
+        }
+
+        private static void TestDashboardCategoryFilter()
+        {
+            AssertDashboardMetadataFilter(MetadataFilterDimension.Category);
+        }
+
+        private static void AssertDashboardMetadataFilter(MetadataFilterDimension dimension)
+        {
+            var first = new Playnite.SDK.Models.Game("First") { Id = Guid.NewGuid() };
+            var second = new Playnite.SDK.Models.Game("Second") { Id = Guid.NewGuid() };
+            var unassigned = new Playnite.SDK.Models.Game("Unassigned") { Id = Guid.NewGuid() };
+            var games = new[] { first, second, unassigned };
+            var metadata = new TestGameMetadataAccessor();
+            metadata.Add(first.Id, dimension, "Backlog", "Favorite");
+            metadata.Add(second.Id, dimension, "backlog", string.Empty, " ");
+            var service = new SessionQueryService(metadata);
+            var reasons = new List<DashboardRefreshReason>();
+            var filter = new DashboardFilterViewModel(null, service, 7, reasons.Add);
+            var libraryNames = new Dictionary<Guid, string>();
+
+            Equal(1, filter.MetadataDimensionOptions.Count(option => option.Value == dimension));
+            filter.SelectedMetadataDimensionOption = filter.MetadataDimensionOptions.Single(
+                option => option.Value == dimension);
+            filter.RefreshMetadataValueOptions(games, libraryNames);
+            Equal("MetadataDimension", string.Join("|", reasons));
+            Equal(Visibility.Visible, filter.MetadataValueVisibility);
+            Equal("|Backlog|Favorite", string.Join("|",
+                filter.MetadataValueOptions.Select(option => option.Value)));
+            Equal(string.Empty, filter.SelectedMetadataValueOption.Value);
+
+            filter.SelectedMetadataValueOption = filter.MetadataValueOptions.Single(
+                option => option.Value == "Favorite");
+            Equal(1, filter.ActiveMetadataFilterCount);
+            Equal(first.Id, service.FilterGames(games, dimension, "FAVORITE").Single().Id);
+            Equal(2, service.FilterGames(games, dimension, "backlog").Count);
+            Equal(3, service.FilterGames(games, dimension, string.Empty).Count);
+
+            var firstSession = CreateSession(first.Id, "Historical name",
+                new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc), 60);
+            var secondSession = CreateSession(second.Id, "Second",
+                firstSession.StartedAtUtc.AddDays(1), 120);
+            var removedSession = CreateSession(Guid.NewGuid(), "Removed game",
+                firstSession.StartedAtUtc.AddDays(2), 180);
+            Equal(firstSession.Id, service.Filter(games,
+                new[] { firstSession, secondSession, removedSession },
+                new SessionQuery { MetadataDimension = dimension, MetadataValue = "FAVORITE" })
+                .Single().Id);
+
+            reasons.Clear();
+            filter.RefreshMetadataValueOptions(games, libraryNames);
+            Equal("Favorite", filter.SelectedMetadataValueOption.Value);
+            Equal(0, reasons.Count);
+            filter.RefreshMetadataValueOptions(new[] { second, unassigned }, libraryNames);
+            Equal(string.Empty, filter.SelectedMetadataValueOption.Value);
+            Equal(0, filter.ActiveMetadataFilterCount);
+            Equal(0, reasons.Count);
+            filter.RefreshMetadataValueOptions(new Playnite.SDK.Models.Game[0], libraryNames);
+            Equal(1, filter.MetadataValueOptions.Count);
+            Equal(string.Empty, filter.SelectedMetadataValueOption.Value);
         }
 
         private static void TestGameMetadataFilters()
