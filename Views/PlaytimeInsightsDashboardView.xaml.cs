@@ -317,6 +317,11 @@ namespace PlaytimeInsights.Views
         {
             var combo = sender as ComboBox;
             var popup = combo?.Template?.FindName("PART_Popup", combo) as Popup;
+            if (popup?.Child is FrameworkElement popupContent)
+            {
+                // Virtualized items must not resize the popup as longer names enter view.
+                popupContent.Width = combo.MaxWidth;
+            }
             var scroller = FindVisualChild<ScrollViewer>(popup?.Child);
             if (scroller != null)
             {

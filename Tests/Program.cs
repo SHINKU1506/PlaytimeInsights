@@ -126,6 +126,7 @@ namespace PlaytimeInsights.Tests
             Run("Dashboard platform filter refreshes options and matches current games", TestDashboardPlatformFilter);
             Run("Dashboard category and platform labels load in English and Chinese", TestDashboardMetadataLocalization);
             Run("Dashboard metadata dropdown contains long names and large lists", TestDashboardMetadataDropdown);
+            Run("Dashboard metadata dropdown keeps its width while scrolling to long names", TestDashboardMetadataDropdownWidthStable);
             Run("Playnite metadata filters resolve current category and platform ids", TestPlayniteCategoryAndPlatformFilters);
             Run("Game metadata filters support developer genre tag and install status", TestGameMetadataFilters);
             Run("Library metadata maps plugins and manual games", TestLibraryMetadata);
@@ -4045,7 +4046,16 @@ namespace PlaytimeInsights.Tests
             });
         }
 
-        private static void AssertDashboardMetadataDropdown(bool physicalScrollingTheme)
+        private static void TestDashboardMetadataDropdownWidthStable()
+        {
+            RunOnSta(() =>
+            {
+                AssertDashboardMetadataDropdown(false, true);
+                AssertDashboardMetadataDropdown(true, true);
+            });
+        }
+
+        private static void AssertDashboardMetadataDropdown(bool physicalScrollingTheme, bool mixedLengths = false)
         {
                 var filter = new DashboardFilterViewModel(null, new SessionQueryService(), 7, null);
                 filter.SelectedMetadataDimensionOption = filter.MetadataDimensionOptions.Single(option => option.Value == MetadataFilterDimension.Category);
@@ -4053,7 +4063,11 @@ namespace PlaytimeInsights.Tests
                 var longLabel = string.Concat(Enumerable.Repeat("Long category name 很长的分类名称 ", 12));
                 for (var index = 0; index < 1000; index++)
                 {
-                    filter.MetadataValueOptions.Add(new SelectionOption<string> { Value = index.ToString(), Label = longLabel + index });
+                    filter.MetadataValueOptions.Add(new SelectionOption<string>
+                    {
+                        Value = index.ToString(),
+                        Label = mixedLengths && index < 64 ? "Item " + index : longLabel + index
+                    });
                 }
                 filter.SelectedMetadataValueOption = filter.MetadataValueOptions[0];
                 var view = new PlaytimeInsightsDashboardView { DataContext = filter };
@@ -4075,9 +4089,10 @@ namespace PlaytimeInsights.Tests
                             "</Border></Popup></Grid></ControlTemplate>");
                         window.UpdateLayout();
                     }
-                    var selectedText = FindVisualDescendants<TextBlock>(combo).Single(text => text.Text == longLabel + "0");
+                    var firstLabel = filter.MetadataValueOptions[0].Label;
+                    var selectedText = FindVisualDescendants<TextBlock>(combo).Single(text => text.Text == firstLabel);
                     Equal(TextTrimming.CharacterEllipsis, selectedText.TextTrimming);
-                    Equal(longLabel + "0", (string)combo.ToolTip);
+                    Equal(firstLabel, (string)combo.ToolTip);
                     Equal(true, combo.ActualWidth <= 260);
                     combo.IsDropDownOpen = true;
                     PumpDispatcher();
@@ -4085,6 +4100,7 @@ namespace PlaytimeInsights.Tests
                     popup.Child.UpdateLayout();
                     Equal(true, popup.Child.RenderSize.Height > 0 && popup.Child.RenderSize.Height <= 340);
                     Equal(true, popup.Child.RenderSize.Width <= 300);
+                    var initialPopupWidth = popup.Child.RenderSize.Width;
                     var scroller = FindVisualDescendants<ScrollViewer>(popup.Child).First();
                     Equal(true, scroller.ScrollableHeight > 0);
                     var realizedCount = FindVisualDescendants<ComboBoxItem>(popup.Child).Count();
@@ -4097,6 +4113,17 @@ namespace PlaytimeInsights.Tests
                     scroller.ScrollToEnd();
                     PumpDispatcher();
                     popup.Child.UpdateLayout();
+                    if (mixedLengths)
+                    {
+                        Equal(initialPopupWidth, popup.Child.RenderSize.Width);
+                        scroller.ScrollToHome();
+                        PumpDispatcher();
+                        popup.Child.UpdateLayout();
+                        Equal(initialPopupWidth, popup.Child.RenderSize.Width);
+                        scroller.ScrollToEnd();
+                        PumpDispatcher();
+                        popup.Child.UpdateLayout();
+                    }
                     var lastItem = (ComboBoxItem)combo.ItemContainerGenerator.ContainerFromIndex(999);
                     Equal(true, lastItem != null);
                     Equal(longLabel + "999", FindVisualDescendants<TextBlock>(lastItem).Single().Text);
