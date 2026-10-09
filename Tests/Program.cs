@@ -12073,7 +12073,7 @@ namespace PlaytimeInsights.Tests
                 "LOCPlaytimeInsightsSessionsSubtitle"));
 
             Equal(true, readme.Contains("当前源码版本：`1.1.1`"));
-            Equal(true, readme.Contains("当前公开版本为 `1.1.0`"));
+            Equal(true, readme.Contains("当前公开版本为 `1.1.1`"));
             Equal(true, readme.Contains("Dashboard 视觉改善"));
             Equal(true, readme.Contains("性能优化"));
             Equal(true, readme.Contains(
@@ -12105,17 +12105,25 @@ namespace PlaytimeInsights.Tests
 
             Equal(true, installerManifest.Contains(
                 "AddonId: PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd"));
+            var installerVersion111 = installerManifest.IndexOf(
+                "Version: 1.1.1",
+                StringComparison.Ordinal);
             var installerVersion110 = installerManifest.IndexOf(
                 "Version: 1.1.0",
                 StringComparison.Ordinal);
             var installerVersion100 = installerManifest.IndexOf(
                 "Version: 1.0.0",
                 StringComparison.Ordinal);
-            Equal(true, installerVersion110 >= 0);
+            Equal(true, installerVersion111 >= 0);
+            Equal(true, installerVersion110 > installerVersion111);
             Equal(true, installerVersion100 > installerVersion110);
             Equal(true, installerManifest.Contains("Version: 0.9.8"));
             Equal(true, installerManifest.Contains(
                 "RequiredApiVersion: 6.16.0"));
+            Equal(true, installerManifest.Contains(
+                "/releases/download/v1.1.1/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_1_1.pext"));
+            Equal(true, installerManifest.Contains(
+                "ReleaseDate: 2026-10-09"));
             Equal(true, installerManifest.Contains(
                 "/releases/download/v1.1.0/PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd_1_1_0.pext"));
             Equal(true, installerManifest.Contains(

@@ -33,10 +33,15 @@ $Tag = "v$Version"
 - `Tests/Program.cs` 发布元数据回归。
 
 installer manifest 应保留历史 package。若新版本提高最低 API，旧 package 可继续服务旧版 Playnite。
-当前 1.1.1 为待发布源码；在新版 PEXT 上传、下载与包内版本验证完成前，installer manifest
-继续保留已发布的 1.1.0 为顶部 package，避免客户端收到不可下载的更新。
+在新版 PEXT 上传、下载与包内版本验证完成前，远端 `main` 的 installer manifest
+必须保留上一公开版本为顶部 package；本地发布候选可以先增加新 package，验证通过后再推送，
+避免客户端收到不可下载的更新。
 
 ## 3. 自动化门禁
+
+正式构建使用只包含已提交文件的干净源码副本，例如先用 `git archive` 导出发布候选，再在
+副本中执行以下命令。`.gitignore` 不会排除 MSBuild 默认编译项；本地部署备份等目录中的
+历史 XAML 可能被 WPF 自动嵌入 DLL，不能用含这类文件的工作目录生成正式制品。
 
 ```powershell
 dotnet restore .\Tests\PlaytimeInsights.Tests.csproj
