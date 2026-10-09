@@ -4101,6 +4101,7 @@ namespace PlaytimeInsights.Tests
                     Equal(true, popup.Child.RenderSize.Height > 0 && popup.Child.RenderSize.Height <= 340);
                     Equal(true, popup.Child.RenderSize.Width <= 300);
                     var initialPopupWidth = popup.Child.RenderSize.Width;
+                    Equal(combo.ActualWidth, initialPopupWidth);
                     var scroller = FindVisualDescendants<ScrollViewer>(popup.Child).First();
                     Equal(true, scroller.ScrollableHeight > 0);
                     var realizedCount = FindVisualDescendants<ComboBoxItem>(popup.Child).Count();
@@ -4129,6 +4130,8 @@ namespace PlaytimeInsights.Tests
                     Equal(longLabel + "999", FindVisualDescendants<TextBlock>(lastItem).Single().Text);
                     combo.SelectedIndex = 999;
                     Equal(filter.MetadataValueOptions[999], filter.SelectedMetadataValueOption);
+                    window.UpdateLayout();
+                    Equal(initialPopupWidth, combo.ActualWidth);
                     combo.IsDropDownOpen = false;
                 }
                 finally

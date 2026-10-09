@@ -320,7 +320,7 @@ namespace PlaytimeInsights.Views
             if (popup?.Child is FrameworkElement popupContent)
             {
                 // Virtualized items must not resize the popup as longer names enter view.
-                popupContent.Width = combo.MaxWidth;
+                popupContent.Width = combo.ActualWidth;
             }
             var scroller = FindVisualChild<ScrollViewer>(popup?.Child);
             if (scroller != null)

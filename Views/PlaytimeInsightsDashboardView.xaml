@@ -1370,6 +1370,7 @@
                                           ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                           VirtualizingPanel.IsVirtualizing="True"
                                           VirtualizingPanel.VirtualizationMode="Recycling"
+                                          Width="260"
                                           MinWidth="160"
                                           MaxWidth="260">
                                     <ComboBox.ItemsPanel>
