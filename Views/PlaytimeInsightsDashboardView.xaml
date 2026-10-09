@@ -1362,9 +1362,32 @@
                                 <ComboBox ItemsSource="{Binding MetadataValueOptions}"
                                           AutomationProperties.Name="{DynamicResource LOCPlaytimeInsightsFilterValue}"
                                           SelectedItem="{Binding SelectedMetadataValueOption, Mode=TwoWay}"
-                                          DisplayMemberPath="Label"
+                                          DropDownOpened="MetadataValueComboBox_DropDownOpened"
+                                          ToolTip="{Binding SelectedMetadataValueOption.Label}"
+                                          MaxDropDownHeight="320"
+                                          ScrollViewer.CanContentScroll="True"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          VirtualizingPanel.IsVirtualizing="True"
+                                          VirtualizingPanel.VirtualizationMode="Recycling"
                                           MinWidth="160"
-                                          MaxWidth="260" />
+                                          MaxWidth="260">
+                                    <ComboBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <VirtualizingStackPanel />
+                                        </ItemsPanelTemplate>
+                                    </ComboBox.ItemsPanel>
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}"
+                                                       MaxWidth="220"
+                                                       TextWrapping="NoWrap"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding Label}"
+                                                       AutomationProperties.Name="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
                             </StackPanel>
                         </Grid>
                     </Expander>

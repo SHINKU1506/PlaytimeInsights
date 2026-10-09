@@ -124,6 +124,8 @@ namespace PlaytimeInsights.Tests
             Run("Metadata options expose and deduplicate Playnite values", TestMetadataOptions);
             Run("Dashboard category filter refreshes options and matches current games", TestDashboardCategoryFilter);
             Run("Dashboard platform filter refreshes options and matches current games", TestDashboardPlatformFilter);
+            Run("Dashboard category and platform labels load in English and Chinese", TestDashboardMetadataLocalization);
+            Run("Dashboard metadata dropdown contains long names and large lists", TestDashboardMetadataDropdown);
             Run("Playnite metadata filters resolve current category and platform ids", TestPlayniteCategoryAndPlatformFilters);
             Run("Game metadata filters support developer genre tag and install status", TestGameMetadataFilters);
             Run("Library metadata maps plugins and manual games", TestLibraryMetadata);
@@ -3995,6 +3997,117 @@ namespace PlaytimeInsights.Tests
             MetadataFilterDimension dimension;
             Equal(true, Enum.TryParse("Platform", out dimension));
             AssertDashboardMetadataFilter(dimension);
+        }
+
+        private static void TestDashboardMetadataLocalization()
+        {
+            var providerField = typeof(ResourceProvider).GetField("staticProvider", BindingFlags.NonPublic | BindingFlags.Static);
+            var previousProvider = (IResourceProvider)providerField.GetValue(null);
+            try
+            {
+                foreach (var language in new[]
+                {
+                    new[] { "en_US", "Category", "Platform", "All Category", "All Platform" },
+                    new[] { "zh_CN", "分类", "平台", "全部分类", "全部平台" }
+                })
+                {
+                    var dictionary = XDocument.Load(Path.Combine(FindSourceRoot(), "Localization", language[0] + ".xaml"))
+                        .Descendants().Where(element => element.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml")) != null)
+                        .ToDictionary(element => (string)element.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml")), element => element.Value);
+                    providerField.SetValue(null, (IResourceProvider)new MetadataInterfaceProxy(typeof(IResourceProvider), call =>
+                    {
+                        string value;
+                        return dictionary.TryGetValue((string)call.Args[0], out value) ? value : null;
+                    }).GetTransparentProxy());
+                    var filter = new DashboardFilterViewModel(null, new SessionQueryService(), 7, null);
+                    var dimensions = new[] { MetadataFilterDimension.Category, MetadataFilterDimension.Platform };
+                    for (var index = 0; index < dimensions.Length; index++)
+                    {
+                        filter.SelectedMetadataDimensionOption = filter.MetadataDimensionOptions.Single(option => option.Value == dimensions[index]);
+                        filter.RefreshMetadataValueOptions(new Playnite.SDK.Models.Game[0], new Dictionary<Guid, string>());
+                        Equal(language[index + 1], filter.SelectedMetadataDimensionOption.Label);
+                        Equal(language[index + 3], filter.SelectedMetadataValueOption.Label);
+                    }
+                }
+            }
+            finally
+            {
+                providerField.SetValue(null, previousProvider);
+            }
+        }
+
+        private static void TestDashboardMetadataDropdown()
+        {
+            RunOnSta(() =>
+            {
+                AssertDashboardMetadataDropdown(false);
+                AssertDashboardMetadataDropdown(true);
+            });
+        }
+
+        private static void AssertDashboardMetadataDropdown(bool physicalScrollingTheme)
+        {
+                var filter = new DashboardFilterViewModel(null, new SessionQueryService(), 7, null);
+                filter.SelectedMetadataDimensionOption = filter.MetadataDimensionOptions.Single(option => option.Value == MetadataFilterDimension.Category);
+                filter.MetadataValueOptions.Clear();
+                var longLabel = string.Concat(Enumerable.Repeat("Long category name 很长的分类名称 ", 12));
+                for (var index = 0; index < 1000; index++)
+                {
+                    filter.MetadataValueOptions.Add(new SelectionOption<string> { Value = index.ToString(), Label = longLabel + index });
+                }
+                filter.SelectedMetadataValueOption = filter.MetadataValueOptions[0];
+                var view = new PlaytimeInsightsDashboardView { DataContext = filter };
+                var window = new Window { Content = view, Width = 1100, Height = 700, Left = -10000, Top = -10000, ShowActivated = false, ShowInTaskbar = false };
+                try
+                {
+                    window.Show();
+                    window.UpdateLayout();
+                    var combo = FindVisualDescendants<ComboBox>(view).Single(control => ReferenceEquals(control.ItemsSource, filter.MetadataValueOptions));
+                    if (physicalScrollingTheme)
+                    {
+                        // Playnite themes can omit CanContentScroll or set it to False in the popup.
+                        combo.Template = (ControlTemplate)System.Windows.Markup.XamlReader.Parse(
+                            "<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='{x:Type ComboBox}'>" +
+                            "<Grid><ContentPresenter Content='{TemplateBinding SelectionBoxItem}' ContentTemplate='{TemplateBinding SelectionBoxItemTemplate}' />" +
+                            "<Popup x:Name='PART_Popup' IsOpen='{TemplateBinding IsDropDownOpen}' Placement='Bottom'>" +
+                            "<Border MaxHeight='{TemplateBinding MaxDropDownHeight}' MinWidth='{TemplateBinding ActualWidth}'>" +
+                            "<ScrollViewer CanContentScroll='False' VerticalScrollBarVisibility='Auto' HorizontalScrollBarVisibility='Auto'><ItemsPresenter /></ScrollViewer>" +
+                            "</Border></Popup></Grid></ControlTemplate>");
+                        window.UpdateLayout();
+                    }
+                    var selectedText = FindVisualDescendants<TextBlock>(combo).Single(text => text.Text == longLabel + "0");
+                    Equal(TextTrimming.CharacterEllipsis, selectedText.TextTrimming);
+                    Equal(longLabel + "0", (string)combo.ToolTip);
+                    Equal(true, combo.ActualWidth <= 260);
+                    combo.IsDropDownOpen = true;
+                    PumpDispatcher();
+                    var popup = (Popup)combo.Template.FindName("PART_Popup", combo);
+                    popup.Child.UpdateLayout();
+                    Equal(true, popup.Child.RenderSize.Height > 0 && popup.Child.RenderSize.Height <= 340);
+                    Equal(true, popup.Child.RenderSize.Width <= 300);
+                    var scroller = FindVisualDescendants<ScrollViewer>(popup.Child).First();
+                    Equal(true, scroller.ScrollableHeight > 0);
+                    var realizedCount = FindVisualDescendants<ComboBoxItem>(popup.Child).Count();
+                    if (realizedCount >= 100)
+                    {
+                        throw new InvalidOperationException(string.Format(
+                            "Metadata popup realized {0} of 1000 items; CanContentScroll={1}, physical theme={2}.",
+                            realizedCount, scroller.CanContentScroll, physicalScrollingTheme));
+                    }
+                    scroller.ScrollToEnd();
+                    PumpDispatcher();
+                    popup.Child.UpdateLayout();
+                    var lastItem = (ComboBoxItem)combo.ItemContainerGenerator.ContainerFromIndex(999);
+                    Equal(true, lastItem != null);
+                    Equal(longLabel + "999", FindVisualDescendants<TextBlock>(lastItem).Single().Text);
+                    combo.SelectedIndex = 999;
+                    Equal(filter.MetadataValueOptions[999], filter.SelectedMetadataValueOption);
+                    combo.IsDropDownOpen = false;
+                }
+                finally
+                {
+                    window.Close();
+                }
         }
 
         private static void TestPlayniteCategoryAndPlatformFilters()
