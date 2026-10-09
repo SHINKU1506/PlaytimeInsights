@@ -140,6 +140,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsSource">Source</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPublisher">Publisher</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCategory">Category</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsPlatform">Platform</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsInstalled">Installed</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsNotInstalled">Not installed</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsManualLibrary">Manually added</sys:String>

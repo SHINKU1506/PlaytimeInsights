@@ -16,7 +16,8 @@ namespace PlaytimeInsights.Services
         Tag,
         Genre,
         Category,
-        InstallationStatus
+        InstallationStatus,
+        Platform
     }
 
     public sealed class SessionQuery
@@ -71,6 +72,8 @@ namespace PlaytimeInsights.Services
                     return Names(game.Genres);
                 case MetadataFilterDimension.Category:
                     return Names(game.Categories);
+                case MetadataFilterDimension.Platform:
+                    return Names(game.Platforms);
                 case MetadataFilterDimension.InstallationStatus:
                     return Single(game.IsInstalled
                         ? LocalizationService.Get(
@@ -354,6 +357,10 @@ namespace PlaytimeInsights.Services
                     return LocalizationService.Get(
                         "LOCPlaytimeInsightsCategory",
                         "分类");
+                case MetadataFilterDimension.Platform:
+                    return LocalizationService.Get(
+                        "LOCPlaytimeInsightsPlatform",
+                        "平台");
                 case MetadataFilterDimension.InstallationStatus:
                     return LocalizationService.Get(
                         "LOCPlaytimeInsightsInstallationStatus",

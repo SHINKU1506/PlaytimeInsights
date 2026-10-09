@@ -122,6 +122,12 @@ namespace PlaytimeInsights.Tests
             Run("Session query combines search source and metadata", TestSessionQueryFilters);
             Run("Session query sorts newest first", TestSessionQuerySort);
             Run("Metadata options expose and deduplicate Playnite values", TestMetadataOptions);
+            Run("Dashboard category filter refreshes options and matches current games", TestDashboardCategoryFilter);
+            Run("Dashboard platform filter refreshes options and matches current games", TestDashboardPlatformFilter);
+            Run("Dashboard category and platform labels load in English and Chinese", TestDashboardMetadataLocalization);
+            Run("Dashboard metadata dropdown contains long names and large lists", TestDashboardMetadataDropdown);
+            Run("Dashboard metadata dropdown keeps its width while scrolling to long names", TestDashboardMetadataDropdownWidthStable);
+            Run("Playnite metadata filters resolve current category and platform ids", TestPlayniteCategoryAndPlatformFilters);
             Run("Game metadata filters support developer genre tag and install status", TestGameMetadataFilters);
             Run("Library metadata maps plugins and manual games", TestLibraryMetadata);
             Run("Refresh guard rejects nested refresh", TestRefreshReentrancyGuard);
@@ -3980,6 +3986,325 @@ namespace PlaytimeInsights.Tests
             Equal("Backlog", service.GetMetadataValues(
                 new[] { first },
                 MetadataFilterDimension.Category)[0]);
+        }
+
+        private static void TestDashboardCategoryFilter()
+        {
+            AssertDashboardMetadataFilter(MetadataFilterDimension.Category);
+        }
+
+        private static void TestDashboardPlatformFilter()
+        {
+            MetadataFilterDimension dimension;
+            Equal(true, Enum.TryParse("Platform", out dimension));
+            AssertDashboardMetadataFilter(dimension);
+        }
+
+        private static void TestDashboardMetadataLocalization()
+        {
+            var providerField = typeof(ResourceProvider).GetField("staticProvider", BindingFlags.NonPublic | BindingFlags.Static);
+            var previousProvider = (IResourceProvider)providerField.GetValue(null);
+            try
+            {
+                foreach (var language in new[]
+                {
+                    new[] { "en_US", "Category", "Platform", "All Category", "All Platform" },
+                    new[] { "zh_CN", "分类", "平台", "全部分类", "全部平台" }
+                })
+                {
+                    var dictionary = XDocument.Load(Path.Combine(FindSourceRoot(), "Localization", language[0] + ".xaml"))
+                        .Descendants().Where(element => element.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml")) != null)
+                        .ToDictionary(element => (string)element.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml")), element => element.Value);
+                    providerField.SetValue(null, (IResourceProvider)new MetadataInterfaceProxy(typeof(IResourceProvider), call =>
+                    {
+                        string value;
+                        return dictionary.TryGetValue((string)call.Args[0], out value) ? value : null;
+                    }).GetTransparentProxy());
+                    var filter = new DashboardFilterViewModel(null, new SessionQueryService(), 7, null);
+                    var dimensions = new[] { MetadataFilterDimension.Category, MetadataFilterDimension.Platform };
+                    for (var index = 0; index < dimensions.Length; index++)
+                    {
+                        filter.SelectedMetadataDimensionOption = filter.MetadataDimensionOptions.Single(option => option.Value == dimensions[index]);
+                        filter.RefreshMetadataValueOptions(new Playnite.SDK.Models.Game[0], new Dictionary<Guid, string>());
+                        Equal(language[index + 1], filter.SelectedMetadataDimensionOption.Label);
+                        Equal(language[index + 3], filter.SelectedMetadataValueOption.Label);
+                    }
+                }
+            }
+            finally
+            {
+                providerField.SetValue(null, previousProvider);
+            }
+        }
+
+        private static void TestDashboardMetadataDropdown()
+        {
+            RunOnSta(() =>
+            {
+                AssertDashboardMetadataDropdown(false);
+                AssertDashboardMetadataDropdown(true);
+            });
+        }
+
+        private static void TestDashboardMetadataDropdownWidthStable()
+        {
+            RunOnSta(() =>
+            {
+                AssertDashboardMetadataDropdown(false, true);
+                AssertDashboardMetadataDropdown(true, true);
+            });
+        }
+
+        private static void AssertDashboardMetadataDropdown(bool physicalScrollingTheme, bool mixedLengths = false)
+        {
+                var filter = new DashboardFilterViewModel(null, new SessionQueryService(), 7, null);
+                filter.SelectedMetadataDimensionOption = filter.MetadataDimensionOptions.Single(option => option.Value == MetadataFilterDimension.Category);
+                filter.MetadataValueOptions.Clear();
+                var longLabel = string.Concat(Enumerable.Repeat("Long category name 很长的分类名称 ", 12));
+                for (var index = 0; index < 1000; index++)
+                {
+                    filter.MetadataValueOptions.Add(new SelectionOption<string>
+                    {
+                        Value = index.ToString(),
+                        Label = mixedLengths && index < 64 ? "Item " + index : longLabel + index
+                    });
+                }
+                filter.SelectedMetadataValueOption = filter.MetadataValueOptions[0];
+                var view = new PlaytimeInsightsDashboardView { DataContext = filter };
+                var window = new Window { Content = view, Width = 1100, Height = 700, Left = -10000, Top = -10000, ShowActivated = false, ShowInTaskbar = false };
+                try
+                {
+                    window.Show();
+                    window.UpdateLayout();
+                    var combo = FindVisualDescendants<ComboBox>(view).Single(control => ReferenceEquals(control.ItemsSource, filter.MetadataValueOptions));
+                    if (physicalScrollingTheme)
+                    {
+                        // Playnite themes can omit CanContentScroll or set it to False in the popup.
+                        combo.Template = (ControlTemplate)System.Windows.Markup.XamlReader.Parse(
+                            "<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='{x:Type ComboBox}'>" +
+                            "<Grid><ContentPresenter Content='{TemplateBinding SelectionBoxItem}' ContentTemplate='{TemplateBinding SelectionBoxItemTemplate}' />" +
+                            "<Popup x:Name='PART_Popup' IsOpen='{TemplateBinding IsDropDownOpen}' Placement='Bottom'>" +
+                            "<Border MaxHeight='{TemplateBinding MaxDropDownHeight}' MinWidth='{TemplateBinding ActualWidth}'>" +
+                            "<ScrollViewer CanContentScroll='False' VerticalScrollBarVisibility='Auto' HorizontalScrollBarVisibility='Auto'><ItemsPresenter /></ScrollViewer>" +
+                            "</Border></Popup></Grid></ControlTemplate>");
+                        window.UpdateLayout();
+                    }
+                    var firstLabel = filter.MetadataValueOptions[0].Label;
+                    var selectedText = FindVisualDescendants<TextBlock>(combo).Single(text => text.Text == firstLabel);
+                    Equal(TextTrimming.CharacterEllipsis, selectedText.TextTrimming);
+                    Equal(firstLabel, (string)combo.ToolTip);
+                    Equal(true, combo.ActualWidth <= 260);
+                    combo.IsDropDownOpen = true;
+                    PumpDispatcher();
+                    var popup = (Popup)combo.Template.FindName("PART_Popup", combo);
+                    popup.Child.UpdateLayout();
+                    Equal(true, popup.Child.RenderSize.Height > 0 && popup.Child.RenderSize.Height <= 340);
+                    Equal(true, popup.Child.RenderSize.Width <= 300);
+                    var initialPopupWidth = popup.Child.RenderSize.Width;
+                    Equal(combo.ActualWidth, initialPopupWidth);
+                    var scroller = FindVisualDescendants<ScrollViewer>(popup.Child).First();
+                    Equal(true, scroller.ScrollableHeight > 0);
+                    var realizedCount = FindVisualDescendants<ComboBoxItem>(popup.Child).Count();
+                    if (realizedCount >= 100)
+                    {
+                        throw new InvalidOperationException(string.Format(
+                            "Metadata popup realized {0} of 1000 items; CanContentScroll={1}, physical theme={2}.",
+                            realizedCount, scroller.CanContentScroll, physicalScrollingTheme));
+                    }
+                    scroller.ScrollToEnd();
+                    PumpDispatcher();
+                    popup.Child.UpdateLayout();
+                    if (mixedLengths)
+                    {
+                        Equal(initialPopupWidth, popup.Child.RenderSize.Width);
+                        scroller.ScrollToHome();
+                        PumpDispatcher();
+                        popup.Child.UpdateLayout();
+                        Equal(initialPopupWidth, popup.Child.RenderSize.Width);
+                        scroller.ScrollToEnd();
+                        PumpDispatcher();
+                        popup.Child.UpdateLayout();
+                    }
+                    var lastItem = (ComboBoxItem)combo.ItemContainerGenerator.ContainerFromIndex(999);
+                    Equal(true, lastItem != null);
+                    Equal(longLabel + "999", FindVisualDescendants<TextBlock>(lastItem).Single().Text);
+                    combo.SelectedIndex = 999;
+                    Equal(filter.MetadataValueOptions[999], filter.SelectedMetadataValueOption);
+                    window.UpdateLayout();
+                    Equal(initialPopupWidth, combo.ActualWidth);
+                    combo.IsDropDownOpen = false;
+                }
+                finally
+                {
+                    window.Close();
+                }
+        }
+
+        private static void TestPlayniteCategoryAndPlatformFilters()
+        {
+            MetadataFilterDimension platformDimension;
+            Equal(true, Enum.TryParse("Platform", out platformDimension));
+            var category = new Playnite.SDK.Models.Category { Id = Guid.NewGuid(), Name = "Backlog" };
+            var pc = new Playnite.SDK.Models.Platform { Id = Guid.NewGuid(), Name = "PC (Windows)" };
+            var console = new Playnite.SDK.Models.Platform { Id = Guid.NewGuid(), Name = "Console, Custom" };
+            var duplicatePc = new Playnite.SDK.Models.Platform { Id = Guid.NewGuid(), Name = "pc (windows)" };
+            var blank = new Playnite.SDK.Models.Platform { Id = Guid.NewGuid(), Name = " " };
+            var first = new Playnite.SDK.Models.Game("First")
+            {
+                Id = Guid.NewGuid(),
+                CategoryIds = new List<Guid> { category.Id },
+                PlatformIds = new List<Guid> { pc.Id, console.Id }
+            };
+            var second = new Playnite.SDK.Models.Game("Second")
+            {
+                Id = Guid.NewGuid(),
+                PlatformIds = new List<Guid> { duplicatePc.Id, blank.Id }
+            };
+            var unassigned = new Playnite.SDK.Models.Game("Unassigned") { Id = Guid.NewGuid() };
+            var games = new[] { first, second, unassigned };
+            var categories = CreateMetadataCollection(new[] { category });
+            var platforms = CreateMetadataCollection(new[] { pc, console, duplicatePc, blank });
+            var database = new MetadataInterfaceProxy(typeof(IGameDatabase), call =>
+            {
+                switch (call.MethodName)
+                {
+                    case "get_Categories": return categories;
+                    case "get_Platforms": return platforms;
+                    default: throw new NotSupportedException(call.MethodName);
+                }
+            }).GetTransparentProxy();
+            var databaseReference = typeof(Playnite.SDK.Models.Game).GetProperty(
+                "DatabaseReference", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            var previousDatabase = databaseReference.GetValue(null);
+            try
+            {
+                databaseReference.SetValue(null, database);
+                var service = new SessionQueryService();
+                Equal("Console, Custom|PC (Windows)", string.Join("|",
+                    service.GetMetadataValues(games, platformDimension)));
+                Equal(first.Id, service.FilterGames(games, platformDimension, "Console, Custom").Single().Id);
+                Equal(2, service.FilterGames(games, platformDimension, "PC (WINDOWS)").Count);
+                Equal(first.Id, service.FilterGames(games, MetadataFilterDimension.Category, "backlog").Single().Id);
+                Equal(3, service.FilterGames(games, platformDimension, string.Empty).Count);
+                Equal(0, service.GetMetadataValues(new[] { unassigned }, platformDimension).Count);
+                Equal(0, service.GetMetadataValues(new Playnite.SDK.Models.Game[] { null }, platformDimension).Count);
+
+                var session = CreateSession(first.Id, "Old name",
+                    new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc), 60);
+                session.PlatformNames = "Historical platform";
+                Equal(session.Id, service.Filter(games, new[] { session }, new SessionQuery
+                {
+                    MetadataDimension = platformDimension,
+                    MetadataValue = "Console, Custom"
+                }).Single().Id);
+                Equal(0, service.Filter(games, new[] { session }, new SessionQuery
+                {
+                    MetadataDimension = platformDimension,
+                    MetadataValue = "Historical platform"
+                }).Count);
+                first.PlatformIds = null;
+                Equal(0, service.FilterGames(games, platformDimension, "Console, Custom").Count);
+            }
+            finally
+            {
+                databaseReference.SetValue(null, previousDatabase);
+            }
+        }
+
+        private static object CreateMetadataCollection<T>(IEnumerable<T> items)
+            where T : Playnite.SDK.Models.DatabaseObject
+        {
+            return new MetadataInterfaceProxy(typeof(IItemCollection<T>), call =>
+            {
+                if (call.MethodName != "Get" || !(call.Args[0] is IList<Guid>))
+                {
+                    throw new NotSupportedException(call.MethodName);
+                }
+                var ids = (IList<Guid>)call.Args[0];
+                return items.Where(item => ids.Contains(item.Id)).ToList();
+            }).GetTransparentProxy();
+        }
+
+        private sealed class MetadataInterfaceProxy : System.Runtime.Remoting.Proxies.RealProxy
+        {
+            private readonly Func<System.Runtime.Remoting.Messaging.IMethodCallMessage, object> invoke;
+
+            public MetadataInterfaceProxy(Type interfaceType,
+                Func<System.Runtime.Remoting.Messaging.IMethodCallMessage, object> invoke)
+                : base(interfaceType)
+            {
+                this.invoke = invoke;
+            }
+
+            public override System.Runtime.Remoting.Messaging.IMessage Invoke(
+                System.Runtime.Remoting.Messaging.IMessage message)
+            {
+                var call = (System.Runtime.Remoting.Messaging.IMethodCallMessage)message;
+                try
+                {
+                    return new System.Runtime.Remoting.Messaging.ReturnMessage(
+                        invoke(call), null, 0, call.LogicalCallContext, call);
+                }
+                catch (Exception ex)
+                {
+                    return new System.Runtime.Remoting.Messaging.ReturnMessage(ex, call);
+                }
+            }
+        }
+
+        private static void AssertDashboardMetadataFilter(MetadataFilterDimension dimension)
+        {
+            var first = new Playnite.SDK.Models.Game("First") { Id = Guid.NewGuid() };
+            var second = new Playnite.SDK.Models.Game("Second") { Id = Guid.NewGuid() };
+            var unassigned = new Playnite.SDK.Models.Game("Unassigned") { Id = Guid.NewGuid() };
+            var games = new[] { first, second, unassigned };
+            var metadata = new TestGameMetadataAccessor();
+            metadata.Add(first.Id, dimension, "Backlog", "Favorite");
+            metadata.Add(second.Id, dimension, "backlog", string.Empty, " ");
+            var service = new SessionQueryService(metadata);
+            var reasons = new List<DashboardRefreshReason>();
+            var filter = new DashboardFilterViewModel(null, service, 7, reasons.Add);
+            var libraryNames = new Dictionary<Guid, string>();
+
+            Equal(1, filter.MetadataDimensionOptions.Count(option => option.Value == dimension));
+            filter.SelectedMetadataDimensionOption = filter.MetadataDimensionOptions.Single(
+                option => option.Value == dimension);
+            filter.RefreshMetadataValueOptions(games, libraryNames);
+            Equal("MetadataDimension", string.Join("|", reasons));
+            Equal(Visibility.Visible, filter.MetadataValueVisibility);
+            Equal("|Backlog|Favorite", string.Join("|",
+                filter.MetadataValueOptions.Select(option => option.Value)));
+            Equal(string.Empty, filter.SelectedMetadataValueOption.Value);
+
+            filter.SelectedMetadataValueOption = filter.MetadataValueOptions.Single(
+                option => option.Value == "Favorite");
+            Equal(1, filter.ActiveMetadataFilterCount);
+            Equal(first.Id, service.FilterGames(games, dimension, "FAVORITE").Single().Id);
+            Equal(2, service.FilterGames(games, dimension, "backlog").Count);
+            Equal(3, service.FilterGames(games, dimension, string.Empty).Count);
+
+            var firstSession = CreateSession(first.Id, "Historical name",
+                new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc), 60);
+            var secondSession = CreateSession(second.Id, "Second",
+                firstSession.StartedAtUtc.AddDays(1), 120);
+            var removedSession = CreateSession(Guid.NewGuid(), "Removed game",
+                firstSession.StartedAtUtc.AddDays(2), 180);
+            Equal(firstSession.Id, service.Filter(games,
+                new[] { firstSession, secondSession, removedSession },
+                new SessionQuery { MetadataDimension = dimension, MetadataValue = "FAVORITE" })
+                .Single().Id);
+
+            reasons.Clear();
+            filter.RefreshMetadataValueOptions(games, libraryNames);
+            Equal("Favorite", filter.SelectedMetadataValueOption.Value);
+            Equal(0, reasons.Count);
+            filter.RefreshMetadataValueOptions(new[] { second, unassigned }, libraryNames);
+            Equal(string.Empty, filter.SelectedMetadataValueOption.Value);
+            Equal(0, filter.ActiveMetadataFilterCount);
+            Equal(0, reasons.Count);
+            filter.RefreshMetadataValueOptions(new Playnite.SDK.Models.Game[0], libraryNames);
+            Equal(1, filter.MetadataValueOptions.Count);
+            Equal(string.Empty, filter.SelectedMetadataValueOption.Value);
         }
 
         private static void TestGameMetadataFilters()
@@ -11715,7 +12040,7 @@ namespace PlaytimeInsights.Tests
                 "docs",
                 "PRE_RELEASE_WORKFLOW.md"));
 
-            Equal(true, manifest.Contains("Version: 1.1.0"));
+            Equal(true, manifest.Contains("Version: 1.1.1"));
             Equal(true, manifest.Contains("Author: SHINKU1506"));
             Equal(true, manifest.Contains(
                 "https://github.com/SHINKU1506/PlaytimeInsights"));
@@ -11724,9 +12049,9 @@ namespace PlaytimeInsights.Tests
             Equal(true, manifest.Contains(
                 "https://github.com/SHINKU1506/PlaytimeInsights/blob/main/CHANGELOG.md"));
             Equal(true, assemblyInfo.Contains(
-                "AssemblyVersion(\"1.1.0.0\")"));
+                "AssemblyVersion(\"1.1.1.0\")"));
             Equal(true, assemblyInfo.Contains(
-                "AssemblyFileVersion(\"1.1.0.0\")"));
+                "AssemblyFileVersion(\"1.1.1.0\")"));
             Equal(true, assemblyInfo.Contains(
                 "AssemblyCompany(\"SHINKU1506\")"));
             Equal(true, assemblyInfo.Contains(
@@ -11747,7 +12072,7 @@ namespace PlaytimeInsights.Tests
             Equal(false, chinese.Contains(
                 "LOCPlaytimeInsightsSessionsSubtitle"));
 
-            Equal(true, readme.Contains("当前源码版本：`1.1.0`"));
+            Equal(true, readme.Contains("当前源码版本：`1.1.1`"));
             Equal(true, readme.Contains("当前公开版本为 `1.1.0`"));
             Equal(true, readme.Contains("Dashboard 视觉改善"));
             Equal(true, readme.Contains("性能优化"));
@@ -11800,7 +12125,7 @@ namespace PlaytimeInsights.Tests
             Equal(true, preReleaseWorkflow.Contains(
                 "Package-only release"));
             Equal(true, preReleaseWorkflow.Contains(
-                "git push origin v1.1.0"));
+                "git push origin v1.1.1"));
             Equal(true, addonManifest.Contains("Type: Generic"));
             Equal(true, addonManifest.Contains("Author: SHINKU1506"));
             Equal(true, addonManifest.Contains(

@@ -140,6 +140,7 @@
     <sys:String x:Key="LOCPlaytimeInsightsSource">Playnite 来源</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsPublisher">发行商</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsCategory">分类</sys:String>
+    <sys:String x:Key="LOCPlaytimeInsightsPlatform">平台</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsInstalled">已安装</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsNotInstalled">未安装</sys:String>
     <sys:String x:Key="LOCPlaytimeInsightsManualLibrary">手动添加</sys:String>

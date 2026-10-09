@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -309,6 +310,25 @@ namespace PlaytimeInsights.Views
             if (command?.CanExecute(e.Period) == true)
             {
                 command.Execute(e.Period);
+            }
+        }
+
+        private void MetadataValueComboBox_DropDownOpened(object sender, EventArgs e)
+        {
+            var combo = sender as ComboBox;
+            var popup = combo?.Template?.FindName("PART_Popup", combo) as Popup;
+            if (popup?.Child is FrameworkElement popupContent)
+            {
+                // Virtualized items must not resize the popup as longer names enter view.
+                popupContent.Width = combo.ActualWidth;
+            }
+            var scroller = FindVisualChild<ScrollViewer>(popup?.Child);
+            if (scroller != null)
+            {
+                // Theme templates can omit CanContentScroll, preventing virtualization.
+                scroller.CanContentScroll = true;
+                scroller.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+                scroller.HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
             }
         }
 

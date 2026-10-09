@@ -4,9 +4,11 @@ Playtime Insights 是一个面向 Playnite Desktop 的本地游玩时间分析�
 
 插件完全本地运行：不包含遥测，不上传游戏库或会话数据，也不依赖远程网页。
 
-**当前源码版本：`1.1.0`** · 作者：[SHINKU1506](https://github.com/SHINKU1506) · [GitHub Releases](https://github.com/SHINKU1506/PlaytimeInsights/releases) · [变更日志](CHANGELOG.md) · [隐私说明](PRIVACY.md)
+**当前源码版本：`1.1.1`** · 作者：[SHINKU1506](https://github.com/SHINKU1506) · [GitHub Releases](https://github.com/SHINKU1506/PlaytimeInsights/releases) · [变更日志](CHANGELOG.md) · [隐私说明](PRIVACY.md)
 
 > 当前公开版本为 `1.1.0`，本次改动主要集中在 Dashboard 视觉改善、响应式分布图和长范围性能优化。详细验收证据见 [Client Acceptance 1.1.0](docs/CLIENT_ACCEPTANCE_1.1.0.md)。
+
+源码版本 `1.1.1` 增加 Dashboard 分类与平台筛选，并完善中英文标签、长名称提示和长列表滚动；待发布的改动见 [变更日志](CHANGELOG.md)。
 
 ## 目录
 
@@ -57,6 +59,7 @@ Playtime Insights 是一个面向 Playnite Desktop 的本地游玩时间分析�
 - 按时长、会话次数、活跃天数、平均会话或最长会话进行区间游戏排名；
 - 独立显示 Playnite 所有游戏的累计时长与累计排名；排行包含本地游戏封面、前三名勋章、整行时长占比背景，以及汇总占比、平均会话和最长会话的结构化 Tooltip；
 - 按库来源、Playnite 来源、开发者、发行商、类型、标签、分类和安装状态筛选。
+- Dashboard 的附加筛选支持分类和平台，每次选择一个维度及一个值；两者均读取当前 Playnite 游戏元数据，平台筛选不代表历史会话的实际运行环境。
 
 ### 会话管理
 
