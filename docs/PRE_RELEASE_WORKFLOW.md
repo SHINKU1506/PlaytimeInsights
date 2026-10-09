@@ -1,6 +1,6 @@
 # Playtime Insights 新版本预发布流程
 
-更新日期：2026-09-09
+更新日期：2026-10-09
 
 本文是版本无关的发布入口。版本专属证据记录在 `RELEASE_CHECKLIST.md`、
 `CLIENT_ACCEPTANCE_<version>.md` 和 `RELEASE_NOTES_<version>.md`。任何步骤没有证据时必须标记
@@ -11,10 +11,10 @@
 发布前先固定以下值：
 
 ```powershell
-$Version = '1.1.0'
-$AssemblyVersion = '1.1.0.0'
+$Version = '1.1.1'
+$AssemblyVersion = '1.1.1.0'
 $AddonId = 'PlaytimeInsights_7094cd6b-d3a4-41d0-b7c3-f0cc535a9efd'
-$PackageName = "${AddonId}_1_1_0.pext"
+$PackageName = "${AddonId}_1_1_1.pext"
 $Tag = "v$Version"
 ```
 
@@ -25,14 +25,16 @@ $Tag = "v$Version"
 
 以下文件必须一致：
 
-- `extension.yaml`：`Version: 1.1.0`；
-- `Properties/AssemblyInfo.cs`：`AssemblyVersion` 与 `AssemblyFileVersion` 为 `1.1.0.0`；
+- `extension.yaml`：`Version: 1.1.1`；
+- `Properties/AssemblyInfo.cs`：`AssemblyVersion` 与 `AssemblyFileVersion` 为 `1.1.1.0`；
 - `README.md` 当前版本；
 - `CHANGELOG.md` 和版本 Release Notes；
 - `manifests/installer.yaml` 顶部 package；
 - `Tests/Program.cs` 发布元数据回归。
 
 installer manifest 应保留历史 package。若新版本提高最低 API，旧 package 可继续服务旧版 Playnite。
+当前 1.1.1 为待发布源码；在新版 PEXT 上传、下载与包内版本验证完成前，installer manifest
+继续保留已发布的 1.1.0 为顶部 package，避免客户端收到不可下载的更新。
 
 ## 3. 自动化门禁
 
@@ -89,11 +91,11 @@ git status --short
 推荐顺序：
 
 1. 提交发布候选，但暂不推进远端 `main`；
-2. 在该提交创建 `v1.1.0` 标签，并仅推送标签：
+2. 在该提交创建 `v1.1.1` 标签，并仅推送标签：
 
    ```powershell
-   git tag -a v1.1.0 -m "Playtime Insights 1.1.0"
-   git push origin v1.1.0
+   git tag -a v1.1.1 -m "Playtime Insights 1.1.1"
+   git push origin v1.1.1
    ```
 
 3. 基于该标签创建 GitHub Release，上传精确名称的 PEXT；
@@ -112,7 +114,7 @@ git status --short
    不能证明尚未推送的新 package；
 9. 最后执行 Playnite 内更新检测。
 
-若附件、manifest 或升级验证失败，停止推进 `main`；修正或删除未激活的标签/Release，旧 0.9.8
+若附件、manifest 或升级验证失败，停止推进 `main`；修正或删除未激活的标签/Release，旧 1.1.0
 package 继续保持可用。
 
 ## 7. AddonDatabase 判定
@@ -133,6 +135,6 @@ package 继续保持可用。
 
 - `main`、标签与 Release 指向同一发布提交；
 - PackageUrl、installer/addon raw URL、图标、截图、CHANGELOG、PRIVACY 均匿名 HTTP 200；
-- Playnite Add-on Browser 展示 1.1.0，并能从 1.0.0 更新；
+- Playnite Add-on Browser 展示 1.1.1，并能从 1.1.0 更新；
 - Git 工作区无被误提交的构建物或用户数据；
 - `RELEASE_CHECKLIST.md` 记录最终 DLL/PEXT 大小、SHA-256、测试数、客户端验收和远程 URL 证据。
